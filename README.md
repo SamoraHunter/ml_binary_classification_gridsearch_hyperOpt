@@ -47,7 +47,6 @@ See Appendix
 See [ml_grid/tests/unit_test_synthetic.ipynb]
 
 
-```
 
 Contributing
 If you would like to contribute to this project, please follow these steps:
@@ -59,6 +58,11 @@ Push your changes to your fork.
 Create a pull request to the main repository's master branch.
 License
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+
+## Appendix
+
+
 
 Acknowledgments
 scikit-learn
