@@ -34,6 +34,10 @@ ml_grid_env/
 
 HFE_ML_experiments/
 
+ml_grid\tests\unit_test_synthetic DEV.ipynb
+
+ml_grid/tests/unit_test_synthetic DEV.ipynb
+
 ml_grid_env
 # PyInstaller
 # Usually these files are written by a python script from a template
