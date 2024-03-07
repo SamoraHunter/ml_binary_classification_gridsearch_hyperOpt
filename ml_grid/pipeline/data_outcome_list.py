@@ -1,5 +1,3 @@
-
-
 from ml_grid.util import outcome_list
 
 
