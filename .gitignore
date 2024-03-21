@@ -10,6 +10,8 @@ __pycache__/
 *ml_grid_env/
 *HFE_ML_experiments/
 
+
+
 =======
 >>>>>>> 68b72edb1ca57c5b15fc038fd0f5b650fd782b00
 # Distribution / packaging
@@ -82,7 +84,11 @@ HFE_ML_experiments/
 
 ml_grid\tests\unit_test_synthetic DEV.ipynb
 
+ml_grid\tests\unit_test_synthetic_old.ipynb
+
 ml_grid/tests/unit_test_synthetic DEV.ipynb
+ml_grid/tests/unit_test_synthetic_old.ipynb
+ml_grid/tests/unit_test_synthetic-ac.ipynb
 
 ml_grid_env
 # PyInstaller
