@@ -26,6 +26,7 @@ class LightGBMClassifierWrapper():
             "metric": ["logloss"],
             "feature_fraction": [0.8, 0.9, 1.0],
             "early_stopping_rounds": [None, 10, 20],
+            "verbose":[-1]
             
         }
         
