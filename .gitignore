@@ -9,9 +9,10 @@ __pycache__/
 <<<<<<< HEAD
 *ml_grid_env/
 *HFE_ML_experiments/
+unit_test_synthetic_live.ipynb
+/HFE_ML_experiments
 
-
-
+*/HFE_ML_experiments/
 =======
 >>>>>>> 68b72edb1ca57c5b15fc038fd0f5b650fd782b00
 # Distribution / packaging
