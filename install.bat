@@ -1,26 +1,42 @@
 @echo off
 
-REM Create virtual environment
-python -m venv ml_grid_ts_env
+rem Check if virtual environment exists
+if not exist ml_grid_ts_env (
+    rem Create virtual environment
+    python -m venv ml_grid_ts_env
+)
+
+rem Activate virtual environment
 call ml_grid_ts_env\Scripts\activate
 
-REM Upgrade pip
+rem Upgrade pip
 python -m pip install --upgrade pip
 
-REM Install IPython kernel spec
-python -m pip install ipykernel
+rem Install ipykernel
+pip install ipykernel
 
+rem Add kernel spec
 python -m ipykernel install --user --name=ml_grid_ts_env
 
-REM Install packages from requirements.txt
-python -m pip install -r requirements.txt || (
-    echo Failed to install some packages from requirements.txt
+rem Install requirements from requirements.txt
+for /f "delims=" %%i in (requirements.txt) do (
+    pip install %%i
+    if errorlevel 1 (
+        echo Failed to install %%i >> installation_log.txt
+    ) else (
+        echo Successfully installed %%i
+    )
 )
 
-REM Install packages from requirements_ts.txt
-python -m pip install -r requirements_ts.txt || (
-    echo Failed to install some packages from requirements_ts.txt
+rem Install requirements from requirements_ts.txt
+for /f "delims=" %%i in (requirements_ts.txt) do (
+    pip install %%i
+    if errorlevel 1 (
+        echo Failed to install %%i >> installation_log.txt
+    ) else (
+        echo Successfully installed %%i
+    )
 )
 
-echo Installation completed successfully.
-pause
+rem Deactivate virtual environment
+deactivate
