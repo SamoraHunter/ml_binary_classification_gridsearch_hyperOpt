@@ -24,6 +24,7 @@ class h2o_classifier_class:
             X_train (_type_): _description_
             y_train (_type_): _description_
         """
+        print("init h2o_classifier_class")
         self.X = X
         self.y = y
 

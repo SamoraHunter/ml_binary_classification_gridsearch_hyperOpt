@@ -2,6 +2,7 @@ import traceback
 
 import ml_grid
 import numpy as np
+from ml_grid.model_classes.h2o_classifier_class import h2o_classifier_class
 from ml_grid.model_classes.adaboost_classifier_class import adaboost_class
 from ml_grid.model_classes.gaussiannb_class import GaussianNB_class
 from ml_grid.model_classes.gradientboosting_classifier_class import (
@@ -30,6 +31,8 @@ from ml_grid.model_classes.light_gbm_class import LightGBMClassifierWrapper
 from ml_grid.model_classes.NeuralNetworkClassifier_class import (
     NeuralNetworkClassifier_class,
 )
+
+# from ml_grid.model_classes.H2OAutoMLClassifier import H2OAutoMLClassifier
 
 
 class run:
@@ -112,6 +115,11 @@ class run:
                 parameter_space_size=self.parameter_space_size,
             ),
             LightGBMClassifierWrapper(
+                X=self.ml_grid_object.X_train,
+                y=self.ml_grid_object.y_train,
+                parameter_space_size=self.parameter_space_size,
+            ),
+            h2o_classifier_class(
                 X=self.ml_grid_object.X_train,
                 y=self.ml_grid_object.y_train,
                 parameter_space_size=self.parameter_space_size,
