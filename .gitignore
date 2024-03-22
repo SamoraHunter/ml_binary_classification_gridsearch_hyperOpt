@@ -84,6 +84,12 @@ ml_grid\tests\unit_test_synthetic DEV.ipynb
 
 ml_grid/tests/unit_test_synthetic DEV.ipynb
 
+ml_grid/tests/unit_test_synthetic_old.ipynb
+
+ml_grid/tests/unit_test_synthetic-ac.ipynb
+
+
+
 ml_grid_env
 # PyInstaller
 # Usually these files are written by a python script from a template
