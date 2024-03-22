@@ -1,20 +1,22 @@
-
 from numpy import absolute, mean, std
 from sklearn import metrics
-from sklearn.metrics import (classification_report, f1_score, make_scorer,
-                             matthews_corrcoef, roc_auc_score)
+from sklearn.metrics import (
+    classification_report,
+    f1_score,
+    make_scorer,
+    matthews_corrcoef,
+    roc_auc_score,
+)
 
 
-class debug_print_statements_class():
-    
+class debug_print_statements_class:
+
     def __init__(self, scores):
-        
+
         self.scores = scores
-        
-        
-    
+
     def debug_print_scores(scores):
-        
+
         print(
             "Mean MAE: %.3f (%.3f)"
             % (
