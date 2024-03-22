@@ -15,7 +15,7 @@ class KNeighborsTimeSeriesClassifier_class:
                 "euclidean",
             ],  # , 'cityblock' 'ctw', 'sqeuclidean','sax' 'softdtw'
             "n_neighbors": [2, 3, 5],  # [log_med_long]
-            "n_jobs": [ml_grid_object.n_jobs_model_val],
+            "n_jobs": [ml_grid_object.global_params.knn_n_jobs],
         }
 
         # nb consider probability scoring on binary class eval: CalibratedClassifierCV
