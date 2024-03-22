@@ -96,6 +96,8 @@ ml_grid/tests/unit_test_synthetic_time_series_DEV.ipynb
 
 ml_grid_ts_env
 
+installation_log.txt
+
 ml_grid_env
 # PyInstaller
 # Usually these files are written by a python script from a template
