@@ -88,11 +88,13 @@ ml_grid/tests/unit_test_synthetic_old.ipynb
 
 ml_grid/tests/unit_test_synthetic-ac.ipynb
 
-knn time series time warp classifier-Multivariate-grid-dev-38-2.5.ipynb
+tests/knn time series time warp classifier-Multivariate-grid-dev-38-2.5.ipynb
 
 grid_score_reader_ML_TS_Grid_V_1.5.ipynb
 
 ml_grid/tests/unit_test_synthetic_time_series_DEV.ipynb
+
+knn time series time warp classifier-Multivariate-grid-dev-38-2.5.ipynb
 
 ml_grid_ts_env
 
