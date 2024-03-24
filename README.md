@@ -32,6 +32,37 @@ git clone https://github.com/SamoraHunter/ml_binary_classification_gridsearch_hy
 
 ```
 
+## Installation
+
+### Windows:
+
+1. **Clone the repository:**
+    ```shell
+    git clone https://github.com/yourusername/yourproject.git
+    cd yourproject
+    ```
+
+2. **Run the installation script:**
+    ```shell
+    install.bat
+    ```
+
+### Unix/Linux:
+
+1. **Clone the repository:**
+    ```shell
+    git clone https://github.com/yourusername/yourproject.git
+    cd yourproject
+    ```
+
+2. **Run the installation script:**
+    ```shell
+    chmod +x install.sh
+    ./install.sh
+    ```
+
+
+
 ```python
 import ml_grid
 
