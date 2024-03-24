@@ -1,4 +1,7 @@
+import itertools
+import numpy as np
 import sklearn.feature_selection
+import tqdm
 from ml_grid.pipeline import read_in
 from ml_grid.pipeline.column_names import get_pertubation_columns
 from ml_grid.pipeline.data_clean_up import clean_up_class
@@ -15,11 +18,7 @@ from sklearn.exceptions import ConvergenceWarning
 from tabulate import tabulate
 import pandas as pd
 import re
-
-from ml_grid.util.time_series_helper import (
-    convert_Xy_to_time_series,
-    max_client_idcode_sequence_length,
-)
+from tensorflow.keras.preprocessing import sequence
 
 ConvergenceWarning("ignore")
 
@@ -53,7 +52,6 @@ class pipe:
         param_space_index,
         additional_naming=None,
         test_sample_n=0,
-        time_series_mode=False,
     ):  # kwargs**
 
         self.base_project_dir = base_project_dir
@@ -67,8 +65,6 @@ class pipe:
         self.verbose = self.global_params.verbose
 
         self.param_space_index = param_space_index
-
-        self.time_series_mode = time_series_mode
 
         if self.verbose >= 1:
             print(f"Starting... {self.local_param_dict}")
@@ -128,10 +124,6 @@ class pipe:
             if (self.X not in self.drop_list and self.X in self.df.columns)
         ]
 
-        if self.time_series_mode:
-            # Re add client_idcode
-            self.final_column_list.insert(0, "client_idcode")
-
         self.X = self.df[self.final_column_list].copy()
 
         self.X = clean_up_class().handle_duplicated_columns(self.X)
@@ -168,21 +160,66 @@ class pipe:
         #         self.X.columns = pd.io.common.dedupe_nans(self.X.columns)
 
         # self.X = self.X.rename(columns = lambda x:re.sub('[^A-Za-z0-9]+', '', x))
-        from IPython.display import display
 
-        print("pre func")
-        display(self.X)
+        def add_date_order_sequence_column(df):
+            # Convert 'timestamp' column to datetime if it's not already
+            df["timestamp"] = pd.to_datetime(df["timestamp"])
 
-        max_seq_length = max_client_idcode_sequence_length(self.df)
+            # Sort dataframe by 'client_idcode' and 'timestamp'
+            df.sort_values(by=["client_idcode", "timestamp"], inplace=True)
 
-        if self.time_series_mode:
-            if self.verbose >= 1:
-                print("time_series_mode", "convert_df_to_time_series")
-                print(self.X.shape)
+            # Group by 'client_idcode' and assign a sequential order based on timestamp
+            df["date_order_sequence"] = df.groupby("client_idcode").cumcount() + 1
 
-            self.X, self.y = convert_Xy_to_time_series(self.X, self.y, max_seq_length)
-            if self.verbose >= 1:
-                print(self.X.shape)
+            return df
+
+        def max_client_idcode_sequence_length(df):
+            # Count occurrences of each client_idcode
+            idcode_counts = df["client_idcode"].value_counts()
+
+            # Find the maximum count
+            max_length = idcode_counts.max()
+
+            return max_length
+
+        max_seq_length = max_client_idcode_sequence_length(pre_ts_df)
+
+        pre_ts_df = pd.concat([self.X, self.y])
+
+        pre_ts_df = add_date_order_sequence_column(pre_ts_df)
+
+        unique_pats = pre_ts_df[["client_idcode", "date_order_sequence"]][
+            "client_idcode"
+        ].unique()
+
+        feature_list = self.X.columns
+
+        X = []
+        y = []
+
+        print("Feature_list")
+        print(feature_list)
+        print(f"len(feature_list) :{len(feature_list) }")
+        # print(feature_list)
+        for i in tqdm(range(0, len(unique_pats))):  # verbose #unique_pats
+
+            pat = unique_pats[i]
+
+            y.append(
+                pre_ts_df[pre_ts_df["client_idcode"] == pat].iloc[0]["outcome_var_1"]
+            )
+
+            pat_multi_vector = sequence.pad_sequences(
+                np.transpose(
+                    pre_ts_df[pre_ts_df["client_idcode"] == pat][feature_list].values
+                ),
+                maxlen=max_seq_length,
+            )
+            X.append(pat_multi_vector)
+
+        X = np.array(X)
+        y = np.array(y)
+
         (
             self.X_train,
             self.X_test,
@@ -197,14 +234,14 @@ class pipe:
         if target_n_features != 100:
 
             target_n_features_eval = int(
-                (target_n_features / 100) * self.X_train.shape[1]
+                (target_n_features / 100) * len(self.X_train.columns)
             )
 
-            if target_n_features_eval < self.X_train.shape[1]:
-                target_n_features_eval = self.X_train.shape[1]
+            if target_n_features_eval < len(self.X_train.columns):
+                target_n_features_eval = len(self.X_train.columns)
 
             print(
-                f"Pre target_n_features {target_n_features}% reduction {target_n_features_eval}/{self.X_train.shape[1]}"
+                f"Pre target_n_features {target_n_features}% reduction {target_n_features_eval}/{len(self.X_train.columns)}"
             )
             try:
 

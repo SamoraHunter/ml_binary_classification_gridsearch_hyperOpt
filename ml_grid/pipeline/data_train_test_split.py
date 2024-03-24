@@ -1,6 +1,8 @@
 from imblearn.over_sampling import RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
 from sklearn.model_selection import train_test_split
+import numpy as np
+import pandas as pd
 
 
 def get_data_split(X, y, local_param_dict):
@@ -9,6 +11,9 @@ def get_data_split(X, y, local_param_dict):
     # y = y
     # local_param_dict = local_param_dict
     # X_train_orig, X_test_orig, y_train_orig, y_test_orig = None, None, None, None
+    if not is_valid_shape(X):
+        local_param_dict["resample"] = None
+        print("overriding resample with None")
 
     if local_param_dict.get("resample") == None:
 
@@ -25,9 +30,10 @@ def get_data_split(X, y, local_param_dict):
         # training sets are only X_train, X_test y_train y_test
 
     elif local_param_dict.get("resample") == "undersample":
-        print("undersample..")
-        print((y.shape))
-        print(X.shape)
+        # print("undersample..")
+        # print((y.shape))
+        # print(X.shape)
+
         rus = RandomUnderSampler(random_state=0)
         X, y = rus.fit_resample(X, y)
         # Create validation set
@@ -79,3 +85,20 @@ def get_data_split(X, y, local_param_dict):
 
 #         X_train, X_test, y_train, y_test = train_test_split(
 #         X, y, test_size=0.25, random_state=1)
+
+
+def is_valid_shape(input_data):
+    # Check if input_data is a numpy array
+    if isinstance(input_data, np.ndarray):
+        # If it's a numpy array, directly check its number of dimensions
+        return input_data.ndim == 2
+
+    # Check if input_data is a pandas DataFrame
+    elif isinstance(input_data, pd.DataFrame):
+        # If it's a DataFrame, convert it to a numpy array and then check its shape
+        input_array = input_data.values
+        return input_array.ndim == 2
+
+    else:
+        # Input data is neither a numpy array nor a pandas DataFrame
+        return False

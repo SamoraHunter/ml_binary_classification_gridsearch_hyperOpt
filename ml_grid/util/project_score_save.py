@@ -213,7 +213,8 @@ class project_score_save_class:
                                 ml_grid_object.local_param_dict.get("data").get(key_1)
                             ]
 
-            current_f = list(self.X_test.columns)
+            current_f = ml_grid_object.final_column_list
+            # current_f = list(self.X_test.columns)
             current_f_vector = []
             f_list = []
             for elem in ml_grid_object.orignal_feature_names:

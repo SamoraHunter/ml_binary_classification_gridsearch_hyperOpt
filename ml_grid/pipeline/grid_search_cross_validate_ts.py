@@ -66,15 +66,6 @@ class grid_search_crossvalidate:
 
         grid_n_jobs = self.global_params.grid_n_jobs
 
-        if "keras" in method_name.lower():
-            grid_n_jobs = 1
-            gpu_devices = tf.config.experimental.list_physical_devices("GPU")
-            for device in gpu_devices:
-                tf.config.experimental.set_memory_growth(device, True)
-
-        if "XGBClassifier" in method_name.lower():
-            grid_n_jobs = 1
-
         self.metric_list = self.global_params.metric_list
 
         self.error_raise = self.global_params.error_raise
@@ -98,11 +89,13 @@ class grid_search_crossvalidate:
 
         self.y_test_orig = self.ml_grid_object_iter.y_test_orig
 
-        self.cv = RepeatedKFold(n_splits=10, n_repeats=3, random_state=1)
+        self.cv = RepeatedKFold(
+            n_splits=min(10, len(self.X_train)), n_repeats=3, random_state=1
+        )
 
         start = time.time()
 
-        current_algorithm = algorithm_implementation
+        current_algorithm = algorithm_implementation()
 
         parameters = parameter_space
         n_iter_v = np.nan
@@ -190,8 +183,12 @@ class grid_search_crossvalidate:
 
         #         this should be x_test...?
         best_pred_orig = current_algorithm.predict(
-            self.X_test[self.X_test.columns]
+            #    self.X_test[self.X_test.columns] #???
+            self.X_test
         )  # exp
+
+        print(best_pred_orig)
+        print(scores)
 
         project_score_save_class.update_score_log(
             self=self,
