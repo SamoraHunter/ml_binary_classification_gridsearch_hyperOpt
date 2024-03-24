@@ -23,23 +23,14 @@ You can install these dependencies using pip:
 
 pip install numpy pandas scikit-learn hyperopt
 
-### Installation
-
-1. Clone this repository to your local machine:
-
-```bash
-git clone https://github.com/SamoraHunter/ml_binary_classification_gridsearch_hyperOpt.git
-
-```
-
 ## Installation
 
 ### Windows:
 
 1. **Clone the repository:**
     ```shell
-    git clone https://github.com/yourusername/yourproject.git
-    cd yourproject
+    git clone https://github.com/SamoraHunter/ml_binary_classification_gridsearch_hyperOpt.git
+    cd ml_binary_classification_gridsearch_hyperOpt
     ```
 
 2. **Run the installation script:**
@@ -51,8 +42,8 @@ git clone https://github.com/SamoraHunter/ml_binary_classification_gridsearch_hy
 
 1. **Clone the repository:**
     ```shell
-    git clone https://github.com/yourusername/yourproject.git
-    cd yourproject
+    git clone https://github.com/SamoraHunter/ml_binary_classification_gridsearch_hyperOpt.git
+    cd ml_binary_classification_gridsearch_hyperOpt
     ```
 
 2. **Run the installation script:**
@@ -60,6 +51,7 @@ git clone https://github.com/SamoraHunter/ml_binary_classification_gridsearch_hy
     chmod +x install.sh
     ./install.sh
     ```
+
 
 
 
