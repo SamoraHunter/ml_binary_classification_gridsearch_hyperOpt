@@ -56,7 +56,10 @@ pip install numpy pandas scikit-learn hyperopt
 
 
 ```python
+import sys
+sys.path.append('/path/to/ml_grid')
 import ml_grid
+
 
 ```
 
