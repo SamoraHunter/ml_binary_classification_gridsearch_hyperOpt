@@ -19,6 +19,7 @@ class ParamSpace:
 
             nstep = 3
             self.param_dict = {
+                "log_epoch": np.floor(np.logspace(0, 1.5, 3)).astype(int),
                 "log_small": np.logspace(-1, -5, 3),
                 "bool_param": [True, False],
                 "log_large": np.logspace(0, 2, 3).astype(int),
@@ -33,6 +34,7 @@ class ParamSpace:
 
             nstep = 2
             self.param_dict = {
+                "log_epoch": np.floor(np.logspace(-1, 1, 3)).astype(int),
                 "log_small": np.logspace(-1, -5, 2),
                 "bool_param": [True, False],
                 "log_large": np.logspace(0, 2, 2).astype(int),
@@ -47,6 +49,7 @@ class ParamSpace:
 
             nstep = 2
             self.param_dict = {
+                "log_epoch": np.floor(np.logspace(-2, 2, 3)).astype(int),
                 "log_small": np.logspace(-1, -5, 2),
                 "bool_param": [True, False],
                 "log_large": np.logspace(0, 2, 2).astype(int),

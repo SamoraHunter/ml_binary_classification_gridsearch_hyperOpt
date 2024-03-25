@@ -3,6 +3,26 @@ import traceback
 import ml_grid
 import numpy as np
 from ml_grid.model_classes_time_series.ArsenalClassifier_module import Arsenal_class
+from ml_grid.model_classes_time_series.CNNClassifier_module import CNNClassifier_class
+from ml_grid.model_classes_time_series.ContractableBOSSClassifier_module import (
+    ContractableBOSS_class,
+)
+from ml_grid.model_classes_time_series.EncoderClassifier_module import (
+    EncoderClassifier_class,
+)
+from ml_grid.model_classes_time_series.FCNClassifier_module import FCNClassifier_class
+from ml_grid.model_classes_time_series.FreshPRINCEClassifier_module import (
+    FreshPRINCEClassifier_class,
+)
+from ml_grid.model_classes_time_series.HIVECOTEV1Classifier_module import (
+    HIVECOTEV1_class,
+)
+from ml_grid.model_classes_time_series.HIVECOTEV2Classifier_module import (
+    HIVECOTEV2_class,
+)
+from ml_grid.model_classes_time_series.InceptionTimeClassifer_module import (
+    InceptionTimeClassifier_class,
+)
 from ml_grid.model_classes_time_series.KNeighborsTimeSeriesClassifier_module import (
     KNeighborsTimeSeriesClassifier_class,
 )
@@ -34,6 +54,15 @@ class run:
         self.model_class_list = [
             KNeighborsTimeSeriesClassifier_class(ml_grid_object),
             Arsenal_class(ml_grid_object),
+            CNNClassifier_class(ml_grid_object),
+            ContractableBOSS_class(ml_grid_object),
+            InceptionTimeClassifier_class(ml_grid_object),
+            HIVECOTEV1_class(ml_grid_object),
+            HIVECOTEV2_class(ml_grid_object),
+            FreshPRINCEClassifier_class(ml_grid_object),
+            FCNClassifier_class(ml_grid_object),
+            EncoderClassifier_class(ml_grid_object),
+            CNNClassifier_class(ml_grid_object),
         ]
 
         if self.verbose >= 2:
