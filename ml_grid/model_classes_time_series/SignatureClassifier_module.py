@@ -1,17 +1,16 @@
-class SignatureClassifier_class():
-    algorithm_implementation = SignatureClassifier
+from aeon.classification.feature_based._signature_classifier import SignatureClassifier
 
-    method_name = 'SignatureClassifier'
 
-    parameter_space = {
-#         'estimator': [RandomForestClassifier(n_estimators=100), DecisionTreeClassifier()],
-#         'augmentation_list': [('basepoint', 'addtime'), ('addtime',)],
-#         'window_name': ['dyadic', 'sliding', 'expanding'],
-#         'window_depth': [2, 3, 4],
-#         'window_length': [None, 50, 100],
-#         'window_step': [None, 1, 5],
-#         'rescaling': [None, 'standard', 'min-max'],
-#         'sig_tfm': ['signature', 'logsignature'],
-#         'depth': [3, 4, 5],
-        'random_state': [0],
-    }
+class SignatureClassifier_class:
+
+    def __init__(self, ml_grid_object):
+
+        random_state_val = ml_grid_object.global_params.random_state_val
+
+        self.algorithm_implementation = SignatureClassifier
+
+        self.method_name = "SignatureClassifier"
+
+        self.parameter_space = {
+            "random_state": [random_state_val],
+        }

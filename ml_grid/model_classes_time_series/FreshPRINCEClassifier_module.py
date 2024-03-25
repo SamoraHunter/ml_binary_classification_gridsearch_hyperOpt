@@ -1,6 +1,4 @@
-from aeon.classification.feature_based._fresh_prince.FreshPRINCE import (
-    FreshPRINCEClassifier,
-)
+from aeon.classification.feature_based._fresh_prince import FreshPRINCEClassifier
 
 
 class FreshPRINCEClassifier_class:

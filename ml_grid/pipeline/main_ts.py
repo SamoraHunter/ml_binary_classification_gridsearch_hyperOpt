@@ -62,7 +62,19 @@ class run:
             FreshPRINCEClassifier_class(ml_grid_object),
             FCNClassifier_class(ml_grid_object),
             EncoderClassifier_class(ml_grid_object),
-            CNNClassifier_class(ml_grid_object),
+            IndividualInceptionClassifier_class(ml_grid_object),
+            IndividualTDE_class(ml_grid_object),
+            MLPClassifier_class(ml_grid_object),
+            MUSE_class(ml_grid_object),
+            OrdinalTDE_class(ml_grid_object),
+            ResNetClassifier_class(ml_grid_object),
+            RocketClassifier_class(ml_grid_object),
+            ShapeDTW_class(ml_grid_object),
+            SignatureClassifier_class(ml_grid_object),
+            SummaryClassifier_class(ml_grid_object),
+            TapNetClassifier_class(ml_grid_object),
+            TemporalDictionaryEnsemble_class(ml_grid_object),
+            TSFreshClassifier_class(ml_grid_object),
         ]
 
         if self.verbose >= 2:
