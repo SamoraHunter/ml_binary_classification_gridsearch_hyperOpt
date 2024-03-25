@@ -22,6 +22,12 @@ class global_parameters:
 
         self.grid_n_jobs = 4
 
+        self.time_limit_param = [3]
+
+        self.random_state_val = 0
+
+        self.n_jobs_model_val = 2
+
         self.metric_list = {
             "auc": make_scorer(roc_auc_score, needs_proba=False),
             "f1": "f1",

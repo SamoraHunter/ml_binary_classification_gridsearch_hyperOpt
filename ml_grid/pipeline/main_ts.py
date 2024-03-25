@@ -2,6 +2,7 @@ import traceback
 
 import ml_grid
 import numpy as np
+from ml_grid.model_classes_time_series.ArsenalClassifier_module import Arsenal_class
 from ml_grid.model_classes_time_series.KNeighborsTimeSeriesClassifier_module import (
     KNeighborsTimeSeriesClassifier_class,
 )
@@ -32,6 +33,7 @@ class run:
 
         self.model_class_list = [
             KNeighborsTimeSeriesClassifier_class(ml_grid_object),
+            Arsenal_class(ml_grid_object),
         ]
 
         if self.verbose >= 2:
