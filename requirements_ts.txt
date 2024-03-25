@@ -158,3 +158,4 @@ ptyprocess==0.7.0
 pure-eval==0.2.2
 pyarrow==11
 aeon[dl]
+tsfresh

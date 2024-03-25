@@ -9,7 +9,7 @@ class SummaryClassifier_class:
         n_jobs_model_val = ml_grid_object.global_params.n_jobs_model_val
         random_state_val = ml_grid_object.global_params.random_state_val
 
-        self.algorithm_implementation = SummaryClassifier
+        self.algorithm_implementation = SummaryClassifier()
 
         self.method_name = "SummaryClassifier"
 

@@ -11,7 +11,7 @@ class HIVECOTEV1_class:
 
         n_jobs_model_val = ml_grid_object.global_params.n_jobs_model_val
 
-        self.algorithm_implementation = HIVECOTEV1
+        self.algorithm_implementation = HIVECOTEV1()
 
         self.method_name = "HIVECOTEV1"
 

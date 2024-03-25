@@ -7,7 +7,7 @@ class SignatureClassifier_class:
 
         random_state_val = ml_grid_object.global_params.random_state_val
 
-        self.algorithm_implementation = SignatureClassifier
+        self.algorithm_implementation = SignatureClassifier()
 
         self.method_name = "SignatureClassifier"
 

@@ -1,7 +1,9 @@
 import time
 import traceback
-
+from ml_grid.model_classes.keras_classifier_class import kerasClassifier_class
+import keras
 import numpy as np
+from scikeras.wrappers import KerasClassifier
 import pandas as pd
 from ml_grid.util.debug_print_statements import debug_print_statements_class
 from ml_grid.util.global_params import global_parameters
@@ -153,8 +155,20 @@ class grid_search_crossvalidate:
                 print(f"parameter grid size: Full: {pg}")
         grid.fit(self.X_train, self.y_train)
 
-        current_algorithm = grid.best_estimator_
-        current_algorithm.fit(self.X_train, self.y_train)
+        # Get cross validated scores for best hyperparameter model on x_train_/y_train
+        if type(grid.estimator) is not keras.wrappers.scikit_learn.KerasClassifier:
+
+            current_algorithm = grid.best_estimator_
+            current_algorithm.fit(self.X_train, self.y_train)
+
+        else:
+            current_algorithm = KerasClassifier(
+                build_fn=kerasClassifier_class.create_model(),  # dual function definition...in model class.
+                verbose=0,
+                layers=grid.best_params_["layers"],
+                width=grid.best_params_["width"],
+                learning_rate=grid.best_params_["learning_rate"],
+            )
 
         scores = cross_validate(
             current_algorithm,

@@ -13,7 +13,7 @@ class MLPClassifier_class:
 
         log_epoch = ml_grid_object.local_param_dict.get("log_epoch")
 
-        self.algorithm_implementation = MLPClassifier
+        self.algorithm_implementation = MLPClassifier()
 
         self.method_name = "MLPClassifier"
 

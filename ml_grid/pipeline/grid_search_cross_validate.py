@@ -102,7 +102,9 @@ class grid_search_crossvalidate:
 
         self.y_test_orig = self.ml_grid_object_iter.y_test_orig
 
-        self.cv = RepeatedKFold(n_splits=10, n_repeats=3, random_state=1)
+        self.cv = RepeatedKFold(
+            n_splits=min(10, len(self.X_train)), n_repeats=3, random_state=1
+        )
 
         start = time.time()
 
@@ -205,9 +207,7 @@ class grid_search_crossvalidate:
             # plot_auc_results(grid.best_estimator_, X_test_orig, self.y_test_orig, cv)
 
         #         this should be x_test...?
-        best_pred_orig = current_algorithm.predict(
-            self.X_test[self.X_test.columns]
-        )  # exp
+        best_pred_orig = current_algorithm.predict(self.X_test)  # exp
 
         project_score_save_class.update_score_log(
             self=self,

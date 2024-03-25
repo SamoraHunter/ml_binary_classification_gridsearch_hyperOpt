@@ -10,6 +10,8 @@ from ml_grid.pipeline.data_plot_split import plot_pie_chart_with_counts
 from ml_grid.pipeline.data_scale import data_scale_methods
 from ml_grid.pipeline.data_train_test_split import *
 from ml_grid.pipeline.logs_project_folder import log_folder
+from ml_grid.pipeline.model_class_list import get_model_class_list
+from ml_grid.pipeline.model_class_list_ts import get_model_class_list_ts
 from ml_grid.util.global_params import global_parameters
 from sklearn.exceptions import ConvergenceWarning
 from tabulate import tabulate
@@ -170,10 +172,12 @@ class pipe:
         # self.X = self.X.rename(columns = lambda x:re.sub('[^A-Za-z0-9]+', '', x))
         from IPython.display import display
 
-        print("pre func")
-        display(self.X)
+        if self.time_series_mode:
+            if self.verbose >= 1:
+                print("pre func")
+                display(self.X)
 
-        max_seq_length = max_client_idcode_sequence_length(self.df)
+            max_seq_length = max_client_idcode_sequence_length(self.df)
 
         if self.time_series_mode:
             if self.verbose >= 1:
@@ -240,3 +244,13 @@ class pipe:
         if self.verbose >= 3:
 
             plot_pie_chart_with_counts(self.X_train, self.X_test, self.X_test_orig)
+
+        if time_series_mode:
+            if self.verbose >= 2:
+                print("data>>", "get_model_class_list_ts")
+            self.model_class_list = get_model_class_list_ts(self)
+
+        else:
+            if self.verbose >= 2:
+                print("data>>", "get_model_class_list")
+            self.model_class_list = get_model_class_list(self)

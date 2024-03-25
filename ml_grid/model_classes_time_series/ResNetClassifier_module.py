@@ -2,6 +2,8 @@ import keras
 
 from aeon.classification.deep_learning.resnet import ResNetClassifier
 
+from ml_grid.util.param_space import ParamSpace
+
 
 class ResNetClassifier_class:
 
@@ -13,9 +15,13 @@ class ResNetClassifier_class:
 
         verbose_param = ml_grid_object.verbose
 
-        log_epoch = ml_grid_object.local_param_dict.param_dict.get("log_epoch")
+        param_space = ParamSpace(
+            ml_grid_object.local_param_dict.get("param_space_size")
+        )
 
-        self.algorithm_implementation = ResNetClassifier
+        log_epoch = param_space.param_dict.get("log_epoch")
+
+        self.algorithm_implementation = ResNetClassifier()
 
         self.method_name = "ResNetClassifier"
 

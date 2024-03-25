@@ -11,7 +11,7 @@ class FreshPRINCEClassifier_class:
 
         n_jobs_model_val = ml_grid_object.global_params.n_jobs_model_val
 
-        self.algorithm_implementation = FreshPRINCEClassifier
+        self.algorithm_implementation = FreshPRINCEClassifier()
 
         self.method_name = "FreshPRINCEClassifier"
 

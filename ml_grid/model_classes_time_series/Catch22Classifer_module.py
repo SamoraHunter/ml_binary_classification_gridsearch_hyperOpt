@@ -1,20 +1,30 @@
+from aeon.classification.feature_based import Catch22Classifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
 
 
+class Catch22Classifier_class:
 
-class Catch22Classifier_class():
-    algorithm_implementation = Catch22Classifier
+    def __init__(self, ml_grid_object):
 
-    method_name = 'Catch22Classifier'
+        verbose_param = ml_grid_object.verbose
+        random_state_val = ml_grid_object.global_params.random_state_val
+        n_jobs_model_val = ml_grid_object.global_params.n_jobs_model_val
 
-    parameter_space = {
-        'features': ["all", ["DN_HistogramMode_5", "DN_HistogramMode_10"], ...],  # List of catch22 features to extract
-        'catch24': [True, False],                                                  # Extract mean, std, and 22 Catch22 features
-        'outlier_norm': [True, False],                                             # Normalize during outlier Catch22 features
-        'replace_nans': [True, False],                                             # Replace NaN/inf values from the transform
-        'use_pycatch22': [True, False],                                            # Use C-based pycatch22 implementation
-        'estimator': [RandomForestClassifier(n_estimators=200),                  # Sklearn estimator for building the model
-                      DecisionTreeClassifier()],                              # Add more estimators if desired
-        'random_state': [random_state_val],                                                # Random seed for random number generator
-        'n_jobs': [n_jobs_model_val],                                                         # Number of jobs for parallel processing
-       # 'parallel_backend': [None, "loky", "multiprocessing", "threading"],        # Parallelization backend options
-    }
+        self.algorithm_implementation = Catch22Classifier()
+
+        self.method_name = "Catch22Classifier"
+
+        self.parameter_space = {
+            "features": ["all", ["DN_HistogramMode_5", "DN_HistogramMode_10"]],
+            "catch24": [True, False],
+            "outlier_norm": [True, False],
+            "replace_nans": [True, False],
+            "use_pycatch22": [True, False],
+            "estimator": [
+                RandomForestClassifier(n_estimators=200),
+                DecisionTreeClassifier(),
+            ],
+            "random_state": [random_state_val],
+            "n_jobs": [n_jobs_model_val],
+        }

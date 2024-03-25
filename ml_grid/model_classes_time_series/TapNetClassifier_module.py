@@ -2,16 +2,22 @@ from aeon.classification.deep_learning.tapnet import TapNetClassifier
 
 import keras
 
+from ml_grid.util.param_space import ParamSpace
+
 
 class TapNetClassifier_class:
 
     def __init__(self, ml_grid_object):
 
         verbose_param = ml_grid_object.verbose
-        log_epoch = ml_grid_object.local_param_dict.get("log_epoch")
+        param_space = ParamSpace(
+            ml_grid_object.local_param_dict.get("param_space_size")
+        )
+
+        log_epoch = param_space.param_dict.get("log_epoch")
         random_state_val = ml_grid_object.global_params.random_state_val
 
-        self.algorithm_implementation = TapNetClassifier
+        self.algorithm_implementation = TapNetClassifier()
 
         self.method_name = "TapNetClassifier"
 

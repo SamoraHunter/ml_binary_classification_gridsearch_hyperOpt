@@ -5,7 +5,7 @@ class KNeighborsTimeSeriesClassifier_class:
 
     def __init__(self, ml_grid_object):
 
-        self.algorithm_implementation = KNeighborsTimeSeriesClassifier
+        self.algorithm_implementation = KNeighborsTimeSeriesClassifier()
 
         self.method_name = "KNeighborsTimeSeriesClassifier"
 

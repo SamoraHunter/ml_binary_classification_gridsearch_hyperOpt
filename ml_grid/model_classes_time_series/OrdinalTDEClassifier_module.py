@@ -12,7 +12,7 @@ class OrdinalTDE_class:
 
         time_limit_param = ml_grid_object.global_params.time_limit_param
 
-        self.algorithm_implementation = OrdinalTDE
+        self.algorithm_implementation = OrdinalTDE()
 
         self.method_name = "OrdinalTDE"
 

@@ -23,12 +23,45 @@ from ml_grid.model_classes_time_series.HIVECOTEV2Classifier_module import (
 from ml_grid.model_classes_time_series.InceptionTimeClassifer_module import (
     InceptionTimeClassifier_class,
 )
+from ml_grid.model_classes_time_series.IndividualInceptionClassifier_module import (
+    IndividualInceptionClassifier_class,
+)
+from ml_grid.model_classes_time_series.InidividualTDEClassifier_module import (
+    IndividualTDE_class,
+)
 from ml_grid.model_classes_time_series.KNeighborsTimeSeriesClassifier_module import (
     KNeighborsTimeSeriesClassifier_class,
 )
 
 
 # from ml_grid.model_classes import LogisticRegression_class
+from ml_grid.model_classes_time_series.MLPClassifier_module import MLPClassifier_class
+from ml_grid.model_classes_time_series.MUSEClassifier_module import MUSE_class
+from ml_grid.model_classes_time_series.OrdinalTDEClassifier_module import (
+    OrdinalTDE_class,
+)
+from ml_grid.model_classes_time_series.ResNetClassifier_module import (
+    ResNetClassifier_class,
+)
+from ml_grid.model_classes_time_series.SignatureClassifier_module import (
+    SignatureClassifier_class,
+)
+from ml_grid.model_classes_time_series.SummaryClassifier_module import (
+    SummaryClassifier_class,
+)
+from ml_grid.model_classes_time_series.TSFreshClassifier_module import (
+    TSFreshClassifier_class,
+)
+from ml_grid.model_classes_time_series.TapNetClassifier_module import (
+    TapNetClassifier_class,
+)
+from ml_grid.model_classes_time_series.TemporalDictionaryEnsembleClassifier_module import (
+    TemporalDictionaryEnsemble_class,
+)
+from ml_grid.model_classes_time_series.rocketClassifier_module import (
+    RocketClassifier_class,
+)
+from ml_grid.model_classes_time_series.shapeDTWClassifier_module import ShapeDTW_class
 from ml_grid.pipeline import grid_search_cross_validate_ts
 from ml_grid.util import grid_param_space
 from ml_grid.util.global_params import global_parameters
@@ -51,31 +84,7 @@ class run:
 
         self.parameter_space_size = local_param_dict.get("param_space_size")
 
-        self.model_class_list = [
-            KNeighborsTimeSeriesClassifier_class(ml_grid_object),
-            Arsenal_class(ml_grid_object),
-            CNNClassifier_class(ml_grid_object),
-            ContractableBOSS_class(ml_grid_object),
-            InceptionTimeClassifier_class(ml_grid_object),
-            HIVECOTEV1_class(ml_grid_object),
-            HIVECOTEV2_class(ml_grid_object),
-            FreshPRINCEClassifier_class(ml_grid_object),
-            FCNClassifier_class(ml_grid_object),
-            EncoderClassifier_class(ml_grid_object),
-            IndividualInceptionClassifier_class(ml_grid_object),
-            IndividualTDE_class(ml_grid_object),
-            MLPClassifier_class(ml_grid_object),
-            MUSE_class(ml_grid_object),
-            OrdinalTDE_class(ml_grid_object),
-            ResNetClassifier_class(ml_grid_object),
-            RocketClassifier_class(ml_grid_object),
-            ShapeDTW_class(ml_grid_object),
-            SignatureClassifier_class(ml_grid_object),
-            SummaryClassifier_class(ml_grid_object),
-            TapNetClassifier_class(ml_grid_object),
-            TemporalDictionaryEnsemble_class(ml_grid_object),
-            TSFreshClassifier_class(ml_grid_object),
-        ]
+        self.model_class_list = ml_grid_object.model_class_list
 
         if self.verbose >= 2:
             print(f"{len(self.model_class_list)} models loaded")

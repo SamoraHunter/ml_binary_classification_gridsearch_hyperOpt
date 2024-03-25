@@ -9,7 +9,7 @@ class IndividualTDE_class:
 
         n_jobs_model_val = ml_grid_object.global_params.n_jobs_model_val
 
-        self.algorithm_implementation = IndividualTDE
+        self.algorithm_implementation = IndividualTDE()
 
         self.method_name = "IndividualTDE"
 

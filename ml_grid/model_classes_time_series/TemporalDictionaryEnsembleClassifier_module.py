@@ -1,17 +1,22 @@
 from aeon.classification.dictionary_based._tde import TemporalDictionaryEnsemble
 
+from ml_grid.util.global_params import global_parameters
+from ml_grid.util.param_space import ParamSpace
+
 
 class TemporalDictionaryEnsemble_class:
 
     def __init__(self, ml_grid_object):
 
         verbose_param = ml_grid_object.verbose
-        log_epoch = ml_grid_object.local_param_dict.get("log_epoch")
+
         random_state_val = ml_grid_object.global_params.random_state_val
-        time_limit_param = ml_grid_object.local_param_dict.get("time_limit_param")
+
+        time_limit_param = global_parameters().time_limit_param
+
         n_jobs_model_val = ml_grid_object.global_params.n_jobs_model_val
 
-        self.algorithm_implementation = TemporalDictionaryEnsemble
+        self.algorithm_implementation = TemporalDictionaryEnsemble()
 
         self.method_name = "TemporalDictionaryEnsemble"
 

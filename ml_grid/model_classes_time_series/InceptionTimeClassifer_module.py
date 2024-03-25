@@ -1,6 +1,8 @@
 from aeon.classification.deep_learning.inception_time import InceptionTimeClassifier
 import keras
 
+from ml_grid.util.param_space import ParamSpace
+
 
 class InceptionTimeClassifier_class:
 
@@ -10,9 +12,13 @@ class InceptionTimeClassifier_class:
 
         verbose_param = ml_grid_object.verbose
 
-        log_epoch = ml_grid_object.local_param_dict.get("log_epoch")
+        param_space = ParamSpace(
+            ml_grid_object.local_param_dict.get("param_space_size")
+        )
 
-        self.algorithm_implementation = InceptionTimeClassifier
+        log_epoch = param_space.param_dict.get("log_epoch")
+
+        self.algorithm_implementation = InceptionTimeClassifier()
 
         self.method_name = "InceptionTimeClassifier"
 

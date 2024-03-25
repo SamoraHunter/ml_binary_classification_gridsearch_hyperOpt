@@ -9,7 +9,7 @@ class RocketClassifier_class:
 
         n_jobs_model_val = ml_grid_object.global_params.n_jobs_model_val
 
-        self.algorithm_implementation = RocketClassifier
+        self.algorithm_implementation = RocketClassifier()
 
         self.method_name = "RocketClassifier"
 

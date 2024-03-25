@@ -31,11 +31,7 @@ class LightGBMClassifierWrapper:
             "metric": ["logloss"],
             "feature_fraction": [0.8, 0.9, 1.0],
             "early_stopping_rounds": [None, 10, 20],
-<<<<<<< HEAD
-            "verbose":[-1]
-            
-=======
->>>>>>> 3b74f1b959e5847875420f5f0ebefb4d9d1bdcff
+            "verbose": [-1],
         }
 
 

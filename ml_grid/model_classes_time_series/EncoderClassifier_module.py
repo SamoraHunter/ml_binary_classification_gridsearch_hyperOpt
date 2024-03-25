@@ -7,7 +7,7 @@ class EncoderClassifier_class:
 
         random_state_val = ml_grid_object.global_params.random_state_val
 
-        self.algorithm_implementation = EncoderClassifier
+        self.algorithm_implementation = EncoderClassifier()
 
         self.method_name = "EncoderClassifier"
 

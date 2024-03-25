@@ -11,7 +11,7 @@ class Arsenal_class:
 
         random_state_val = ml_grid_object.global_params.random_state_val
 
-        self.algorithm_implementation = Arsenal
+        self.algorithm_implementation = Arsenal()
 
         self.method_name = "Arsenal"
 

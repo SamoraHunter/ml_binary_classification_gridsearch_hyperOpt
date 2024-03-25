@@ -11,7 +11,7 @@ class ContractableBOSS_class:
 
         random_state_val = ml_grid_object.global_params.random_state_val
 
-        self.algorithm_implementation = ContractableBOSS
+        self.algorithm_implementation = ContractableBOSS()
 
         self.method_name = "ContractableBOSS"
 
