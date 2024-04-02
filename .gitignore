@@ -10,6 +10,9 @@ __pycache__/
 *ml_grid_env/
 *HFE_ML_experiments/
 
+ml_grid/tests/unit_test_synthetic_DEV.ipynb
+
+
 =======
 >>>>>>> 68b72edb1ca57c5b15fc038fd0f5b650fd782b00
 # Distribution / packaging
@@ -30,7 +33,7 @@ wheels/
 <<<<<<< HEAD
 =======
 pip-wheel-metadata/
-share/python-wheels/
+share/python-wheels
 >>>>>>> 68b72edb1ca57c5b15fc038fd0f5b650fd782b00
 *.egg-info/
 .installed.cfg
