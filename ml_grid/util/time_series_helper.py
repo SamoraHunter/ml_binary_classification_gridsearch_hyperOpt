@@ -69,7 +69,11 @@ def convert_Xy_to_time_series(X, y, max_seq_length):
     # print(X.columns[0:5])
 
     for pat in tqdm(X["client_idcode"].unique()):
-        pat_data = X[X["client_idcode"] == pat][feature_list].values
+        pat_data = (
+            X[X["client_idcode"] == pat][feature_list]
+            .drop("client_idcode", axis=1)
+            .values
+        )
         pat_multi_vector = sequence.pad_sequences(
             np.transpose(pat_data), maxlen=max_seq_length
         )
