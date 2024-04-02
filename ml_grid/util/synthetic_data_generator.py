@@ -107,7 +107,10 @@ columns = ["client_idcode", "timestamp"] + [
 
 def generate_time_series(num_clients, num_rows_per_client):
     # Generate client IDs
-    client_ids = list(range(1, num_clients + 1))
+    client_ids = [
+        f"{client_id}{''.join(np.random.choice(list('ABCDEFGHIJKLMNOPQRSTUVWXYZ'), 7))}"
+        for client_id in range(1, num_clients + 1)
+    ]
 
     # Generate dates
     date_range = pd.date_range(
@@ -129,7 +132,9 @@ def generate_time_series(num_clients, num_rows_per_client):
             if target == 1:
                 # Increase feature values for positive targets
                 features += 1.5
-            client_data.append([client_id, date_range[i]] + list(features) + [target])
+            client_data.append(
+                [str(client_id), date_range[i]] + list(features) + [target]
+            )
         # Append client data to the list
         client_data_list.extend(client_data)
 
