@@ -36,6 +36,8 @@ share/python-wheels/
 .installed.cfg
 *.egg
 
+ml_grid/tests/unit_test_synthetic_DEV.ipynb
+
 <<<<<<< HEAD
 # pyenv
 .python-version
