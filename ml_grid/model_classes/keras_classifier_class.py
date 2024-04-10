@@ -133,7 +133,7 @@ class kerasClassifier_class:
                     input_dim=input_dim_val,
                     kernel_initializer="uniform",
                     activation="linear",
-                    kernel_constraint=maxnorm(4),
+                    kernel_constraint=max_norm(4),
                     kernel_regularizer=kernel_reg,
                 )
             )
