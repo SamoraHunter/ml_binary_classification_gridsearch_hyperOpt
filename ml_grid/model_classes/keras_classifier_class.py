@@ -3,7 +3,7 @@ import math
 import keras
 import numpy as np
 import tensorflow as tf
-from keras.constraints import maxnorm
+from keras.constraints import max_norm
 from keras.layers import Dense, Dropout
 from keras.models import Sequential
 from keras.optimizers import Adam
@@ -44,7 +44,7 @@ class kerasClassifier_class:
                         input_dim=input_dim_val,
                         kernel_initializer="uniform",
                         activation="linear",
-                        kernel_constraint=maxnorm(4),
+                        kernel_constraint=max_norm(4),
                         kernel_regularizer=kernel_reg,
                     )
                 )
