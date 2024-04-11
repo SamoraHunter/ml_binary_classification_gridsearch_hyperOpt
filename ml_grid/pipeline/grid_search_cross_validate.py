@@ -167,7 +167,7 @@ class grid_search_crossvalidate:
         grid.fit(self.X_train, self.y_train)
 
         # Get cross validated scores for best hyperparameter model on x_train_/y_train
-        if type(grid.estimator) is not keras.wrappers.scikit_learn.KerasClassifier:
+        if type(grid.estimator) is not KerasClassifier:
 
             current_algorithm = grid.best_estimator_
             current_algorithm.fit(self.X_train, self.y_train)
