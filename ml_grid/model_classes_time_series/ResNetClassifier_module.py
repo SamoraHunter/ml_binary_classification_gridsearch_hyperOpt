@@ -1,6 +1,6 @@
 import keras
 
-from aeon.classification.deep_learning.resnet import ResNetClassifier
+from aeon.classification.deep_learning import ResNetClassifier
 
 from ml_grid.util.param_space import ParamSpace
 

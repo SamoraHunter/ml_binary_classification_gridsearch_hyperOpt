@@ -1,4 +1,4 @@
-from aeon.classification.feature_based._tsfresh_classifier import TSFreshClassifier
+from aeon.classification.feature_based import TSFreshClassifier
 from sklearn.ensemble import RandomForestClassifier
 
 

@@ -1,4 +1,3 @@
-ip freeze requirements.txt
 absl-py==2.1.0
 asttokens==2.4.1
 astunparse==1.6.3
@@ -148,3 +147,6 @@ wcwidth==0.2.13
 Werkzeug==3.0.2
 widgetsnbextension==4.0.10
 wrapt==1.16.0
+xgboost==2.0.3
+aeon
+aeon[dl]

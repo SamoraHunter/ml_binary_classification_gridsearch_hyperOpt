@@ -1,4 +1,4 @@
-from aeon.classification.deep_learning.fcn import FCNClassifier
+from aeon.classification.deep_learning import FCNClassifier
 import keras
 
 from ml_grid.util.param_space import ParamSpace

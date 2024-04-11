@@ -1,4 +1,4 @@
-from aeon.classification.deep_learning.tapnet import TapNetClassifier
+from aeon.classification.deep_learning import TapNetClassifier
 
 import keras
 

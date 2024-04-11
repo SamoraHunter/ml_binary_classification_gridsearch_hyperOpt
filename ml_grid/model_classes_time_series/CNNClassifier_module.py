@@ -1,4 +1,4 @@
-from aeon.classification.deep_learning.cnn import CNNClassifier
+from aeon.classification.deep_learning import CNNClassifier
 
 from ml_grid.util.param_space import ParamSpace
 
