@@ -27,7 +27,7 @@ from sklearn.model_selection import (
     cross_validate,
 )
 
-
+from IPython.display import clear_output
 from ml_grid.util.global_params import global_parameters
 
 
@@ -57,6 +57,10 @@ class grid_search_crossvalidate:
         warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
         warnings.filterwarnings("ignore", category=UserWarning)
+        
+        if self.verbose < 8:
+            print(f"Clearing ")
+            clear_output(wait=True)
 
         self.global_params = global_parameters()
 
