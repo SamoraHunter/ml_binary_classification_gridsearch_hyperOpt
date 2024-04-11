@@ -57,14 +57,14 @@ class grid_search_crossvalidate:
         warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
         warnings.filterwarnings("ignore", category=UserWarning)
-        
-        if self.verbose < 8:
-            print(f"Clearing ")
-            clear_output(wait=True)
 
         self.global_params = global_parameters()
 
         self.verbose = self.global_params.verbose
+        
+        if self.verbose < 8:
+            print(f"Clearing ")
+            clear_output(wait=True)
 
         self.sub_sample_param_space_pct = self.global_params.sub_sample_param_space_pct
 
