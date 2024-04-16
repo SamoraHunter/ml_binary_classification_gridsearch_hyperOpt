@@ -17,6 +17,7 @@ from sklearn.exceptions import ConvergenceWarning
 from tabulate import tabulate
 import pandas as pd
 import re
+from IPython.display import display
 
 from ml_grid.util.time_series_helper import (
     convert_Xy_to_time_series,
@@ -170,7 +171,6 @@ class pipe:
         #         self.X.columns = pd.io.common.dedupe_nans(self.X.columns)
 
         # self.X = self.X.rename(columns = lambda x:re.sub('[^A-Za-z0-9]+', '', x))
-        from IPython.display import display
 
         if self.time_series_mode:
             if self.verbose >= 1:
@@ -222,10 +222,6 @@ class pipe:
                         X_test_orig=self.X_test_orig,
                     )
                 )
-            #                 f_names = getNfeaturesANOVAF(target_n_features, self.X_train, self.y_train)
-            #                 self.X_train = self.X_train[f_names]
-            #                 self.X_test = self.X_test[f_names]
-            #                 self.X_test_orig = self.X_test_orig[f_names]
 
             except Exception as e:
                 print("failed target_n_features", e)

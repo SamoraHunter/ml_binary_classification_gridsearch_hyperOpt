@@ -61,7 +61,7 @@ class grid_search_crossvalidate:
         self.global_params = global_parameters()
 
         self.verbose = self.global_params.verbose
-        
+
         if self.verbose < 8:
             print(f"Clearing ")
             clear_output(wait=True)
