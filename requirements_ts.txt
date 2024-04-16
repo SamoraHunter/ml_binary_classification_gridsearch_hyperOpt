@@ -160,3 +160,5 @@ pure-eval==0.2.2
 pyarrow==11
 aeon[dl]
 tsfresh
+tensorflow_probability
+tensorflow_probability[tf]
