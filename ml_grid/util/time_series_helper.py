@@ -57,16 +57,10 @@ def convert_Xy_to_time_series(X, y, max_seq_length):
     Returns:
     tuple: Tuple containing X and y in the format suitable for time series training.
     """
-    # max_seq_length = max_client_idcode_sequence_length(X)
-
-    # feature_list = X.columns.drop(["timestamp"])
     feature_list = X.columns
 
     X_list = []
     y_list = []
-
-    # display(X.head())
-    # print(X.columns[0:5])
 
     for pat in tqdm(X["client_idcode"].unique()):
         pat_data = (
@@ -82,9 +76,6 @@ def convert_Xy_to_time_series(X, y, max_seq_length):
 
     X_array = np.array(X_list)
     y_array = np.array(y_list)
-
-    # print(X_array.shape)
-    # print(X_array[0])
 
     return X_array, y_array
 
