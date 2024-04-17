@@ -46,7 +46,10 @@ def handle_percent_missing(
         for col in all_df_columns:
             # Try to get the value from the dictionary
             try:
-                if percent_missing_dict.get(col) > percent_missing_threshold:
+                if (
+                    col in percent_missing_dict
+                    and percent_missing_dict.get(col) > percent_missing_threshold
+                ):
                     percent_missing_drop_list.append(col)
             except Exception as e:
                 print(f"Error processing column {col}: {e}")
