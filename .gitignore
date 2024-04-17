@@ -63,6 +63,7 @@ ml_grid/tests/unit_test_synthetic_DEV.ipynb
 *.o
 *.so
 
+logs
 # Logs and databases
 *.log
 *.sql
@@ -79,7 +80,7 @@ ml_grid/tests/unit_test_synthetic_DEV.ipynb
 ml_grid_env/*
 *ml_grid_env
 ml_grid_env/
-
+unit_test_synthetic DEV.ipynb
 HFE_ML_experiments/
 
 ml_grid\tests\unit_test_synthetic DEV.ipynb
