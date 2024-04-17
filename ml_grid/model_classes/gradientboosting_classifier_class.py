@@ -50,7 +50,7 @@ class GradientBoostingClassifier_class:
             "tol": self.parameter_vector_space.param_dict.get("log_small"),
             "validation_fraction": [0.1],
             "verbose": [0],
-            "warm_start": [0],
+            "warm_start": [False],
         }
 
         return None
