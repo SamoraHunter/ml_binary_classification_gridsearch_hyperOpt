@@ -1,6 +1,6 @@
 import keras
 
-from aeon.classification.deep_learning.mlp import MLPClassifier
+from aeon.classification.deep_learning import MLPClassifier
 
 
 class MLPClassifier_class:

@@ -3,7 +3,7 @@
 # Function to print error message and exit
 print_error_and_exit() {
     echo "$1"
-    echo "Please try deleting the existing 'ml_grid_env' directory and run the script again."
+    echo "Please try deleting the existing 'ml_grid_ts_env' directory and run the script again."
     exit 1
 }
 
@@ -18,13 +18,13 @@ if ! dpkg -s python3-venv &> /dev/null; then
 fi
 
 # Check if virtual environment exists
-if [ ! -d "ml_grid_env" ]; then
+if [ ! -d "ml_grid_ts_env" ]; then
     # Create virtual environment
-    python3 -m venv ml_grid_env || print_error_and_exit "Failed to create virtual environment"
+    python3 -m venv ml_grid_ts_env || print_error_and_exit "Failed to create virtual environment"
 fi
 
 # Activate virtual environment
-source ml_grid_env/bin/activate || print_error_and_exit "Failed to activate virtual environment"
+source ml_grid_ts_env/bin/activate || print_error_and_exit "Failed to activate virtual environment"
 
 # Upgrade pip
 python -m pip install --upgrade pip
@@ -33,7 +33,7 @@ python -m pip install --upgrade pip
 pip install ipykernel
 
 # Add kernel spec
-python -m ipykernel install --user --name=ml_grid_env
+python -m ipykernel install --user --name=ml_grid_ts_env
 
 # Install requirements from requirements.txt
 while read -r package; do
@@ -44,6 +44,16 @@ while read -r package; do
         echo "Successfully installed $package"
     fi
 done < requirements.txt
+
+# Install requirements from requirements_ts.txt
+while read -r package; do
+    pip install "$package"
+    if [ $? -ne 0 ]; then
+        echo "Failed to install $package" >> installation_log.txt
+    else
+        echo "Successfully installed $package"
+    fi
+done < requirements_ts.txt
 
 # Deactivate virtual environment
 deactivate

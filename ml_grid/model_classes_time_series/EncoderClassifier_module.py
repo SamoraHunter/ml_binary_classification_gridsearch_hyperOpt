@@ -1,4 +1,4 @@
-from aeon.classification.deep_learning.encoder import EncoderClassifier
+from aeon.classification.deep_learning import EncoderClassifier
 
 
 class EncoderClassifier_class:

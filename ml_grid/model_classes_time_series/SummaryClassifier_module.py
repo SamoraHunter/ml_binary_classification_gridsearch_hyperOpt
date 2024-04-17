@@ -1,4 +1,4 @@
-from aeon.classification.feature_based._summary_classifier import SummaryClassifier
+from aeon.classification.feature_based import SummaryClassifier
 from sklearn.ensemble import RandomForestClassifier
 
 

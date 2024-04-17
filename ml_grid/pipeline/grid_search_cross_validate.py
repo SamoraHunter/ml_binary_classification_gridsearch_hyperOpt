@@ -27,7 +27,7 @@ from sklearn.model_selection import (
     cross_validate,
 )
 
-
+from IPython.display import clear_output
 from ml_grid.util.global_params import global_parameters
 
 
@@ -61,6 +61,10 @@ class grid_search_crossvalidate:
         self.global_params = global_parameters()
 
         self.verbose = self.global_params.verbose
+
+        if self.verbose < 8:
+            print(f"Clearing ")
+            clear_output(wait=True)
 
         self.sub_sample_param_space_pct = self.global_params.sub_sample_param_space_pct
 
@@ -167,7 +171,7 @@ class grid_search_crossvalidate:
         grid.fit(self.X_train, self.y_train)
 
         # Get cross validated scores for best hyperparameter model on x_train_/y_train
-        if type(grid.estimator) is not keras.wrappers.scikit_learn.KerasClassifier:
+        if type(grid.estimator) is not KerasClassifier:
 
             current_algorithm = grid.best_estimator_
             current_algorithm.fit(self.X_train, self.y_train)

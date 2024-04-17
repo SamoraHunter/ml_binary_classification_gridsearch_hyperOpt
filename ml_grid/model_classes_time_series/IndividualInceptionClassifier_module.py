@@ -1,4 +1,4 @@
-from aeon.classification.deep_learning.inception_time import (
+from aeon.classification.deep_learning import (
     IndividualInceptionClassifier,
 )
 

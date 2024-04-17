@@ -9,10 +9,14 @@ __pycache__/
 <<<<<<< HEAD
 *ml_grid_env/
 *HFE_ML_experiments/
+<<<<<<< HEAD
 
 ml_grid/tests/unit_test_synthetic_DEV.ipynb
 
 
+=======
+ml_grid_ts_env/
+>>>>>>> 7baaad22686630846a684ba42207489372d08357
 =======
 >>>>>>> 68b72edb1ca57c5b15fc038fd0f5b650fd782b00
 # Distribution / packaging
@@ -39,6 +43,8 @@ share/python-wheels
 .installed.cfg
 *.egg
 
+ml_grid/tests/unit_test_synthetic_DEV.ipynb
+
 <<<<<<< HEAD
 # pyenv
 .python-version
@@ -64,6 +70,7 @@ share/python-wheels
 *.o
 *.so
 
+logs
 # Logs and databases
 *.log
 *.sql
@@ -80,7 +87,7 @@ share/python-wheels
 ml_grid_env/*
 *ml_grid_env
 ml_grid_env/
-
+unit_test_synthetic DEV.ipynb
 HFE_ML_experiments/
 
 ml_grid\tests\unit_test_synthetic DEV.ipynb

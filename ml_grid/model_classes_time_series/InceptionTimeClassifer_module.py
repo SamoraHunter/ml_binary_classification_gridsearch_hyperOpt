@@ -1,4 +1,4 @@
-from aeon.classification.deep_learning.inception_time import InceptionTimeClassifier
+from aeon.classification.deep_learning import InceptionTimeClassifier
 import keras
 
 from ml_grid.util.param_space import ParamSpace
