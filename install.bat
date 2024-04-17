@@ -1,44 +1,72 @@
 @echo off
 
-rem Function to print error message and exit
-:print_error_and_exit
-echo %1
-echo Please try deleting the existing 'ml_grid_env' directory and run the script again.
-exit /b 1
-
-rem Check if Python 3 is found
+rem Check if Python is installed and on path
 where python >nul 2>nul
-if errorlevel 1 (
-    call :print_error_and_exit "Python 3 is not found. Please make sure Python 3 is installed."
-)
-
-rem Check if virtual environment exists
-if not exist "ml_grid_env" (
-    rem Create virtual environment
-    python -m venv ml_grid_env || call :print_error_and_exit "Failed to create virtual environment"
-)
-
-rem Activate virtual environment
-call ml_grid_env\Scripts\activate || call :print_error_and_exit "Failed to activate virtual environment"
-
-rem Upgrade pip
-python -m pip install --upgrade pip
-
-rem Install ipykernel
-pip install ipykernel
-
-rem Add kernel spec
-python -m ipykernel install --user --name=ml_grid_env
-
-rem Install requirements from requirements.txt
-for /f "delims=" %%a in (requirements.txt) do (
-    pip install %%a
-    if not errorlevel 0 (
-        echo Failed to install %%a >> installation_log.txt
+if %errorlevel% equ 0 (
+    set PYTHON_COMMAND=python
+) else (
+    where python3 >nul 2>nul
+    if %errorlevel% equ 0 (
+        set PYTHON_COMMAND=python3
     ) else (
-        echo Successfully installed %%a
+        echo Python is not installed or not on path.
+        exit /b
     )
 )
 
-rem Deactivate virtual environment
+echo %PYTHON_COMMAND% is installed and on path.
+
+rem Check if "ml_grid_env" folder exists in the current directory
+if exist "ml_grid_env" (
+    echo ml_grid_env folder exists in the current directory.
+) else (
+    echo ml_grid_env folder does not exist in the current directory.
+    echo Creating ml_grid_env folder...
+    %PYTHON_COMMAND% -m venv ml_grid_env
+    if %errorlevel% neq 0 (
+        echo Failed to create virtual environment. Exiting...
+        exit /b
+    )
+    echo ml_grid_env folder created.
+)
+
+rem Activate the virtual environment
+call ml_grid_env\Scripts\activate.bat
+
+if errorlevel 1 (
+    echo Warning: Failed to activate virtual environment.
+    exit /b
+)
+
+echo Virtual environment activated successfully.
+
+rem Upgrade pip
+echo Upgrading pip...
+call ml_grid_env\Scripts\python.exe -m pip install --upgrade pip
+
+rem Install requirements one by one
+echo Installing requirements...
+for /f "delims=" %%i in (requirements.txt) do (
+    pip install %%i
+    if errorlevel 1 (
+        echo Failed to install %%i
+    ) else (
+        echo Successfully installed %%i
+    )
+)
+
+rem Install ipykernel and add ml_grid_env to the kernel spec
+echo Installing ipykernel...
+pip install ipykernel
+
+echo Adding ml_grid_env to the kernel spec...
+call ml_grid_env\Scripts\python.exe -m ipykernel install --user --name=ml_grid_env
+
+rem Deactivate the virtual environment
+echo Deactivating virtual environment...
 deactivate
+
+echo Virtual environment deactivated.
+
+echo All operations completed.
+exit /b
