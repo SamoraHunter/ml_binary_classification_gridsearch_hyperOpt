@@ -138,7 +138,8 @@ class grid_search_crossvalidate:
                 cv=[(slice(None), slice(None))],
                 n_jobs=grid_n_jobs,
                 n_iter=n_iter_v,
-                error_score=np.nan,
+                # error_score=np.nan,
+                error_score="raise",
             )
         else:
             grid = GridSearchCV(
