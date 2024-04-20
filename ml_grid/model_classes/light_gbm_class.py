@@ -21,7 +21,13 @@ class LightGBMClassifierWrapper:
 
         self.parameter_space = {
             "boosting_type": ["gbdt", "dart", "goss"],
-            "num_leaves": self.parameter_vector_space.param_dict.get("log_large_long"),
+            "num_leaves": [
+                value
+                for value in self.parameter_vector_space.param_dict.get(
+                    "log_large_long"
+                )
+                if value > 1
+            ],
             "learning_rate": self.parameter_vector_space.param_dict.get("log_small"),
             "n_estimators": self.parameter_vector_space.param_dict.get(
                 "log_large_long"
@@ -31,6 +37,9 @@ class LightGBMClassifierWrapper:
             "metric": ["logloss"],
             "feature_fraction": [0.8, 0.9, 1.0],
             "early_stopping_rounds": [None, 10, 20],
+            # "verbosity": [-1],
+            # "error_score": ["raise"],
+            # "verbose_eval": [-1],
             # "verbose": [-1],
         }
 
