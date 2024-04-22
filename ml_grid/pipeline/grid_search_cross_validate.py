@@ -37,6 +37,8 @@ import warnings
 from sklearn.exceptions import ConvergenceWarning
 import tensorflow as tf
 
+from ml_grid.util.validate_parameters import validate_parameters_helper
+
 
 class grid_search_crossvalidate:
 
@@ -121,6 +123,14 @@ class grid_search_crossvalidate:
         #         parameter_space random.sample(ParameterGrid(parameter_space), sub_sample_param_space_n)
 
         # Grid search over hyperparameter space, randomised.
+
+        # Validate parameters
+        parameters = validate_parameters_helper(
+            algorithm_implementation=algorithm_implementation,
+            parameters=parameters,
+            ml_grid_object=ml_grid_object,
+        )
+
         if random_grid_search:
             # n_iter_v = int(self.sub_sample_param_space_pct *  len(ParameterGrid(parameter_space))) + 2
             n_iter_v = int(len(ParameterGrid(parameter_space))) + 2
