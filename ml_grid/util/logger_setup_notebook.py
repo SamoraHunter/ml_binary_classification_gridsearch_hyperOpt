@@ -44,7 +44,12 @@ def setup_logger(notebook_verbose=False):
     # Define a trace function for logging
     def tracefunc(frame, event, arg):
 
-        ignore_log_paths_list = ["ml_grid_env", "grid_param_space.py"]
+        ignore_log_paths_list = [
+            "ml_grid_env",
+            "grid_param_space.py",
+            "ml_grid",
+            "matplotlib",
+        ]
         file_path = frame.f_code.co_filename
 
         if any(path in file_path for path in ignore_log_paths_list):
