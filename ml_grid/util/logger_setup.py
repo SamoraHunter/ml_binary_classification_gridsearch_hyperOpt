@@ -24,7 +24,7 @@ def setup_logger():
     current_date_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
     # Set up logging with the current date and time in the log file name
-    log_file = os.path.join(logs_dir, f"{current_date_time}_pat2vec.log")
+    log_file = os.path.join(logs_dir, f"{current_date_time}_ml_grid.log")
     logging.basicConfig(
         filename=log_file,
         level=logging.DEBUG,
