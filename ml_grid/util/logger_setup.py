@@ -53,6 +53,7 @@ def setup_logger(log_folder_path="."):
 
         substrings_to_ignore = [
             "matplotlib.font_manager",
+            "matplotlib",
         ]
 
         # Only log events from files within the notebook directory
@@ -87,15 +88,3 @@ def setup_logger(log_folder_path="."):
     sys.stdout = LoggerWriter(logger, logging.INFO)
 
     return logger
-
-
-class ExcludeMatplotlibFontManagerFilter(logging.Filter):
-
-    def filter(self, record):
-
-        if "matplotlib" in record.name or "matplotlib" in record.getMessage():
-            print(
-                "Excluding message from matplotlib.font_manager:", record.getMessage()
-            )
-            return False  # Exclude the message
-        return True  # Allow other messages to pass through
