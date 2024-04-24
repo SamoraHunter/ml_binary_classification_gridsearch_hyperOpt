@@ -5,7 +5,7 @@ import sys
 from IPython.core.getipython import get_ipython
 
 
-def setup_logger():
+def setup_logger(log_folder_path="."):
     # Get the directory path of the current module
     module_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -16,7 +16,10 @@ def setup_logger():
     print("notebook_dir", notebook_dir)
 
     # Navigate up from the notebook directory to get the logs directory
-    logs_dir = os.path.abspath(os.path.join(module_dir, "..", "..", "logs"))
+    folder_name = log_folder_path
+    current_dir = os.getcwd()
+    # Combine the current directory and folder name to get the target directory
+    logs_dir = os.path.abspath(os.path.join(current_dir, folder_name))
     print("logs_dir", logs_dir)
     os.makedirs(logs_dir, exist_ok=True)
 
@@ -34,6 +37,8 @@ def setup_logger():
     # Create a logger
     logger = logging.getLogger(__name__)
 
+    # logger.addFilter(ExcludeMatplotlibFontManagerFilter())
+
     # Define a handler to print log messages to console
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.INFO)
@@ -45,8 +50,17 @@ def setup_logger():
 
     # Define a trace function for logging
     def tracefunc(frame, event, arg):
+
+        substrings_to_ignore = [
+            "matplotlib.font_manager",
+        ]
+
         # Only log events from files within the notebook directory
         if notebook_dir in frame.f_code.co_filename:
+            filename = frame.f_code.co_filename
+
+            if any(substring in filename for substring in substrings_to_ignore):
+                return
             if event == "line":
                 logger.debug(
                     f"{event}: {frame.f_code.co_filename} - Line {frame.f_lineno}"
@@ -73,3 +87,15 @@ def setup_logger():
     sys.stdout = LoggerWriter(logger, logging.INFO)
 
     return logger
+
+
+class ExcludeMatplotlibFontManagerFilter(logging.Filter):
+
+    def filter(self, record):
+
+        if "matplotlib" in record.name or "matplotlib" in record.getMessage():
+            print(
+                "Excluding message from matplotlib.font_manager:", record.getMessage()
+            )
+            return False  # Exclude the message
+        return True  # Allow other messages to pass through
