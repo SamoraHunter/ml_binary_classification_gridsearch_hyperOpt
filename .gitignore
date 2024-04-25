@@ -35,9 +35,10 @@ share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-
+/notebooks/catboost_info/
+\notebooks\catboost_info\
 ml_grid/tests/unit_test_synthetic_DEV.ipynb
-
+notebooks/catboost_info/*
 <<<<<<< HEAD
 # pyenv
 .python-version
@@ -100,9 +101,10 @@ ml_grid/tests/unit_test_synthetic_time_series_DEV.ipynb
 knn time series time warp classifier-Multivariate-grid-dev-38-2.5.ipynb
 
 ml_grid_ts_env
-
+catboost_info
+notebooks/catboost_info/*
 installation_log.txt
-
+*catboost_info
 ml_grid_env
 # PyInstaller
 # Usually these files are written by a python script from a template

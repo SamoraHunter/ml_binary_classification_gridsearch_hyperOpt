@@ -1,16 +1,18 @@
 import time
 import traceback
+import warnings
 
 import keras
 import numpy as np
 import pandas as pd
-from ml_grid.model_classes.keras_classifier_class import kerasClassifier_class
-from ml_grid.util.debug_print_statements import debug_print_statements_class
-from ml_grid.util.global_params import global_parameters
-from ml_grid.util.project_score_save import project_score_save_class
+import tensorflow as tf
+from IPython.display import clear_output
 from numpy import absolute, mean, std
 from scikeras.wrappers import KerasClassifier
 from sklearn import metrics
+
+# from sklearn.utils.testing import ignore_warnings
+from sklearn.exceptions import ConvergenceWarning
 from sklearn.metrics import *
 from sklearn.metrics import (
     classification_report,
@@ -27,16 +29,10 @@ from sklearn.model_selection import (
     cross_validate,
 )
 
-from IPython.display import clear_output
+from ml_grid.model_classes.keras_classifier_class import kerasClassifier_class
+from ml_grid.util.debug_print_statements import debug_print_statements_class
 from ml_grid.util.global_params import global_parameters
-
-
-import warnings
-
-# from sklearn.utils.testing import ignore_warnings
-from sklearn.exceptions import ConvergenceWarning
-import tensorflow as tf
-
+from ml_grid.util.project_score_save import project_score_save_class
 from ml_grid.util.validate_parameters import validate_parameters_helper
 
 
@@ -140,6 +136,9 @@ class grid_search_crossvalidate:
             if n_iter_v < 2:
                 print("warn n_iter_v < 2")
                 n_iter_v = 2
+            if n_iter_v > 1000:
+                print("Warn n_iter_v > 1000, setting 1000")
+                n_iter_v = 1000
 
             grid = RandomizedSearchCV(
                 current_algorithm,
@@ -169,7 +168,8 @@ class grid_search_crossvalidate:
             random_grid_search == False and pg > 100000
         ):
             print("grid too large", str(pg), str(n_iter_v))
-            raise Exception("grid too large", str(pg))
+            print("Warning grid too large, ", str(pg))
+            # raise Exception("grid too large", str(pg))
 
         if self.global_parameters.verbose >= 1:
             if random_grid_search:
