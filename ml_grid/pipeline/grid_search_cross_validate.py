@@ -27,7 +27,7 @@ from sklearn.model_selection import (
     cross_validate,
 )
 
-
+from IPython.display import clear_output
 from ml_grid.util.global_params import global_parameters
 
 
@@ -36,6 +36,8 @@ import warnings
 # from sklearn.utils.testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 import tensorflow as tf
+
+from ml_grid.util.validate_parameters import validate_parameters_helper
 
 
 class grid_search_crossvalidate:
@@ -61,6 +63,10 @@ class grid_search_crossvalidate:
         self.global_params = global_parameters()
 
         self.verbose = self.global_params.verbose
+
+        if self.verbose < 8:
+            print(f"Clearing ")
+            clear_output(wait=True)
 
         self.sub_sample_param_space_pct = self.global_params.sub_sample_param_space_pct
 
@@ -102,7 +108,9 @@ class grid_search_crossvalidate:
 
         self.y_test_orig = self.ml_grid_object_iter.y_test_orig
 
-        self.cv = RepeatedKFold(n_splits=10, n_repeats=3, random_state=1)
+        self.cv = RepeatedKFold(
+            n_splits=min(10, len(self.X_train)), n_repeats=3, random_state=1
+        )
 
         start = time.time()
 
@@ -115,6 +123,14 @@ class grid_search_crossvalidate:
         #         parameter_space random.sample(ParameterGrid(parameter_space), sub_sample_param_space_n)
 
         # Grid search over hyperparameter space, randomised.
+
+        # Validate parameters
+        parameters = validate_parameters_helper(
+            algorithm_implementation=algorithm_implementation,
+            parameters=parameters,
+            ml_grid_object=ml_grid_object,
+        )
+
         if random_grid_search:
             # n_iter_v = int(self.sub_sample_param_space_pct *  len(ParameterGrid(parameter_space))) + 2
             n_iter_v = int(len(ParameterGrid(parameter_space))) + 2
@@ -132,7 +148,8 @@ class grid_search_crossvalidate:
                 cv=[(slice(None), slice(None))],
                 n_jobs=grid_n_jobs,
                 n_iter=n_iter_v,
-                error_score=np.nan,
+                # error_score=np.nan,
+                error_score="raise",
             )
         else:
             grid = GridSearchCV(
@@ -165,19 +182,19 @@ class grid_search_crossvalidate:
         grid.fit(self.X_train, self.y_train)
 
         # Get cross validated scores for best hyperparameter model on x_train_/y_train
-        if type(grid.estimator) is not keras.wrappers.scikit_learn.KerasClassifier:
+        # if type(grid.estimator) is not KerasClassifier:
 
-            current_algorithm = grid.best_estimator_
-            current_algorithm.fit(self.X_train, self.y_train)
+        current_algorithm = grid.best_estimator_
+        current_algorithm.fit(self.X_train, self.y_train)
 
-        else:
-            current_algorithm = KerasClassifier(
-                build_fn=kerasClassifier_class.create_model(),  # dual function definition...in model class.
-                verbose=0,
-                layers=grid.best_params_["layers"],
-                width=grid.best_params_["width"],
-                learning_rate=grid.best_params_["learning_rate"],
-            )
+        # else:
+        #     current_algorithm = KerasClassifier(
+        #         build_fn=kerasClassifier_class.create_model(),  # dual function definition...in model class.
+        #         verbose=0,
+        #         layers=grid.best_params_["layers"],
+        #         width=grid.best_params_["width"],
+        #         learning_rate=grid.best_params_["learning_rate"],
+        #     )
 
         scores = cross_validate(
             current_algorithm,
@@ -205,9 +222,7 @@ class grid_search_crossvalidate:
             # plot_auc_results(grid.best_estimator_, X_test_orig, self.y_test_orig, cv)
 
         #         this should be x_test...?
-        best_pred_orig = current_algorithm.predict(
-            self.X_test[self.X_test.columns]
-        )  # exp
+        best_pred_orig = current_algorithm.predict(self.X_test)  # exp
 
         project_score_save_class.update_score_log(
             self=self,

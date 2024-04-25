@@ -25,7 +25,7 @@ class Grid:
             "weighted": ["ann", "de", "unweighted"],
             "use_stored_base_learners": [False],
             "store_base_learners": [False],
-            "resample": ["undersample"],
+            "resample": ["undersample", None],
             "scale": [True],
             "n_features": ["all"],
             "param_space_size": ["medium"],

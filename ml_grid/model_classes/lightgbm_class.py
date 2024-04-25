@@ -3,6 +3,7 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 import pandas as pd
 import re
 import pandas
+import numpy as np
 
 
 class LightGBMClassifier(BaseEstimator, ClassifierMixin):
@@ -13,11 +14,15 @@ class LightGBMClassifier(BaseEstimator, ClassifierMixin):
         learning_rate=0.05,
         n_estimators=100,
         objective="multiclass",
-        num_class=3,
+        num_class=1,
         metric="multi_logloss",
         feature_fraction=0.9,
         early_stopping_rounds=None,
+        verbosity=-1,
     ):
+
+        if num_leaves <= 1:
+            num_leaves = 2
         self.boosting_type = boosting_type
         self.num_leaves = num_leaves
         self.learning_rate = learning_rate
@@ -29,6 +34,7 @@ class LightGBMClassifier(BaseEstimator, ClassifierMixin):
         self.early_stopping_rounds = early_stopping_rounds
 
         self.model = None
+        self.verbosity = verbosity
 
     def fit(self, X, y):
         self.model = lgb.LGBMClassifier(
@@ -40,7 +46,8 @@ class LightGBMClassifier(BaseEstimator, ClassifierMixin):
             num_class=self.num_class,
             metric=self.metric,
             feature_fraction=self.feature_fraction,
-            early_stopping_rounds=self.early_stopping_rounds,
+            # early_stopping_rounds=self.early_stopping_rounds,
+            verbose=self.verbosity,
         )
         # X.columns = X.columns.str.replace('[^a-zA-Z0-9_]', '', regex=True)
         # Change columns names ([LightGBM] Do not support special JSON characters in feature name.)
@@ -53,7 +60,11 @@ class LightGBMClassifier(BaseEstimator, ClassifierMixin):
         }
         X = X.rename(columns=new_names)
 
+        y = np.ravel(y)
+
         self.model.fit(X, y)
+        if self.objective == "binary":
+            self.classes_ = np.unique(y)
         return self
 
     def predict(self, X):

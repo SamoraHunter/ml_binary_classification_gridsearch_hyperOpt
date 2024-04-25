@@ -10,11 +10,19 @@ from ml_grid.pipeline.data_plot_split import plot_pie_chart_with_counts
 from ml_grid.pipeline.data_scale import data_scale_methods
 from ml_grid.pipeline.data_train_test_split import *
 from ml_grid.pipeline.logs_project_folder import log_folder
+from ml_grid.pipeline.model_class_list import get_model_class_list
+from ml_grid.pipeline.model_class_list_ts import get_model_class_list_ts
 from ml_grid.util.global_params import global_parameters
 from sklearn.exceptions import ConvergenceWarning
 from tabulate import tabulate
 import pandas as pd
 import re
+from IPython.display import display
+
+from ml_grid.util.time_series_helper import (
+    convert_Xy_to_time_series,
+    max_client_idcode_sequence_length,
+)
 
 ConvergenceWarning("ignore")
 
@@ -48,6 +56,7 @@ class pipe:
         param_space_index,
         additional_naming=None,
         test_sample_n=0,
+        time_series_mode=False,
     ):  # kwargs**
 
         self.base_project_dir = base_project_dir
@@ -61,6 +70,8 @@ class pipe:
         self.verbose = self.global_params.verbose
 
         self.param_space_index = param_space_index
+
+        self.time_series_mode = time_series_mode
 
         if self.verbose >= 1:
             print(f"Starting... {self.local_param_dict}")
@@ -114,13 +125,17 @@ class pipe:
             drop_list=self.drop_list, outcome_variable=self.outcome_variable
         )
 
-        final_column_list = [
+        self.final_column_list = [
             self.X
             for self.X in self.pertubation_columns
             if (self.X not in self.drop_list and self.X in self.df.columns)
         ]
 
-        self.X = self.df[final_column_list].copy()
+        if self.time_series_mode:
+            # Re add client_idcode
+            self.final_column_list.insert(0, "client_idcode")
+
+        self.X = self.df[self.final_column_list].copy()
 
         self.X = clean_up_class().handle_duplicated_columns(self.X)
 
@@ -157,6 +172,21 @@ class pipe:
 
         # self.X = self.X.rename(columns = lambda x:re.sub('[^A-Za-z0-9]+', '', x))
 
+        if self.time_series_mode:
+            if self.verbose >= 1:
+                print("pre func")
+                display(self.X)
+
+            max_seq_length = max_client_idcode_sequence_length(self.df)
+
+        if self.time_series_mode:
+            if self.verbose >= 1:
+                print("time_series_mode", "convert_df_to_time_series")
+                print(self.X.shape)
+
+            self.X, self.y = convert_Xy_to_time_series(self.X, self.y, max_seq_length)
+            if self.verbose >= 1:
+                print(self.X.shape)
         (
             self.X_train,
             self.X_test,
@@ -171,14 +201,14 @@ class pipe:
         if target_n_features != 100:
 
             target_n_features_eval = int(
-                (target_n_features / 100) * len(self.X_train.columns)
+                (target_n_features / 100) * self.X_train.shape[1]
             )
 
-            if target_n_features_eval < len(self.X_train.columns):
-                target_n_features_eval = len(self.X_train.columns)
+            if target_n_features_eval < self.X_train.shape[1]:
+                target_n_features_eval = self.X_train.shape[1]
 
             print(
-                f"Pre target_n_features {target_n_features}% reduction {target_n_features_eval}/{len(self.X_train.columns)}"
+                f"Pre target_n_features {target_n_features}% reduction {target_n_features_eval}/{self.X_train.shape[1]}"
             )
             try:
 
@@ -192,10 +222,6 @@ class pipe:
                         X_test_orig=self.X_test_orig,
                     )
                 )
-            #                 f_names = getNfeaturesANOVAF(target_n_features, self.X_train, self.y_train)
-            #                 self.X_train = self.X_train[f_names]
-            #                 self.X_test = self.X_test[f_names]
-            #                 self.X_test_orig = self.X_test_orig[f_names]
 
             except Exception as e:
                 print("failed target_n_features", e)
@@ -214,3 +240,13 @@ class pipe:
         if self.verbose >= 3:
 
             plot_pie_chart_with_counts(self.X_train, self.X_test, self.X_test_orig)
+
+        if time_series_mode:
+            if self.verbose >= 2:
+                print("data>>", "get_model_class_list_ts")
+            self.model_class_list = get_model_class_list_ts(self)
+
+        else:
+            if self.verbose >= 2:
+                print("data>>", "get_model_class_list")
+            self.model_class_list = get_model_class_list(self)

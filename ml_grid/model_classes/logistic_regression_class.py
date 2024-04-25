@@ -57,7 +57,11 @@ class LogisticRegression_class:
                 ),
                 "multi_class": ["auto"],
                 "n_jobs": [None],
-                "penalty": ["elasticnet", "l1", "l2", "none"],  # None
+                "penalty": [
+                    "elasticnet",
+                    "l1",
+                    "l2",
+                ],  # None
                 "random_state": [None],
                 "solver": ["saga"],
                 "tol": self.parameter_vector_space.param_dict.get("log_small"),
@@ -76,7 +80,9 @@ class LogisticRegression_class:
                 ),
                 "multi_class": ["auto"],
                 "n_jobs": [None],
-                "penalty": ["l2", "none"],  # None
+                "penalty": [
+                    "l2",
+                ],  # None
                 "random_state": [None],
                 "solver": ["newton-cg", "lbfgs"],
                 "tol": self.parameter_vector_space.param_dict.get("log_small"),

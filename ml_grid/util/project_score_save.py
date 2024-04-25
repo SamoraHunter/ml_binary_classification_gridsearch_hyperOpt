@@ -191,8 +191,14 @@ class project_score_save_class:
             line = pd.DataFrame(data=None, columns=column_list)
 
             # best_pred_orig = grid.best_estimator_.predict(X_test_orig)
+            try:
+                auc = metrics.roc_auc_score(self.y_test, best_pred_orig)
+            except Exception as e:
+                if ml_grid_object.verbose >= 1:
+                    print(best_pred_orig)
+                    print(e)
+                auc = np.nan
 
-            auc = metrics.roc_auc_score(self.y_test, best_pred_orig)
             mcc = matthews_corrcoef(self.y_test, best_pred_orig)
             f1 = f1_score(self.y_test, best_pred_orig, average="binary")
             precision = precision_score(self.y_test, best_pred_orig, average="binary")
@@ -213,7 +219,8 @@ class project_score_save_class:
                                 ml_grid_object.local_param_dict.get("data").get(key_1)
                             ]
 
-            current_f = list(self.X_test.columns)
+            current_f = ml_grid_object.final_column_list
+            # current_f = list(self.X_test.columns)
             current_f_vector = []
             f_list = []
             for elem in ml_grid_object.orignal_feature_names:

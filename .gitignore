@@ -5,11 +5,11 @@ __pycache__/
 
 # C extensions
 *.so
-
+notebooks/unit_test_synthetic_DEV.ipynb
 <<<<<<< HEAD
 *ml_grid_env/
 *HFE_ML_experiments/
-
+ml_grid_ts_env/
 =======
 >>>>>>> 68b72edb1ca57c5b15fc038fd0f5b650fd782b00
 # Distribution / packaging
@@ -36,6 +36,8 @@ share/python-wheels/
 .installed.cfg
 *.egg
 
+ml_grid/tests/unit_test_synthetic_DEV.ipynb
+
 <<<<<<< HEAD
 # pyenv
 .python-version
@@ -61,6 +63,7 @@ share/python-wheels/
 *.o
 *.so
 
+logs
 # Logs and databases
 *.log
 *.sql
@@ -77,7 +80,7 @@ share/python-wheels/
 ml_grid_env/*
 *ml_grid_env
 ml_grid_env/
-
+unit_test_synthetic DEV.ipynb
 HFE_ML_experiments/
 
 ml_grid\tests\unit_test_synthetic DEV.ipynb
@@ -88,7 +91,17 @@ ml_grid/tests/unit_test_synthetic_old.ipynb
 
 ml_grid/tests/unit_test_synthetic-ac.ipynb
 
+tests/knn time series time warp classifier-Multivariate-grid-dev-38-2.5.ipynb
 
+grid_score_reader_ML_TS_Grid_V_1.5.ipynb
+
+ml_grid/tests/unit_test_synthetic_time_series_DEV.ipynb
+
+knn time series time warp classifier-Multivariate-grid-dev-38-2.5.ipynb
+
+ml_grid_ts_env
+
+installation_log.txt
 
 ml_grid_env
 # PyInstaller
@@ -114,6 +127,8 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+
+t1.ipynb
 
 # Translations
 *.mo
@@ -167,3 +182,4 @@ doc/_build/
 .idea/
 .vscode/
 >>>>>>> 68b72edb1ca57c5b15fc038fd0f5b650fd782b00
+packages.txt
