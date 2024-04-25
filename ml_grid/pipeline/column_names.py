@@ -1,4 +1,5 @@
 from fuzzysearch import find_near_matches
+
 from ml_grid.pipeline.data_plot_split import (
     plot_candidate_feature_category_lists,
     plot_dict_values,
@@ -62,6 +63,7 @@ def get_pertubation_columns(all_df_columns, local_param_dict, drop_term_list):
         "_days-between-first-last",
         "_contains-extreme-low",
         "_contains-extreme-high",
+        "_basic-obs-feature",
     ]
 
     diagnostic_test_substrings = [

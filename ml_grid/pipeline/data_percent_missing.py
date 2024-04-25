@@ -6,7 +6,7 @@ from typing import List
 def handle_percent_missing(
     local_param_dict: dict,
     all_df_columns: List[str],
-    filename: str,
+    file_name: str,
     drop_list: List[str],
 ) -> List[str]:
     """
@@ -27,7 +27,7 @@ def handle_percent_missing(
 
     percent_missing_drop_list = []
 
-    filename = filename.replace(".csv", "")
+    filename = file_name.replace(".csv", "")
 
     percent_missing_filename = f"{filename}_percent_missing.pickle"
 

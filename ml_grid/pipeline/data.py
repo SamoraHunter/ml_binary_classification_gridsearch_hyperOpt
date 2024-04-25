@@ -1,4 +1,11 @@
+import re
+
+import pandas as pd
 import sklearn.feature_selection
+from IPython.display import display
+from sklearn.exceptions import ConvergenceWarning
+from tabulate import tabulate
+
 from ml_grid.pipeline import read_in
 from ml_grid.pipeline.column_names import get_pertubation_columns
 from ml_grid.pipeline.data_clean_up import clean_up_class
@@ -13,12 +20,6 @@ from ml_grid.pipeline.logs_project_folder import log_folder
 from ml_grid.pipeline.model_class_list import get_model_class_list
 from ml_grid.pipeline.model_class_list_ts import get_model_class_list_ts
 from ml_grid.util.global_params import global_parameters
-from sklearn.exceptions import ConvergenceWarning
-from tabulate import tabulate
-import pandas as pd
-import re
-from IPython.display import display
-
 from ml_grid.util.time_series_helper import (
     convert_Xy_to_time_series,
     max_client_idcode_sequence_length,
@@ -119,7 +120,7 @@ class pipe:
             local_param_dict=local_param_dict,
             all_df_columns=self.all_df_columns,
             drop_list=self.drop_list,
-            file_name=file_name
+            file_name=file_name,
         )
 
         self.drop_list = handle_outcome_list(
