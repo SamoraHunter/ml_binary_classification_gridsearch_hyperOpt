@@ -1,10 +1,13 @@
-import pickle
 import os
+import pickle
 from typing import List
 
 
 def handle_percent_missing(
-    local_param_dict: dict, all_df_columns: List[str], drop_list: List[str]
+    local_param_dict: dict,
+    all_df_columns: List[str],
+    filename: str,
+    drop_list: List[str],
 ) -> List[str]:
     """
     Handles the removal of columns with a high percentage of missing data.
@@ -24,16 +27,20 @@ def handle_percent_missing(
 
     percent_missing_drop_list = []
 
+    filename = filename.replace(".csv", "")
+
+    percent_missing_filename = f"{filename}_percent_missing.pickle"
+
     # Check if the file exists
-    if os.path.exists("percent_missing_dict.pickle"):
-        with open("percent_missing_dict.pickle", "rb") as handle:
+    if os.path.exists(percent_missing_filename):
+        with open(percent_missing_filename, "rb") as handle:
             try:
                 percent_missing_dict = pickle.load(handle)
             except Exception as e:
                 print(f"Error loading pickle file: {e}")
                 percent_missing_dict = {}
     else:
-        print("File 'percent_missing_dict.pickle' not found. Returning empty dict.")
+        print(f"File {percent_missing_filename} not found. Returning empty dict.")
         percent_missing_dict = {}
 
     percent_missing_threshold = local_param_dict.get("percent_missing")

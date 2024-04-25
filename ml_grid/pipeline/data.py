@@ -119,6 +119,7 @@ class pipe:
             local_param_dict=local_param_dict,
             all_df_columns=self.all_df_columns,
             drop_list=self.drop_list,
+            file_name=file_name
         )
 
         self.drop_list = handle_outcome_list(
