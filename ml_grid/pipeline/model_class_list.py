@@ -22,6 +22,7 @@ from ml_grid.model_classes.randomforest_classifier_class import (
     RandomForestClassifier_class,
 )
 from ml_grid.model_classes.svc_class import SVC_class
+from ml_grid.model_classes.tabtransformer_classifier_class import TabTransformer_class
 from ml_grid.model_classes.xgb_classifier_class import XGB_class_class
 
 # from ml_grid.model_classes import LogisticRegression_class
@@ -36,75 +37,81 @@ def get_model_class_list(ml_grid_object):
     model_class_list = [
         #             NeuralNetworkClassifier_class(X=ml_grid_object.X_train, y=ml_grid_object.y_train, # gpu error, memory overload on hyperopt
         #                          parameter_space_size=parameter_space_size),
-        LogisticRegression_class(
+        # LogisticRegression_class(
+        #     X=ml_grid_object.X_train,
+        #     y=ml_grid_object.y_train,
+        #     parameter_space_size=parameter_space_size,
+        # ),
+        # knn_classifiers_class(
+        #     X=ml_grid_object.X_train,
+        #     y=ml_grid_object.y_train,
+        #     parameter_space_size=parameter_space_size,
+        # ),
+        # quadratic_discriminant_analysis_class(
+        #     X=ml_grid_object.X_train,
+        #     y=ml_grid_object.y_train,
+        #     parameter_space_size=parameter_space_size,
+        # ),
+        # SVC_class(
+        #     X=ml_grid_object.X_train,
+        #     y=ml_grid_object.y_train,
+        #     parameter_space_size=parameter_space_size,
+        # ),
+        # XGB_class_class(
+        #     X=ml_grid_object.X_train,
+        #     y=ml_grid_object.y_train,
+        #     parameter_space_size=parameter_space_size,
+        # ),
+        # mlp_classifier_class(
+        #     X=ml_grid_object.X_train,
+        #     y=ml_grid_object.y_train,
+        #     parameter_space_size=parameter_space_size,
+        # ),
+        # RandomForestClassifier_class(
+        #     X=ml_grid_object.X_train,
+        #     y=ml_grid_object.y_train,
+        #     parameter_space_size=parameter_space_size,
+        # ),
+        # GradientBoostingClassifier_class(
+        #     X=ml_grid_object.X_train,
+        #     y=ml_grid_object.y_train,
+        #     parameter_space_size=parameter_space_size,
+        # ),
+        # kerasClassifier_class(
+        #     X=ml_grid_object.X_train,
+        #     y=ml_grid_object.y_train,
+        #     parameter_space_size=parameter_space_size,
+        # ),
+        # GaussianNB_class(
+        #     X=ml_grid_object.X_train,
+        #     y=ml_grid_object.y_train,
+        #     parameter_space_size=parameter_space_size,
+        # ),
+        # adaboost_class(
+        #     X=ml_grid_object.X_train,
+        #     y=ml_grid_object.y_train,
+        #     parameter_space_size=parameter_space_size,
+        # ),
+        # knn__gpu_wrapper_class(
+        #     X=ml_grid_object.X_train,
+        #     y=ml_grid_object.y_train,
+        #     parameter_space_size=parameter_space_size,
+        # ),
+        # LightGBMClassifierWrapper(
+        #     X=ml_grid_object.X_train,
+        #     y=ml_grid_object.y_train,
+        #     parameter_space_size=parameter_space_size,
+        # ),
+        # CatBoost_class(
+        #     X=ml_grid_object.X_train,
+        #     y=ml_grid_object.y_train,
+        #     parameter_space_size=parameter_space_size,
+        # ),
+        TabTransformer_class(
             X=ml_grid_object.X_train,
             y=ml_grid_object.y_train,
             parameter_space_size=parameter_space_size,
-        ),
-        knn_classifiers_class(
-            X=ml_grid_object.X_train,
-            y=ml_grid_object.y_train,
-            parameter_space_size=parameter_space_size,
-        ),
-        quadratic_discriminant_analysis_class(
-            X=ml_grid_object.X_train,
-            y=ml_grid_object.y_train,
-            parameter_space_size=parameter_space_size,
-        ),
-        SVC_class(
-            X=ml_grid_object.X_train,
-            y=ml_grid_object.y_train,
-            parameter_space_size=parameter_space_size,
-        ),
-        XGB_class_class(
-            X=ml_grid_object.X_train,
-            y=ml_grid_object.y_train,
-            parameter_space_size=parameter_space_size,
-        ),
-        mlp_classifier_class(
-            X=ml_grid_object.X_train,
-            y=ml_grid_object.y_train,
-            parameter_space_size=parameter_space_size,
-        ),
-        RandomForestClassifier_class(
-            X=ml_grid_object.X_train,
-            y=ml_grid_object.y_train,
-            parameter_space_size=parameter_space_size,
-        ),
-        GradientBoostingClassifier_class(
-            X=ml_grid_object.X_train,
-            y=ml_grid_object.y_train,
-            parameter_space_size=parameter_space_size,
-        ),
-        kerasClassifier_class(
-            X=ml_grid_object.X_train,
-            y=ml_grid_object.y_train,
-            parameter_space_size=parameter_space_size,
-        ),
-        GaussianNB_class(
-            X=ml_grid_object.X_train,
-            y=ml_grid_object.y_train,
-            parameter_space_size=parameter_space_size,
-        ),
-        adaboost_class(
-            X=ml_grid_object.X_train,
-            y=ml_grid_object.y_train,
-            parameter_space_size=parameter_space_size,
-        ),
-        knn__gpu_wrapper_class(
-            X=ml_grid_object.X_train,
-            y=ml_grid_object.y_train,
-            parameter_space_size=parameter_space_size,
-        ),
-        LightGBMClassifierWrapper(
-            X=ml_grid_object.X_train,
-            y=ml_grid_object.y_train,
-            parameter_space_size=parameter_space_size,
-        ),
-        CatBoost_class(
-            X=ml_grid_object.X_train,
-            y=ml_grid_object.y_train,
-            parameter_space_size=parameter_space_size,
-        ),
+        )
+        
     ]
     return model_class_list
