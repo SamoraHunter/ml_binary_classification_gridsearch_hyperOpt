@@ -37,14 +37,19 @@ class feature_importance_methods:
             Pandas DataFrame of original testing data X with reduced features.
         """
 
-        feature_method = ml_grid_object.feature_selection_method
+        feature_method = ml_grid_object.local_param_dict.get("feature_selection_method")
 
         if(feature_method == 'anova' or feature_method == None):
+            
+            print("feature_method ANOVA")
+
             features = feature_methods.getNfeaturesANOVAF(
                 self, n=target_n_features, X_train=X_train, y_train=y_train
                 )
 
         elif feature_method == 'markov_blanket':
+
+            print("feature method Markov")
         
             features = feature_methods.getNFeaturesMarkovBlanket(
                 
