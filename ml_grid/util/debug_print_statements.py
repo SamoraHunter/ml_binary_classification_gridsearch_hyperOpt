@@ -15,7 +15,7 @@ class debug_print_statements_class:
 
         self.scores = scores
 
-    def debug_print_scores(self, scores):
+    def debug_print_scores(self):
         """Print mean and standard deviation of scores in a grid search
         
         Parameters
@@ -27,8 +27,8 @@ class debug_print_statements_class:
             print(
                 "Mean MAE: %.3f (%.3f)"
                 % (
-                    absolute(mean(scores["test_f1"])),
-                    std(scores["test_f1"]),
+                    absolute(mean(self.scores["test_f1"])),
+                    std(self.scores["test_f1"]),
                 )
             )
         except Exception as e:
@@ -38,8 +38,8 @@ class debug_print_statements_class:
             print(
                 "Mean ROC AUC: %.3f (%.3f)"
                 % (
-                    absolute(mean(scores["test_roc_auc"])),
-                    std(scores["test_roc_auc"]),
+                    absolute(mean(self.scores["test_roc_auc"])),
+                    std(self.scores["test_roc_auc"]),
                 )
             )
         except Exception as e:
@@ -48,7 +48,7 @@ class debug_print_statements_class:
         try:
             print(
                 "Mean accuracy: %.3f (%.3f)"
-                % (absolute(mean(scores["test_accuracy"])), std(scores["test_accuracy"]))
+                % (absolute(mean(self.scores["test_accuracy"])), std(self.scores["test_accuracy"]))
             )
         except Exception as e:
             print("Error printing Mean accuracy:", e)
@@ -56,7 +56,7 @@ class debug_print_statements_class:
         try:
             print(
                 "Mean fit time: %.3f (%.3f)"
-                % (absolute(mean(scores["fit_time"])), std(scores["fit_time"]))
+                % (absolute(mean(self.scores["fit_time"])), std(self.scores["fit_time"]))
             )
         except Exception as e:
             print("Error printing Mean fit time:", e)
@@ -64,7 +64,7 @@ class debug_print_statements_class:
         try:
             print(
                 "Mean score time: %.3f (%.3f)"
-                % (absolute(mean(scores["score_time"])), std(scores["score_time"]))
+                % (absolute(mean(self.scores["score_time"])), std(self.scores["score_time"]))
             )
         except Exception as e:
             print("Error printing Mean score time:", e)

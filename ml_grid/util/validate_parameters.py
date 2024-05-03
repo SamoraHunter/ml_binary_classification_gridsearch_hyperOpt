@@ -1,5 +1,6 @@
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
 from ml_grid.util.global_params import global_parameters
 
 
@@ -56,6 +57,41 @@ def validate_knn_parameters(parameters, ml_grid_object):
     return parameters
 
 
+def validate_XGB_parameters(parameters, ml_grid_object):
+    """
+    Validate the parameters for XGBoost.
+
+    This function checks that the max_bin values are greater than or equal to 2,
+    and if not, it sets them to 2.
+
+    Parameters
+    ----------
+    parameters : dict
+        The parameters to be validated.
+    ml_grid_object : object
+        The object from which the training data is obtained.
+
+    Returns
+    -------
+    dict
+        The validated parameters.
+    """
+
+    max_bin_array = parameters.get("max_bin")
+
+    # Iterate over each value in the max_bin array
+    for i in range(len(max_bin_array)):
+        # Check if the value is less than 2
+        if max_bin_array[i] < 2:
+            # If so, set it to 2
+            max_bin_array[i] = 2
+
+    # Update the max_bin array in the parameter combination
+    parameters['max_bin'] = max_bin_array
+
+    return parameters
+
+
 def validate_parameters_helper(algorithm_implementation, parameters, ml_grid_object):
 
     if type(algorithm_implementation) == KNeighborsClassifier:
@@ -63,6 +99,14 @@ def validate_parameters_helper(algorithm_implementation, parameters, ml_grid_obj
         parameters = validate_knn_parameters(parameters, ml_grid_object)
 
         return parameters
+    
+    elif type(algorithm_implementation) == XGBClassifier:
+        parameters = validate_XGB_parameters(parameters, ml_grid_object)
+
+        return parameters
 
     else:
         return parameters
+    
+
+

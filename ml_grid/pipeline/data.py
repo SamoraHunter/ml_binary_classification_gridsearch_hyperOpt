@@ -57,6 +57,7 @@ class pipe:
         param_space_index,
         additional_naming=None,
         test_sample_n=0,
+        column_sample_n=0,
         time_series_mode=False,
         model_class_dict = None
     ):  # kwargs**
@@ -80,17 +81,42 @@ class pipe:
         if self.verbose >= 1:
             print(f"Starting... {self.local_param_dict}")
 
-        log_folder(
+        self.logging_paths_obj = log_folder(
             local_param_dict=local_param_dict,
             additional_naming=additional_naming,
             base_project_dir=base_project_dir,
         )
 
-        self.df = read_in.read(file_name).raw_input_data
+        read_in_sample = True
 
-        if test_sample_n > 0:
+        if read_in_sample and test_sample_n > 0 or column_sample_n > 0:
+            self.df = read_in.read_sample(file_name, test_sample_n, column_sample_n).raw_input_data
+        else:
+            self.df = read_in.read(file_name,).raw_input_data
+
+        if test_sample_n > 0 and read_in_sample == False:
             print("sampling 200 for debug/trial purposes...")
             self.df = self.df.sample(test_sample_n)
+
+        if column_sample_n > 0 and read_in_sample == False:
+            # Check if 'age' and 'male' columns are in the original DataFrame
+            if 'age' in self.df.columns and 'male' in self.df.columns and 'outcome_var_1' in self.df.columns:
+                original_columns = ['age', 'male', 'outcome_var_1']
+            else:
+                original_columns = []
+            
+            print("Sampling", column_sample_n, "columns for additional debug/trial purposes...")
+            
+            # Sample the columns
+            sampled_columns = self.df.sample(n=column_sample_n, axis=1).columns
+            
+            # Ensure original columns are retained
+            new_columns = list(set(sampled_columns) | set(original_columns))
+            
+            # Reassign DataFrame with sampled columns
+            self.df = self.df[new_columns].copy()
+            
+            print("Result df shape", self.df.shape)
 
         self.all_df_columns = list(self.df.columns)
 
