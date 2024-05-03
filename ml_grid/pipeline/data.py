@@ -58,6 +58,7 @@ class pipe:
         additional_naming=None,
         test_sample_n=0,
         time_series_mode=False,
+        model_class_dict = None
     ):  # kwargs**
 
         self.base_project_dir = base_project_dir
@@ -73,6 +74,8 @@ class pipe:
         self.param_space_index = param_space_index
 
         self.time_series_mode = time_series_mode
+
+        self.model_class_dict = model_class_dict
 
         if self.verbose >= 1:
             print(f"Starting... {self.local_param_dict}")
