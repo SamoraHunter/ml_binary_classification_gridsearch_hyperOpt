@@ -35,7 +35,7 @@ class global_parameters:
         """
         Verbose level for sklearn models
         """
-        self.verbose = 3
+        self.verbose = 9
 
         """
         Rename cols of dataframes

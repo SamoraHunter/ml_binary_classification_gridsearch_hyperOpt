@@ -225,6 +225,7 @@ class pipe:
                         X_test=self.X_test,
                         y_train=self.y_train,
                         X_test_orig=self.X_test_orig,
+                        ml_grid_object=self
                     )
                 )
 
