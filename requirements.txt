@@ -153,3 +153,4 @@ wrapt==1.16.0
 xgboost==2.0.3
 catboost==1.2.5
 PyImpetus
+polars==0.20.23

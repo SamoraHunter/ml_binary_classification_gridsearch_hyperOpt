@@ -2,18 +2,32 @@ import random
 import pandas as pd
 import numpy as np
 
+import polars as pl
+
 class read:
-
-    def __init__(self, input_filename):
-
+    def __init__(self, input_filename, use_polars=False):
         filename = input_filename
-
         print(f"Init main >read on {filename}")
+        if use_polars:
+            try:
+                self.raw_input_data = pl.read_csv(filename, ignore_errors=True)
+                self.raw_input_data = self.raw_input_data.to_pandas()
+            except Exception as e:
+                print(f"Error reading with Polars: {e}")
+                print(f"Error reading with Polars: {e}")
+                print("Trying to read with Pandas...")
+                try:
+                    self.raw_input_data = pd.read_csv(filename)
+                except Exception as e:
+                    print(f"Error reading with Pandas: {e}")
+                    self.raw_input_data = pd.DataFrame()
+        else:
+            try:
+                self.raw_input_data = pd.read_csv(filename)
+            except Exception as e:
+                print(f"Error reading with Pandas: {e}")
+                self.raw_input_data = pd.DataFrame()
 
-        self.raw_input_data = pd.read_csv(filename)
-
-
-import pandas as pd
 
 
 class read_sample:
