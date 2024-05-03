@@ -88,11 +88,6 @@ class CatBoost_class:
                     "MinEntropy",
                     "MaxLogSum",
                 ],  # Method to use for splitting numerical features
-                "permutation_count": [
-                    1,
-                    5,
-                    10,
-                ],  # Number of permutations to calculate feature importance
                 # CatBoost Extensions
                 "bayesian_matrix_reg": [
                     0.1,
@@ -163,11 +158,6 @@ class CatBoost_class:
                     "MinEntropy",
                     "MaxLogSum",
                 ],  # Method to use for splitting numerical features
-                "permutation_count": [
-                    1,
-                    5,
-                    10,
-                ],  # Number of permutations to calculate feature importance
                 # CatBoost Extensions
                 "bayesian_matrix_reg": [
                     0.1,
@@ -242,11 +232,6 @@ class CatBoost_class:
                     "MinEntropy",
                     "MaxLogSum",
                 ],  # Method to use for splitting numerical features
-                "permutation_count": [
-                    1,
-                    5,
-                    10,
-                ],  # Number of permutations to calculate feature importance
                 # CatBoost Extensions
                 "bayesian_matrix_reg": [
                     0.1,

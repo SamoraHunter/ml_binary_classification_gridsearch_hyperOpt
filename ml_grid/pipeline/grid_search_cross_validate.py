@@ -82,6 +82,9 @@ class grid_search_crossvalidate:
         if "XGBClassifier" in method_name.lower():
             grid_n_jobs = 1
 
+        if "CatBoostClassifier" in method_name.lower():
+            grid_n_jobs = 1 # needs to write to directory
+
         
 
         self.metric_list = self.global_params.metric_list
@@ -127,7 +130,7 @@ class grid_search_crossvalidate:
 
         # Grid search over hyperparameter space, randomised.
 
-        if(ml_grid_object.verbose >= 1):
+        if(ml_grid_object.verbose >= 3):
             print("algorithm_implementation: ", algorithm_implementation, " type: ", type(algorithm_implementation), )
         # Validate parameters
         parameters = validate_parameters_helper(
