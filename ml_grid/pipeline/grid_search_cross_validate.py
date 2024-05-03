@@ -35,7 +35,7 @@ from ml_grid.util.debug_print_statements import debug_print_statements_class
 from ml_grid.util.global_params import global_parameters
 from ml_grid.util.project_score_save import project_score_save_class
 from ml_grid.util.validate_parameters import validate_parameters_helper
-
+from sklearn.preprocessing import MinMaxScaler
 
 class grid_search_crossvalidate:
 
@@ -127,6 +127,8 @@ class grid_search_crossvalidate:
 
         # Grid search over hyperparameter space, randomised.
 
+        if(ml_grid_object.verbose >= 1):
+            print("algorithm_implementation: ", algorithm_implementation, " type: ", type(algorithm_implementation), )
         # Validate parameters
         parameters = validate_parameters_helper(
             algorithm_implementation=algorithm_implementation,
@@ -273,7 +275,7 @@ def dummy_auc():
 #dummy_auc_scorer = make_scorer(dummy_auc)
 
 
-from sklearn.preprocessing import MinMaxScaler
+
 
 def scale_data(X_train):
     """

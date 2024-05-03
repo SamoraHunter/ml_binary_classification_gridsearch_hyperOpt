@@ -1,6 +1,8 @@
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
+from ml_grid.model_classes.knn_gpu_classifier_class import knn__gpu_wrapper_class
+from ml_grid.model_classes.knn_wrapper_class import KNNWrapper
 from ml_grid.util.global_params import global_parameters
 
 
@@ -40,21 +42,23 @@ def validate_knn_parameters(parameters, ml_grid_object):
     print("  n_neighbors: ", n_neighbors)
 
     # Check if any n_neighbors values are too large
-    if n_neighbors.any() > max_neighbors:
-        print("  n_neighbors is greater than max_neighbors")
-
-        # If so, reduce the value to be within the allowed range
+    if n_neighbors is not None:
         for i in range(len(n_neighbors)):
-            if n_neighbors[i] >= max_neighbors:
+            if n_neighbors[i] > max_neighbors:
+                print("  n_neighbors[{}] is greater than max_neighbors".format(i))
+
+                # If so, reduce the value to be within the allowed range
                 print(
                     "    Reducing n_neighbors[{}] from {} to {}".format(
-                        i, n_neighbors[i], max_neighbors - 1
+                        i, n_neighbors[i], max_neighbors
                     )
                 )
-                n_neighbors[i] = max_neighbors - 1
+                n_neighbors[i] = max_neighbors
 
+    parameters['n_neighbors'] = n_neighbors
     # Return the validated parameters
     return parameters
+
 
 
 def validate_XGB_parameters(parameters, ml_grid_object):
@@ -99,6 +103,19 @@ def validate_parameters_helper(algorithm_implementation, parameters, ml_grid_obj
         parameters = validate_knn_parameters(parameters, ml_grid_object)
 
         return parameters
+    
+    elif type(algorithm_implementation) == KNNWrapper:
+
+        parameters = validate_knn_parameters(parameters, ml_grid_object)
+
+        return parameters
+    
+    elif type(algorithm_implementation) == knn__gpu_wrapper_class:
+
+        parameters = validate_knn_parameters(parameters, ml_grid_object)
+
+        return parameters
+
     
     elif type(algorithm_implementation) == XGBClassifier:
         parameters = validate_XGB_parameters(parameters, ml_grid_object)
