@@ -281,4 +281,7 @@ class pipe:
         else:
             if self.verbose >= 2:
                 print("data>>", "get_model_class_list")
+            if model_class_dict is not None:
+                self.model_class_dict = model_class_dict
+            
             self.model_class_list = get_model_class_list(self)

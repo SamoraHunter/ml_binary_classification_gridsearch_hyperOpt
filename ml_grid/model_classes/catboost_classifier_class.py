@@ -89,11 +89,6 @@ class CatBoost_class:
                     "MaxLogSum",
                 ],  # Method to use for splitting numerical features
                 # CatBoost Extensions
-                "bayesian_matrix_reg": [
-                    0.1,
-                    0.5,
-                    1,
-                ],  # Bayesian regularization coefficient
                 "fold_permutation_block": [1, 3, 5],  # Fold permutation block size
                 "od_pval": [0.01, 0.05, 0.1],  # P-value threshold for early stopping
                 "od_wait": [
@@ -102,6 +97,7 @@ class CatBoost_class:
                     30,
                 ],  # Number of iterations to wait before early stopping
                 "verbose": [0],
+                "allow_const_label":[True]
             },
             {
                 # General Parameters
@@ -159,11 +155,6 @@ class CatBoost_class:
                     "MaxLogSum",
                 ],  # Method to use for splitting numerical features
                 # CatBoost Extensions
-                "bayesian_matrix_reg": [
-                    0.1,
-                    0.5,
-                    1,
-                ],  # Bayesian regularization coefficient
                 "fold_permutation_block": [1, 3, 5],  # Fold permutation block size
                 "od_pval": [0.01, 0.05, 0.1],  # P-value threshold for early stopping
                 "od_wait": [
@@ -172,6 +163,7 @@ class CatBoost_class:
                     30,
                 ],  # Number of iterations to wait before early stopping
                 "verbose": [0],
+                "allow_const_label":[True]
             },
             {
                 # General Parameters
@@ -233,11 +225,6 @@ class CatBoost_class:
                     "MaxLogSum",
                 ],  # Method to use for splitting numerical features
                 # CatBoost Extensions
-                "bayesian_matrix_reg": [
-                    0.1,
-                    0.5,
-                    1,
-                ],  # Bayesian regularization coefficient
                 "fold_permutation_block": [1, 3, 5],  # Fold permutation block size
                 "od_pval": [0.01, 0.05, 0.1],  # P-value threshold for early stopping
                 "od_wait": [
@@ -246,6 +233,7 @@ class CatBoost_class:
                     30,
                 ],  # Number of iterations to wait before early stopping
                 "verbose": [0],
+                "allow_const_label":[True]
             },
         ]
 

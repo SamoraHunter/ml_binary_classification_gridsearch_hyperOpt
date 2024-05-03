@@ -110,6 +110,8 @@ class grid_search_crossvalidate:
 
         self.y_test_orig = self.ml_grid_object_iter.y_test_orig
 
+        max_param_space_iter_value = 100
+
         if "svc" in method_name.lower():
             self.X_train = scale_data(self.X_train)
             self.X_test = scale_data(self.X_test)
@@ -148,9 +150,9 @@ class grid_search_crossvalidate:
             if n_iter_v < 2:
                 print("warn n_iter_v < 2")
                 n_iter_v = 2
-            if n_iter_v > 1000:
-                print("Warn n_iter_v > 1000, setting 1000")
-                n_iter_v = 1000
+            if n_iter_v > max_param_space_iter_value:
+                print(f"Warn n_iter_v > max_param_space_iter_value, setting {max_param_space_iter_value}")
+                n_iter_v = max_param_space_iter_value
 
             grid = RandomizedSearchCV(
                 current_algorithm,
