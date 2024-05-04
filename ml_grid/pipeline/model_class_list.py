@@ -52,7 +52,7 @@ def get_model_class_list(ml_grid_object):
         "adaboost_class": True,
         "kerasClassifier_class": True,
         "knn__gpu_wrapper_class": True,
-        "NeuralNetworkClassifier_class": True,
+        "NeuralNetworkClassifier_class": False,
         "TabTransformer_class": False,
     }
 
