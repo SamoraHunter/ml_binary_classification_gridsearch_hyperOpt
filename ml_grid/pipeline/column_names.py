@@ -85,6 +85,8 @@ def get_pertubation_columns(all_df_columns, local_param_dict, drop_term_list):
         )
     )
 
+    appointments_substrings = ["ConsultantCode_", "ClinicCode_", "AppointmentType_"]
+
     meta_sp_annotation_count_list = list(
         filter(lambda k: "_count_subject_present" in k, all_df_columns)
     )
@@ -114,6 +116,10 @@ def get_pertubation_columns(all_df_columns, local_param_dict, drop_term_list):
     drug_order_list = []
     drug_list = filter_substring_list(all_df_columns, drug_order_substrings)
     drug_order_list.extend(drug_list)
+
+    appointments_list = []
+    appointments = filter_substring_list(all_df_columns, appointments_substrings)
+    appointments_list.extend(appointments)
 
     bmi_list = list(filter(lambda k: "bmi_" in k, all_df_columns))
 
@@ -182,6 +188,7 @@ def get_pertubation_columns(all_df_columns, local_param_dict, drop_term_list):
         news_list,
         bloods_list,
         date_time_stamp_list,
+        appointments_list
     ]
     if verbose >= 2:
 
@@ -253,6 +260,9 @@ def get_pertubation_columns(all_df_columns, local_param_dict, drop_term_list):
 
     if local_param_dict.get("data").get("date_time_stamp") == True:
         pertubation_columns.extend(date_time_stamp_list)
+
+    if local_param_dict.get("data").get("appointments") == True:
+        pertubation_columns.extend(appointments_list)
 
     print(f"local_param_dict data perturbation: \n {local_param_dict.get('data')}")
 
