@@ -1,7 +1,16 @@
+import numpy as np
 from sklearn.metrics import make_scorer
 from sklearn.metrics import roc_auc_score
 
 
+    # Define your custom scoring function
+def custom_roc_auc_score(y_true, y_pred):
+    # Check if there are at least two unique classes present in y_true
+    if len(np.unique(y_true)) < 2:
+        return np.nan  # Return NaN if only one class is present
+    else:
+        return roc_auc_score(y_true, y_pred)
+    
 class global_parameters:
     """
     Global parameters for ml_grid
@@ -35,7 +44,7 @@ class global_parameters:
         """
         Verbose level for sklearn models
         """
-        self.verbose = 3
+        self.verbose = 9
 
         """
         Rename cols of dataframes
@@ -80,9 +89,20 @@ class global_parameters:
         """
         Dictionary of sklearn metrics to pass to GridSearchCV
         """
+        custom_scorer = make_scorer(custom_roc_auc_score)
+
         self.metric_list = {
-            "auc": make_scorer(roc_auc_score, needs_proba=False),
+            #"auc": make_scorer(roc_auc_score, needs_proba=False),
+            #"auc": "roc_auc",
+            "auc": custom_scorer,
             "f1": "f1",
             "accuracy": "accuracy",
             "recall": "recall",
         }
+
+
+
+    
+    
+
+

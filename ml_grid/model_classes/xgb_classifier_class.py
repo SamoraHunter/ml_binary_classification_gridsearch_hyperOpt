@@ -62,7 +62,7 @@ class XGB_class_class:
             "random_state": [None],
             "reg_alpha": self.parameter_vector_space.param_dict.get("log_small"),
             "reg_lambda": self.parameter_vector_space.param_dict.get("log_small"),
-            "sampling_method": ["uniform", "gradient_based"],
+            "sampling_method": ["uniform", ], #"gradient_based" gpu hist only
             #'scale_pos_weight': None,
             #'subsample': None,
             # "tree_method": ["gpu_hist"], #fail w/ hyperopts?

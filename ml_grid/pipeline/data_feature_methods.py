@@ -2,7 +2,9 @@ import numpy as np
 import pandas as pd
 import sklearn
 import sklearn.feature_selection
-
+from PyImpetus import PPIMBC
+from sklearn.svm import SVC
+import pandas as pd
 
 class feature_methods:
 
@@ -64,3 +66,59 @@ class feature_methods:
         nFeatures = sortedList[:n]  # get top n features
         finalColNames = [elem[0] for elem in nFeatures]  # get column names
         return finalColNames
+
+
+    def getNFeaturesMarkovBlanket(self, n, X_train, y_train):
+
+        """
+        Get the names of the top n features from the Markov Blanket (MB) using PyImpetus.
+
+        Parameters:
+        - n (int): The number of top features to retrieve.
+        - X_train (array-like): The training input samples.
+        - y_train (array-like): The target values.
+
+        Returns:
+        - list: A list containing the names of the top n features from the Markov Blanket.
+
+        Example:
+        ```
+        # Import necessary modules
+        from sklearn.datasets import make_classification
+        from sklearn.model_selection import train_test_split
+
+        # Generate synthetic data for binary classification
+        X, y = make_classification(n_samples=1500, n_features=20, n_informative=8, n_classes=2, random_state=42)
+
+        # Split the data into training and testing sets
+        X_train, _, y_train, _ = train_test_split(X, y, test_size=0.33, random_state=42)
+
+        # Get the top 5 features from the Markov Blanket
+        top_features = getNFeaturesMarkovBlanket(5, X_train, y_train)
+        ```
+        """
+        
+        # Initialize the PyImpetus object with desired parameters
+        model = PPIMBC(model=SVC(random_state=27, class_weight="balanced"), 
+                    p_val_thresh=0.05, 
+                    num_simul=30, 
+                    simul_size=0.2, 
+                    simul_type=0, 
+                    sig_test_type="non-parametric", 
+                    cv=5, 
+                    random_state=27, 
+                    n_jobs=-1, 
+                    verbose=2)
+        
+        # Fit and transform the training data
+        df_train_transformed = model.fit_transform(X_train, y_train)
+        
+        # Get the feature names from the Markov blanket (MB) and truncate by n elements
+        feature_names = model.MB[:n]
+        
+        return feature_names
+
+    
+
+
+

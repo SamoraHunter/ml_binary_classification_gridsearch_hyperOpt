@@ -28,6 +28,16 @@ class knn_classifiers_class:
         self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
         # print(self.parameter_vector_space)
 
+        # n_samples = X.shape[0]  # This gives you the number of samples
+        # max_neighbors = n_samples - 1
+
+        n_neighbors = self.parameter_vector_space.param_dict.get("log_med")
+
+        # if n_neighbors.any() > max_neighbors:
+        #     for i in range(len(n_neighbors)):
+        #         if n_neighbors[i] >= max_neighbors:
+        #             n_neighbors[i] = max_neighbors - 1
+
         self.parameter_space = {
             "algorithm": ["auto", "ball_tree", "kd_tree", "brute"],
             "leaf_size": self.parameter_vector_space.param_dict.get("log_large_long"),
@@ -35,7 +45,7 @@ class knn_classifiers_class:
             "metric_params": [None],
             # "n_jobs": [None],
             "n_jobs": [knn_n_jobs],
-            "n_neighbors": self.parameter_vector_space.param_dict.get("log_med"),
+            "n_neighbors": n_neighbors,
             "p": self.parameter_vector_space.param_dict.get("log_med"),
             "weights": ["uniform", "distance"],
         }

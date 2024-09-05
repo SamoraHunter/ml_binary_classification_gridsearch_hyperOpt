@@ -30,6 +30,7 @@ class Grid:
             "outcome_var_n": ["1"],
             "percent_missing": [99, 95, 80],  # n/100 ex 95 for 95% # 99.99, 99.5, 9
             "corr": [0.98, 0.85, 0.5, 0.25],
+            "feature_selection_method":['anova', 'markov_blanket'],
             "data": [
                 {
                     "age": [True, False],

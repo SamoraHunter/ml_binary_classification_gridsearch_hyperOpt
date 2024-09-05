@@ -1,4 +1,11 @@
+import re
+
+import pandas as pd
 import sklearn.feature_selection
+from IPython.display import display
+from sklearn.exceptions import ConvergenceWarning
+from tabulate import tabulate
+
 from ml_grid.pipeline import read_in
 from ml_grid.pipeline.column_names import get_pertubation_columns
 from ml_grid.pipeline.data_clean_up import clean_up_class
@@ -13,12 +20,6 @@ from ml_grid.pipeline.logs_project_folder import log_folder
 from ml_grid.pipeline.model_class_list import get_model_class_list
 from ml_grid.pipeline.model_class_list_ts import get_model_class_list_ts
 from ml_grid.util.global_params import global_parameters
-from sklearn.exceptions import ConvergenceWarning
-from tabulate import tabulate
-import pandas as pd
-import re
-from IPython.display import display
-
 from ml_grid.util.time_series_helper import (
     convert_Xy_to_time_series,
     max_client_idcode_sequence_length,
@@ -56,7 +57,9 @@ class pipe:
         param_space_index,
         additional_naming=None,
         test_sample_n=0,
+        column_sample_n=0,
         time_series_mode=False,
+        model_class_dict = None
     ):  # kwargs**
 
         self.base_project_dir = base_project_dir
@@ -73,20 +76,47 @@ class pipe:
 
         self.time_series_mode = time_series_mode
 
+        self.model_class_dict = model_class_dict
+
         if self.verbose >= 1:
             print(f"Starting... {self.local_param_dict}")
 
-        log_folder(
+        self.logging_paths_obj = log_folder(
             local_param_dict=local_param_dict,
             additional_naming=additional_naming,
             base_project_dir=base_project_dir,
         )
 
-        self.df = read_in.read(file_name).raw_input_data
+        read_in_sample = True
 
-        if test_sample_n > 0:
+        if read_in_sample and test_sample_n > 0 or column_sample_n > 0:
+            self.df = read_in.read_sample(file_name, test_sample_n, column_sample_n).raw_input_data
+        else:
+            self.df = read_in.read(file_name, use_polars=True).raw_input_data
+
+        if test_sample_n > 0 and read_in_sample == False:
             print("sampling 200 for debug/trial purposes...")
             self.df = self.df.sample(test_sample_n)
+
+        if column_sample_n > 0 and read_in_sample == False:
+            # Check if 'age' and 'male' columns are in the original DataFrame
+            if 'age' in self.df.columns and 'male' in self.df.columns and 'outcome_var_1' in self.df.columns:
+                original_columns = ['age', 'male', 'outcome_var_1']
+            else:
+                original_columns = []
+            
+            print("Sampling", column_sample_n, "columns for additional debug/trial purposes...")
+            
+            # Sample the columns
+            sampled_columns = self.df.sample(n=column_sample_n, axis=1).columns
+            
+            # Ensure original columns are retained
+            new_columns = list(set(sampled_columns) | set(original_columns))
+            
+            # Reassign DataFrame with sampled columns
+            self.df = self.df[new_columns].copy()
+            
+            print("Result df shape", self.df.shape)
 
         self.all_df_columns = list(self.df.columns)
 
@@ -119,6 +149,7 @@ class pipe:
             local_param_dict=local_param_dict,
             all_df_columns=self.all_df_columns,
             drop_list=self.drop_list,
+            file_name=file_name,
         )
 
         self.drop_list = handle_outcome_list(
@@ -220,6 +251,7 @@ class pipe:
                         X_test=self.X_test,
                         y_train=self.y_train,
                         X_test_orig=self.X_test_orig,
+                        ml_grid_object=self
                     )
                 )
 
@@ -249,4 +281,7 @@ class pipe:
         else:
             if self.verbose >= 2:
                 print("data>>", "get_model_class_list")
+            if model_class_dict is not None:
+                self.model_class_dict = model_class_dict
+            
             self.model_class_list = get_model_class_list(self)

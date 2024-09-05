@@ -11,11 +11,12 @@ class LogisticRegression_class:
     """LogisticRegression."""
 
     def __init__(self, X=None, y=None, parameter_space_size=None):
-        """_summary_
+        """Initialize the LogisticRegression class.
 
         Args:
-            X_train (_type_): _description_
-            y_train (_type_): _description_
+            X (numpy.ndarray): Features
+            y (numpy.ndarray): Target variable
+            parameter_space_size (int): Size of the parameter space
         """
         self.X = X
         self.y = y
@@ -44,6 +45,8 @@ class LogisticRegression_class:
         #     "warm_start": [False],
         # }
 
+        # Create a list of dictionaries with the parameter space
+        # Each dictionary is a combination of parameters
         self.parameter_space = [
             {
                 "C": self.parameter_vector_space.param_dict.get("log_small"),
@@ -51,13 +54,17 @@ class LogisticRegression_class:
                 "dual": [False],
                 "fit_intercept": [True],
                 "intercept_scaling": [1],
-                "l1_ratio": [None],
+                "l1_ratio": [0.5],
                 "max_iter": self.parameter_vector_space.param_dict.get(
                     "log_large_long"
                 ),
                 "multi_class": ["auto"],
                 "n_jobs": [None],
-                "penalty": ["elasticnet", "l1", "l2", "none"],  # None
+                "penalty": [
+                    "elasticnet",
+                    "l1",
+                    "l2",
+                ],  # None
                 "random_state": [None],
                 "solver": ["saga"],
                 "tol": self.parameter_vector_space.param_dict.get("log_small"),
@@ -76,7 +83,9 @@ class LogisticRegression_class:
                 ),
                 "multi_class": ["auto"],
                 "n_jobs": [None],
-                "penalty": ["l2", "none"],  # None
+                "penalty": [
+                    "l2",
+                ],  # None
                 "random_state": [None],
                 "solver": ["newton-cg", "lbfgs"],
                 "tol": self.parameter_vector_space.param_dict.get("log_small"),
@@ -87,4 +96,12 @@ class LogisticRegression_class:
 
         return None
 
-        # print("init log reg class ", self.parameter_space)
+    # docstring
+    def __repr__(self):
+        """Return the representation of the LogisticRegression class."""
+        return "LogisticRegression class"
+
+    # docstring
+    def __str__(self):
+        """Return the string representation of the LogisticRegression class."""
+        return "LogisticRegression class"
