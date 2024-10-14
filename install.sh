@@ -36,14 +36,7 @@ pip install ipykernel
 python -m ipykernel install --user --name=ml_grid_env
 
 # Install requirements from requirements.txt
-while read -r package; do
-    pip install "$package"
-    if [ $? -ne 0 ]; then
-        echo "Failed to install $package" >> installation_log.txt
-    else
-        echo "Successfully installed $package"
-    fi
-done < requirements.txt
+pip install -r requirements.txt
 
 # Deactivate virtual environment
 deactivate
