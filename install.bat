@@ -44,16 +44,9 @@ rem Upgrade pip
 echo Upgrading pip...
 call ml_grid_env\Scripts\python.exe -m pip install --upgrade pip
 
-rem Install requirements one by one
+rem Install requirements 
 echo Installing requirements...
-for /f "delims=" %%i in (requirements.txt) do (
-    pip install %%i
-    if errorlevel 1 (
-        echo Failed to install %%i
-    ) else (
-        echo Successfully installed %%i
-    )
-)
+pip install -r requirements.txt
 
 rem Install ipykernel and add ml_grid_env to the kernel spec
 echo Installing ipykernel...
