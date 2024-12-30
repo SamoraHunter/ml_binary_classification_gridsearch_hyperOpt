@@ -512,6 +512,8 @@ pyzmq==26.2.0
     #   -r requirements.in
     #   ipykernel
     #   jupyter-client
+pyarrow==18.1.0
+    #via manual
 readme-renderer==44.0
     # via twine
 requests==2.32.3
