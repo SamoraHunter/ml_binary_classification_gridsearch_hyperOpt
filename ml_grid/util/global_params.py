@@ -54,12 +54,18 @@ class global_parameters:
         """
         Raise errors from ml_grid
         """
-        self.error_raise = False
+        self.error_raise = True
 
         """
         Randomize search space for GridSearchCV
         """
-        self.random_grid_search = True
+        self.random_grid_search = False
+        
+        """
+        Bayesian optimization for GridSearchCV
+        """
+        
+        self.bayessearch = True
 
         """
         Percentage of param space to sub sample
