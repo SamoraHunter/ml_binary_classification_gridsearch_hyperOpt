@@ -1,58 +1,77 @@
-"""Define GradientBoostingClassifier class"""
-
 from ml_grid.util import param_space
+from ml_grid.util.global_params import global_parameters
 from sklearn.ensemble import GradientBoostingClassifier
+from skopt.space import Categorical, Real, Integer
 import numpy as np
 
-print("Imported GradientBoostingClassifier class")
-
-
 class GradientBoostingClassifier_class:
-    """GradientBoostingClassifier."""
+    """GradientBoostingClassifier with support for both Bayesian and non-Bayesian parameter spaces."""
 
     def __init__(self, X=None, y=None, parameter_space_size=None):
-        """_summary_
+        """
+        Initialize the GradientBoostingClassifier_class.
 
         Args:
-            X_train (_type_): _description_
-            y_train (_type_): _description_
+            X (_type_): Feature matrix for training (optional).
+            y (_type_): Target vector for training (optional).
+            parameter_space_size (_type_): Size of the parameter space for optimization.
         """
+        global_params = global_parameters()
         self.X = X
         self.y = y
 
+        # Use the standard GradientBoostingClassifier directly
         self.algorithm_implementation = GradientBoostingClassifier()
         self.method_name = "GradientBoostingClassifier"
 
+        # Define the parameter vector space
         self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
-        # print(self.parameter_vector_space)
 
-        self.parameter_space = {
-            "ccp_alpha": self.parameter_vector_space.param_dict.get("log_small"),
-            "criterion": ["friedman_mse"],
-            "init": [None],
-            "learning_rate": self.parameter_vector_space.param_dict.get("log_small"),
-            "loss": ["log_loss", "exponential"],
-            #'max_depth': log_med,
-            "max_features": ["sqrt", "log2"],
-            #'max_leaf_nodes': log_large_long,
-            #'min_impurity_decrease': log_small,
-            #'min_samples_leaf': log_med,
-            #'min_samples_split': log_med,
-            #'min_weight_fraction_leaf': log_small,
-            "n_estimators": self.parameter_vector_space.param_dict.get(
-                "log_large_long"
-            ),
-            #'n_iter_no_change': log_large_long,
-            "random_state": [None],
-            "subsample": np.delete(
-                self.parameter_vector_space.param_dict.get("lin_zero_one"), 0
-            ),
-            "tol": self.parameter_vector_space.param_dict.get("log_small"),
-            "validation_fraction": [0.1],
-            "verbose": [0],
-            "warm_start": [False],
-        }
+        if global_params.bayessearch:
+            # Define the parameter space for Bayesian optimization
+            self.parameter_space = {
+                "ccp_alpha": Real(1e-5, 1e-1, prior="log-uniform"),
+                "criterion": Categorical(["friedman_mse"]),
+                "init": Categorical([None]),
+                "learning_rate": Real(1e-5, 1e-1, prior="log-uniform"),
+                "loss": Categorical(["log_loss", "exponential"]),
+                # "max_depth": Integer(2, 10),  # Uncomment if needed
+                "max_features": Categorical(["sqrt", "log2"]),
+                # "max_leaf_nodes": Integer(10, 1000),  # Uncomment if needed
+                # "min_impurity_decrease": Real(1e-5, 1e-1, prior="log-uniform"),  # Uncomment if needed
+                # "min_samples_leaf": Integer(1, 10),  # Uncomment if needed
+                # "min_samples_split": Integer(2, 20),  # Uncomment if needed
+                # "min_weight_fraction_leaf": Real(0.0, 0.5, prior="uniform"),  # Uncomment if needed
+                "n_estimators": Integer(50, 500),
+                # "n_iter_no_change": Integer(5, 50),  # Uncomment if needed
+                "subsample": Real(0.1, 1.0, prior="uniform"),
+                "tol": Real(1e-5, 1e-1, prior="log-uniform"),
+                "validation_fraction": Real(0.1, 0.3, prior="uniform"),
+                "verbose": Categorical([0]),
+                "warm_start": Categorical([False]),
+            }
+        else:
+            # Define the parameter space for traditional grid search
+            self.parameter_space = {
+                "ccp_alpha": list(self.parameter_vector_space.param_dict.get("log_small")),
+                "criterion": ["friedman_mse"],
+                "init": [None],
+                "learning_rate": list(self.parameter_vector_space.param_dict.get("log_small")),
+                "loss": ["log_loss", "exponential"],
+                # "max_depth": list(range(2, 11)),  # Uncomment if needed
+                "max_features": ["sqrt", "log2"],
+                # "max_leaf_nodes": list(range(10, 1001)),  # Uncomment if needed
+                # "min_impurity_decrease": list(self.parameter_vector_space.param_dict.get("log_small")),  # Uncomment if needed
+                # "min_samples_leaf": list(range(1, 11)),  # Uncomment if needed
+                # "min_samples_split": list(range(2, 21)),  # Uncomment if needed
+                # "min_weight_fraction_leaf": np.linspace(0.0, 0.5, 6).tolist(),  # Uncomment if needed
+                "n_estimators": list(self.parameter_vector_space.param_dict.get("log_large_long")),
+                # "n_iter_no_change": list(range(5, 51)),  # Uncomment if needed
+                "subsample": list(np.delete(self.parameter_vector_space.param_dict.get("lin_zero_one"), 0)),
+                "tol": list(self.parameter_vector_space.param_dict.get("log_small")),
+                "validation_fraction": [0.1],
+                "verbose": [0],
+                "warm_start": [False],
+            }
 
         return None
-
-        # print("init log reg class ", self.parameter_space)
