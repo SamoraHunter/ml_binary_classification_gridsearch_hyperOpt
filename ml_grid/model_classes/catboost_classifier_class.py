@@ -1,240 +1,80 @@
+import numpy as np
 from catboost import CatBoostClassifier
-
+from skopt.space import Categorical, Real, Integer
 from ml_grid.util import param_space
-
-print("Imported CatBoostClassifier class")
-
+from ml_grid.util.global_params import global_parameters
 
 class CatBoost_class:
-    """CatBoost classifier."""
+    """CatBoost Classifier with hyperparameter tuning."""
 
     def __init__(self, X=None, y=None, parameter_space_size=None):
         """
-        Initialize CatBoost classifier.
+        Initialize the CatBoost_class.
 
         Args:
-            X (_type_): Description of input features.
-            y (_type_): Description of target variable.
-            parameter_space_size (_type_): Size of parameter space.
+            X (_type_): Feature matrix for training (optional).
+            y (_type_): Target vector for training (optional).
+            parameter_space_size (_type_): Size of the parameter space for optimization.
         """
+        global_params = global_parameters()  # Fetch global parameters
         self.X = X
         self.y = y
 
+        # Use CatBoostClassifier directly
         self.algorithm_implementation = CatBoostClassifier()
         self.method_name = "CatBoostClassifier"
 
+        # Initialize parameter vector space
         self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
-        # print(self.parameter_vector_space)
 
-        self.parameter_space = [
-            {
-                # General Parameters
-                "iterations": [100, 500, 1000],  # Number of trees to grow
-                "learning_rate": [
-                    0.01,
-                    0.05,
-                    0.1,
-                    0.3,
-                ],  # Shrinkage rate for tree updates
-                "depth": [4, 6, 8, 10],  # Depth of the tree
-                # Tree-Boosting Parameters
-                # "bagging_temperature": [
-                #     0,
-                #     1,
-                #     5,
-                #     10,
-                # ],  # Controls intensity of random selection of data used for training
-                # "border_count": [32, 64, 128],  # Number of splits for numerical features
-                "l2_leaf_reg": [3, 5, 7, 9],  # L2 regularization coefficient
-                "random_strength": [
-                    1,
-                    2,
-                    3,
-                ],  # Magnitude of randomness in data sampling
-                "rsm": [0.8, 1],  # Random selection of features for each tree
-                # Learning Task Parameters
-                "loss_function": ["Logloss", "CrossEntropy"],  # Loss function
-                "eval_metric": ["Accuracy", "AUC"],  # Metric to use for validation
-                #           "custom_metric": [],  # User-defined custom metric
-                # "auto_class_weights": ["None", "Balanced"],  # Handling class imbalance
-                # Optimization Parameters
-                "bootstrap_type": [
-                    "Bernoulli",
-                    "MVS",
-                    #    "Poisson",
-                ],  # Sampling strategy
-                "subsample": [0.8, 1],  # Sample rate for bootstrap type
-                "max_bin": [
-                    32,
-                    64,
-                    128,
-                ],  # Maximum number of bins to use for numerical features
-                "grow_policy": [
-                    "SymmetricTree",
-                    "Depthwise",
-                    "Lossguide",
-                ],  # Tree growing strategy
-                "min_data_in_leaf": [1, 3, 5, 7],  # Minimum number of samples in a leaf
-                # "max_leaves": [31, 63, 127],  # Maximum number of leaves in a tree
-                # "num_boost_round": [10, 50, 100],  # Number of boosting rounds
-                # Others
-                #            "ignored_features": [[]],  # Features to ignore
-                "one_hot_max_size": [2, 5, 10],  # Maximum size of one-hot encoding
-                "leaf_estimation_method": [
-                    "Newton",
-                    "Gradient",
-                ],  # Method for leaf value calculation
-                "feature_border_type": [
-                    "MinEntropy",
-                    "MaxLogSum",
-                ],  # Method to use for splitting numerical features
-                # CatBoost Extensions
-                "fold_permutation_block": [1, 3, 5],  # Fold permutation block size
-                "od_pval": [0.01, 0.05, 0.1],  # P-value threshold for early stopping
-                "od_wait": [
-                    10,
-                    20,
-                    30,
-                ],  # Number of iterations to wait before early stopping
+        # Define parameter space for Bayesian search or traditional grid search
+        if global_params.bayessearch:
+            self.parameter_space = {
+                "iterations": Integer(100, 1000),
+                "learning_rate": Real(0.01, 0.3, prior="uniform"),
+                "depth": Integer(4, 10),
+                "l2_leaf_reg": Real(1e-5, 1, prior="log-uniform"),
+                "random_strength": Real(1e-5, 1, prior="log-uniform"),
+                "rsm": Real(0.8, 1, prior="uniform"),
+                "loss_function": Categorical(["Logloss", "CrossEntropy"]),
+                "eval_metric": Categorical(["Accuracy", "AUC"]),
+                "bootstrap_type": Categorical(["Bernoulli", "MVS"]),
+                "subsample": Real(0.8, 1, prior="uniform"),
+                "max_bin": Integer(32, 128),
+                "grow_policy": Categorical(["SymmetricTree", "Depthwise", "Lossguide"]),
+                "min_data_in_leaf": Integer(1, 7),
+                "one_hot_max_size": Integer(2, 10),
+                "leaf_estimation_method": Categorical(["Newton", "Gradient"]),
+                "fold_permutation_block": Integer(1, 5),
+                "od_pval": Real(1e-9, 0.1, prior="log-uniform"),
+                "od_wait": Integer(10, 30),
+                "verbose": Categorical([0]),
+                "allow_const_label": Categorical([True]),
+            }
+            print(f"Bayesian Parameter Space: {self.parameter_space}")
+        else:
+            self.parameter_space = {
+                "iterations": [100, 200, 500, 1000],
+                "learning_rate": [0.01, 0.05, 0.1, 0.3],
+                "depth": [4, 6, 8, 10],
+                "l2_leaf_reg": [1e-5, 1e-3, 0.1, 1],
+                "random_strength": [1e-5, 1e-3, 0.1, 1],
+                "rsm": [0.8, 1],
+                "loss_function": ["Logloss", "CrossEntropy"],
+                "eval_metric": ["Accuracy", "AUC"],
+                "bootstrap_type": ["Bernoulli", "MVS"],
+                "subsample": [0.8, 1],
+                "max_bin": [32, 64, 128],
+                "grow_policy": ["SymmetricTree", "Depthwise", "Lossguide"],
+                "min_data_in_leaf": [1, 3, 5, 7],
+                "one_hot_max_size": [2, 5, 10],
+                "leaf_estimation_method": ["Newton", "Gradient"],
+                "fold_permutation_block": [1, 3, 5],
+                "od_pval": [1e-9, 1e-7, 1e-5, 1e-3],
+                "od_wait": [10, 20, 30],
                 "verbose": [0],
-                "allow_const_label":[True]
-            },
-            {
-                # General Parameters
-                # "iterations": [100, 500, 1000],  # Number of trees to grow
-                "learning_rate": [
-                    0.01,
-                    0.05,
-                    0.1,
-                    0.3,
-                ],  # Shrinkage rate for tree updates
-                "depth": [4, 6, 8, 10],  # Depth of the tree
-                # Tree-Boosting Parameters
-                # "border_count": [32, 64, 128],  # Number of splits for numerical features
-                "l2_leaf_reg": [3, 5, 7, 9],  # L2 regularization coefficient
-                "random_strength": [
-                    1,
-                    2,
-                    3,
-                ],  # Magnitude of randomness in data sampling
-                "rsm": [0.8, 1],  # Random selection of features for each tree
-                # Learning Task Parameters
-                "loss_function": ["Logloss", "CrossEntropy"],  # Loss function
-                "eval_metric": ["Accuracy", "AUC"],  # Metric to use for validation
-                #           "custom_metric": [],  # User-defined custom metric
-                # "auto_class_weights": ["None", "Balanced"],  # Handling class imbalance
-                # Optimization Parameters
-                "bootstrap_type": [
-                    "Bernoulli",
-                    "MVS",
-                    #    "Poisson",
-                ],  # Sampling strategy
-                "subsample": [0.8, 1],  # Sample rate for bootstrap type
-                "max_bin": [
-                    32,
-                    64,
-                    128,
-                ],  # Maximum number of bins to use for numerical features
-                "grow_policy": [
-                    "SymmetricTree",
-                    "Depthwise",
-                    "Lossguide",
-                ],  # Tree growing strategy
-                "min_data_in_leaf": [1, 3, 5, 7],  # Minimum number of samples in a leaf
-                #  "max_leaves": [31, 63, 127],  # Maximum number of leaves in a tree
-                # "num_boost_round": [10, 50, 100],  # Number of boosting rounds
-                # Others
-                #            "ignored_features": [[]],  # Features to ignore
-                "one_hot_max_size": [2, 5, 10],  # Maximum size of one-hot encoding
-                "leaf_estimation_method": [
-                    "Newton",
-                    "Gradient",
-                ],  # Method for leaf value calculation
-                "feature_border_type": [
-                    "MinEntropy",
-                    "MaxLogSum",
-                ],  # Method to use for splitting numerical features
-                # CatBoost Extensions
-                "fold_permutation_block": [1, 3, 5],  # Fold permutation block size
-                "od_pval": [0.01, 0.05, 0.1],  # P-value threshold for early stopping
-                "od_wait": [
-                    10,
-                    20,
-                    30,
-                ],  # Number of iterations to wait before early stopping
-                "verbose": [0],
-                "allow_const_label":[True]
-            },
-            {
-                # General Parameters
-                # "iterations": [100, 500, 1000],  # Number of trees to grow
-                "learning_rate": [
-                    0.01,
-                    0.05,
-                    0.1,
-                    0.3,
-                ],  # Shrinkage rate for tree updates
-                "depth": [4, 6, 8, 10],  # Depth of the tree
-                # Tree-Boosting Parameters
-                # "border_count": [32, 64, 128],  # Number of splits for numerical features
-                "bagging_temperature": [
-                    0,
-                    1,
-                    5,
-                    10,
-                ],  # Controls intensity of random selection of data used for training
-                "l2_leaf_reg": [3, 5, 7, 9],  # L2 regularization coefficient
-                "random_strength": [
-                    1,
-                    2,
-                    3,
-                ],  # Magnitude of randomness in data sampling
-                "rsm": [0.8, 1],  # Random selection of features for each tree
-                # Learning Task Parameters
-                "loss_function": ["Logloss", "CrossEntropy"],  # Loss function
-                "eval_metric": ["Accuracy", "AUC"],  # Metric to use for validation
-                #           "custom_metric": [],  # User-defined custom metric
-                # "auto_class_weights": ["None", "Balanced"],  # Handling class imbalance
-                # Optimization Parameters
-                "bootstrap_type": [
-                    "Bayesian",
-                ],  # Sampling strategy
-                # "subsample": [0.8, 1],  # Sample rate for bootstrap type
-                "max_bin": [
-                    32,
-                    64,
-                    128,
-                ],  # Maximum number of bins to use for numerical features
-                "grow_policy": [
-                    "SymmetricTree",
-                    "Depthwise",
-                    "Lossguide",
-                ],  # Tree growing strategy
-                "min_data_in_leaf": [1, 3, 5, 7],  # Minimum number of samples in a leaf
-                # "max_leaves": [31, 63, 127],  # Maximum number of leaves in a tree
-                # "num_boost_round": [10, 50, 100],  # Number of boosting rounds
-                # Others
-                #            "ignored_features": [[]],  # Features to ignore
-                "one_hot_max_size": [2, 5, 10],  # Maximum size of one-hot encoding
-                "leaf_estimation_method": [
-                    "Newton",
-                    "Gradient",
-                ],  # Method for leaf value calculation
-                "feature_border_type": [
-                    "MinEntropy",
-                    "MaxLogSum",
-                ],  # Method to use for splitting numerical features
-                # CatBoost Extensions
-                "fold_permutation_block": [1, 3, 5],  # Fold permutation block size
-                "od_pval": [0.01, 0.05, 0.1],  # P-value threshold for early stopping
-                "od_wait": [
-                    10,
-                    20,
-                    30,
-                ],  # Number of iterations to wait before early stopping
-                "verbose": [0],
-                "allow_const_label":[True]
-            },
-        ]
+                "allow_const_label": [True],
+            }
+            print(f"Traditional Parameter Space: {self.parameter_space}")
 
         return None
