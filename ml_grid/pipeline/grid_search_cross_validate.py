@@ -31,11 +31,13 @@ from sklearn.model_selection import (
 )
 
 from ml_grid.model_classes.keras_classifier_class import kerasClassifier_class
+from ml_grid.pipeline.hyperparameter_search import HyperparameterSearch
 from ml_grid.util.debug_print_statements import debug_print_statements_class
 from ml_grid.util.global_params import global_parameters
 from ml_grid.util.project_score_save import project_score_save_class
 from ml_grid.util.validate_parameters import validate_parameters_helper
 from sklearn.preprocessing import MinMaxScaler
+from ml_grid.util.bayes_utils import calculate_combinations
 
 class grid_search_crossvalidate:
 
@@ -110,7 +112,7 @@ class grid_search_crossvalidate:
 
         self.y_test_orig = self.ml_grid_object_iter.y_test_orig
 
-        max_param_space_iter_value = 100
+        max_param_space_iter_value = 2 # hard limit on param space exploration
 
         if "svc" in method_name.lower():
             self.X_train = scale_data(self.X_train)
@@ -125,7 +127,10 @@ class grid_search_crossvalidate:
         current_algorithm = algorithm_implementation
 
         parameters = parameter_space
-        n_iter_v = np.nan
+        if(self.global_params.bayessearch is False):
+            n_iter_v = np.nan
+        else:
+            n_iter_v = 2
         #     if(sub_sample_param_space):
         #         sub_sample_param_space_n = int(sub_sample_param_space_pct *  len(ParameterGrid(parameter_space)))
         #         parameter_space random.sample(ParameterGrid(parameter_space), sub_sample_param_space_n)
@@ -134,50 +139,56 @@ class grid_search_crossvalidate:
 
         if(ml_grid_object.verbose >= 3):
             print("algorithm_implementation: ", algorithm_implementation, " type: ", type(algorithm_implementation), )
-        # Validate parameters
-        parameters = validate_parameters_helper(
-            algorithm_implementation=algorithm_implementation,
-            parameters=parameters,
-            ml_grid_object=ml_grid_object,
-        )
-
-        if random_grid_search:
-            # n_iter_v = int(self.sub_sample_param_space_pct *  len(ParameterGrid(parameter_space))) + 2
-            n_iter_v = int(len(ParameterGrid(parameter_space))) + 2
-
-            if self.sub_sample_parameter_val < n_iter_v:
-                n_iter_v = self.sub_sample_parameter_val
-            if n_iter_v < 2:
-                print("warn n_iter_v < 2")
-                n_iter_v = 2
-            if n_iter_v > max_param_space_iter_value:
-                print(f"Warn n_iter_v > max_param_space_iter_value, setting {max_param_space_iter_value}")
-                n_iter_v = max_param_space_iter_value
-
-            grid = RandomizedSearchCV(
-                current_algorithm,
-                parameters,
-                verbose=1,
-                cv=[(slice(None), slice(None))],
-                n_jobs=grid_n_jobs,
-                n_iter=n_iter_v,
-                # error_score=np.nan,
-                error_score="raise",
+        
+        if(self.global_params.bayessearch is False):
+            # Validate parameters
+            parameters = validate_parameters_helper(
+                algorithm_implementation=algorithm_implementation,
+                parameters=parameters,
+                ml_grid_object=ml_grid_object,
             )
+
+        # if random_grid_search:
+        #     # n_iter_v = int(self.sub_sample_param_space_pct *  len(ParameterGrid(parameter_space))) + 2
+        #     n_iter_v = int(len(ParameterGrid(parameter_space))) + 2
+
+        #     if self.sub_sample_parameter_val < n_iter_v:
+        #         n_iter_v = self.sub_sample_parameter_val
+        #     if n_iter_v < 2:
+        #         print("warn n_iter_v < 2")
+        #         n_iter_v = 2
+        #     if n_iter_v > max_param_space_iter_value:
+        #         print(f"Warn n_iter_v > max_param_space_iter_value, setting {max_param_space_iter_value}")
+        #         n_iter_v = max_param_space_iter_value
+
+        #     grid = RandomizedSearchCV(
+        #         current_algorithm,
+        #         parameters,
+        #         verbose=1,
+        #         cv=[(slice(None), slice(None))],
+        #         n_jobs=grid_n_jobs,
+        #         n_iter=n_iter_v,
+        #         # error_score=np.nan,
+        #         error_score="raise",
+        #     )
+        # else:
+        #     grid = GridSearchCV(
+        #         current_algorithm,
+        #         parameters,
+        #         verbose=1,
+        #         cv=[(slice(None), slice(None))],
+        #         n_jobs=grid_n_jobs,
+        #         error_score=np.nan,
+        #     )  # Negate CV in param search for speed
+        
+        if not self.global_parameters.bayessearch:
+            pg = ParameterGrid(parameter_space)
+            pg = len(pg)
         else:
-            grid = GridSearchCV(
-                current_algorithm,
-                parameters,
-                verbose=1,
-                cv=[(slice(None), slice(None))],
-                n_jobs=grid_n_jobs,
-                error_score=np.nan,
-            )  # Negate CV in param search for speed
-
-        pg = ParameterGrid(parameter_space)
-        pg = len(pg)
-        # print(pg)
-
+            pg = calculate_combinations(parameter_space, steps=n_iter_v) #untested n iter v
+        #print(f"Approximate number of combinations: {approx_combinations}")
+        # print(pg) 
+ 
         if (random_grid_search and n_iter_v > 100000) or (
             random_grid_search == False and pg > 100000
         ):
@@ -194,11 +205,41 @@ class grid_search_crossvalidate:
             else:
                 print(f"parameter grid size: Full: {pg}")
 
-        grid.fit(self.X_train, self.y_train)
+        #grid.fit(self.X_train, self.y_train)
+        if self.global_parameters.bayessearch:
+            n_iter_v = pg + 2
+        else:
+            n_iter_v = int(len(ParameterGrid(parameter_space))) + 2 #review relevance and value
+
+        if self.sub_sample_parameter_val < n_iter_v:
+            n_iter_v = self.sub_sample_parameter_val
+        if n_iter_v < 2:
+            print("warn n_iter_v < 2")
+            n_iter_v = 2
+        if n_iter_v > max_param_space_iter_value:
+            print(f"Warn n_iter_v > max_param_space_iter_value, setting {max_param_space_iter_value}")
+            n_iter_v = max_param_space_iter_value
+        print("n_iter_v = ", n_iter_v)
+
+        # Instantiate and run the hyperparameter grid/random search
+        search = HyperparameterSearch(
+            algorithm=current_algorithm,
+            parameter_space=parameter_space,
+            method_name=method_name,
+            global_params=self.global_parameters,
+            sub_sample_pct=self.sub_sample_param_space_pct,  # Explore 50% of the parameter space
+            max_iter=n_iter_v,         # Maximum iterations for randomized search
+            ml_grid_object=ml_grid_object
+        )
+
+        if self.global_parameters.verbose >= 3:
+            print("Running hyperparameter search")
+        current_algorithm = search.run_search(self.X_train, self.y_train)
 
 
-
-        current_algorithm = grid.best_estimator_
+        if self.global_parameters.verbose >= 3:
+            print("Fitting final model")
+        #current_algorithm = grid.best_estimator_
         current_algorithm.fit(self.X_train, self.y_train)
 
         metric_list = self.metric_list
@@ -215,17 +256,67 @@ class grid_search_crossvalidate:
             print("y_train value counts:")
             print(self.y_train.value_counts())
 
-        scores = cross_validate(
-            current_algorithm,
-            self.X_train,
-            self.y_train,
-            scoring=self.metric_list,
-            cv=self.cv,
-            n_jobs=grid_n_jobs,  # Full CV on final best model #exp -1 was 1
-            pre_dispatch=80,  # exp,
-            error_score='raise',
-            #error_score=np.nan,
-        )
+        # Set a time threshold in seconds
+        time_threshold = 60  # For example, 60 seconds
+
+        start_time = time.time()
+
+        # Define default scores (e.g., mean score of 0.5 for binary classification)
+        # Default scores if cross-validation fails
+        default_scores = {
+            'test_accuracy': [0.5],   # Default to random classifier performance (0.5 for binary classification)
+            'test_f1': [0.5],         # Default F1 score (again, 0.5 for random classification)
+            'test_roc_auc': [0.5],     # Default ROC AUC score (0.5 for random classifier)
+            'fit_time': [0],           # No fitting time if the model fails
+            'score_time': [0],         # No scoring time if the model fails
+            'train_score': [0.5],      # Default train score
+        }
+
+        try:
+            # Perform the cross-validation
+            scores = cross_validate(
+                current_algorithm,
+                self.X_train,
+                self.y_train,
+                scoring=self.metric_list,
+                cv=self.cv,
+                n_jobs=grid_n_jobs,  # Full CV on final best model
+                pre_dispatch=80,
+                error_score='raise',  # Raise error if cross-validation fails
+            )
+
+        except ValueError as e:
+            # Handle specific ValueError if AdaBoostClassifier fails due to poor performance
+            if "BaseClassifier in AdaBoostClassifier ensemble is worse than random" in str(e):
+                print(f"AdaBoostClassifier failed: {e}")
+                print("Skipping AdaBoostClassifier due to poor base classifier performance.")
+                
+                # Set default scores if the AdaBoostClassifier fails
+                scores = default_scores  # Use default scores
+                
+            else:
+                print(f"An unexpected error occurred during cross-validation: {e}")
+                scores = default_scores  # Use default scores for other errors
+
+        except Exception as e:
+            # Catch any other general exceptions and log them
+            print(f"An error occurred during cross-validation: {e}")
+            scores = default_scores  # Use default scores if an error occurs
+
+        # End the timer
+        end_time = time.time()
+
+        # Calculate elapsed time
+        elapsed_time = end_time - start_time
+
+        if self.global_parameters.verbose >= 1:
+            # Print a warning if the execution time exceeds the threshold
+            if elapsed_time > time_threshold:
+                print(f"Warning: Cross-validation took too long ({elapsed_time:.2f} seconds). Consider optimizing the parameters or reducing CV folds.")
+            else:
+                print(f"Cross-validation {method_name} completed in {elapsed_time:.2f} seconds.")
+            
+        
         current_algorithm_scores = scores
         #     scores_tuple_list.append((method_name, current_algorithm_scores, grid))
 
