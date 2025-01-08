@@ -6,6 +6,7 @@ from skopt import BayesSearchCV
 from sklearn.base import is_classifier
 from ml_grid.util.validate_parameters import validate_parameters_helper
 from ml_grid.util.global_params import global_parameters
+import ml_grid
 
 class HyperparameterSearch:
     def __init__(
@@ -50,7 +51,7 @@ class HyperparameterSearch:
         if self.ml_grid_object is None:
             raise ValueError("ml_grid_object is required.")
 
-        assert is_classifier(self.algorithm), f"The provided algorithm is not a valid scikit-learn classifier. : {type(algorithm)}"
+        assert is_classifier(self.algorithm) or type(ml_grid.model_classes.knn_wrapper_class.KNNWrapper), f"The provided algorithm is not a valid scikit-learn classifier. : {type(algorithm)}"
         # permit knn gpu model
         
         # Configure warnings
