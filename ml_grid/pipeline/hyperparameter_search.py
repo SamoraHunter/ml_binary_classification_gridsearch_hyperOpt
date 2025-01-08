@@ -6,7 +6,7 @@ from skopt import BayesSearchCV
 from sklearn.base import is_classifier
 from ml_grid.util.validate_parameters import validate_parameters_helper
 from ml_grid.util.global_params import global_parameters
-import ml_grid
+from ml_grid.model_classes.knn_wrapper_class import KNNWrapper
 
 class HyperparameterSearch:
     def __init__(
@@ -51,8 +51,10 @@ class HyperparameterSearch:
         if self.ml_grid_object is None:
             raise ValueError("ml_grid_object is required.")
 
-        assert is_classifier(self.algorithm) or type(ml_grid.model_classes.knn_wrapper_class.KNNWrapper), f"The provided algorithm is not a valid scikit-learn classifier. : {type(algorithm)}"
-        # permit knn gpu model
+        assert is_classifier(self.algorithm) or isinstance(self.algorithm, KNNWrapper), (
+            f"The provided algorithm is not a valid scikit-learn classifier or a KNNWrapper. "
+            f"Received type: {type(self.algorithm)}"
+        )
         
         # Configure warnings
         warnings.filterwarnings("ignore", category=ConvergenceWarning)
@@ -82,6 +84,10 @@ class HyperparameterSearch:
         random_search = self.global_params.random_grid_search
         grid_n_jobs = self.global_params.grid_n_jobs
         bayessearch = self.global_params.bayessearch
+        
+        if(bayessearch and type(self.algorithm) is isinstance(self.algorithm, KNNWrapper)):
+            # limit n jobs to one for gpu heavy method:
+            grid_n_jobs = 1
 
         if(bayessearch is False):
             # Validate parameters
