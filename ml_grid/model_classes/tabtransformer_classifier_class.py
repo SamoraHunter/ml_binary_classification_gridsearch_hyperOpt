@@ -2,11 +2,14 @@ import torch
 import torch.nn as nn
 from ml_grid.model_classes.tabtransformerClassifier import TabTransformerClassifier
 from ml_grid.util import param_space
+from skopt.space import Real, Categorical
+
+from ml_grid.util.global_params import global_parameters
 
 print("Imported TabTransformerClassifier class")
 
 class TabTransformer_class:
-    """TabTransformerClassifier."""
+    """TabTransformerClassifier with support for Bayesian and Grid Search parameter spaces."""
 
     def __init__(self, X=None, y=None, parameter_space_size=None):
         """Initialize TabTransformerClassifier.
@@ -84,54 +87,36 @@ class TabTransformer_class:
 
         # Parameter Space
         self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
-        
-        self.parameter_space = {
-            "categories": [
-                # Example categories: Tuple of category counts for each categorical feature
-                (10, 5, 6, 5, 8)
-            ],
-            "num_continuous": [
-                # Example num_continuous: Number of continuous features
-                10
-            ],
-            "dim": [
-                # Example dim: Dimensionality of token embeddings
-                32
-            ],
-            "dim_out": [
-                # Example dim_out: Output dimensionality
-                1
-            ],
-            "depth": [
-                # Example depth: Number of transformer layers
-                6
-            ],
-            "heads": [
-                # Example heads: Number of attention heads
-                8
-            ],
-            "attn_dropout": [
-                # Example attn_dropout: Dropout rate for attention layers
-                0.1
-            ],
-            "ff_dropout": [
-                # Example ff_dropout: Dropout rate for feedforward layers
-                0.1
-            ],
-            "mlp_hidden_mults": [
-                # Example mlp_hidden_mults: Multipliers for hidden layer dimensions in the MLP
-                (4, 2)
-            ],
-            "mlp_act": [
-                # Example mlp_act: Activation function for the MLP
-                nn.ReLU()
-            ],
-            "continuous_mean_std": [
-                # Example continuous_mean_std: Mean and standard deviation of continuous features
-                torch.randn(10, 2)
-            ]
-        }
 
+        if global_parameters().bayessearch:
+            # Bayesian Optimization: Define parameter space using Real and Categorical
+            self.parameter_space = {
+                "categories": Categorical([(10, 5, 6, 5, 8)]),  # Example categories: Tuple of category counts
+                "num_continuous": Real(1, 10),  # Number of continuous features
+                "dim": Real(1, 32),  # Dimensionality of token embeddings
+                "dim_out": Real(0, 1),  # Output dimensionality
+                "depth": Real(2, 6),  # Number of transformer layers
+                "heads": Real(2, 8),  # Number of attention heads
+                "attn_dropout": Real(0.0, 0.5),  # Dropout rate for attention layers
+                "ff_dropout": Real(0.0, 0.5),  # Dropout rate for feedforward layers
+                "mlp_hidden_mults": Categorical([(4, 2)]),  # Multipliers for hidden layer dimensions in the MLP
+                "mlp_act": Categorical([nn.ReLU()]),  # Activation function for the MLP
+                "continuous_mean_std": Categorical([torch.randn(10, 2)]),  # Mean and std of continuous features
+            }
+        else:
+            # Traditional Grid Search: Define parameter space using lists
+            self.parameter_space = {
+                "categories": [(10, 5, 6, 5, 8)],  # Example categories: Tuple of category counts
+                "num_continuous": [10],  # Number of continuous features
+                "dim": [32],  # Dimensionality of token embeddings
+                "dim_out": [1],  # Output dimensionality
+                "depth": [6],  # Number of transformer layers
+                "heads": [8],  # Number of attention heads
+                "attn_dropout": [0.1],  # Dropout rate for attention layers
+                "ff_dropout": [0.1],  # Dropout rate for feedforward layers
+                "mlp_hidden_mults": [(4, 2)],  # Multipliers for hidden layer dimensions in the MLP
+                "mlp_act": [nn.ReLU()],  # Activation function for the MLP
+                "continuous_mean_std": [torch.randn(10, 2)],  # Mean and std of continuous features
+            }
 
         return None
-
