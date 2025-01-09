@@ -7,6 +7,7 @@ from sklearn.base import is_classifier
 from ml_grid.util.validate_parameters import validate_parameters_helper
 from ml_grid.util.global_params import global_parameters
 from ml_grid.model_classes.knn_wrapper_class import KNNWrapper
+from ml_grid.model_classes.keras_classifier_class import kerasClassifier_class
 
 class HyperparameterSearch:
     def __init__(
@@ -51,7 +52,7 @@ class HyperparameterSearch:
         if self.ml_grid_object is None:
             raise ValueError("ml_grid_object is required.")
 
-        assert is_classifier(self.algorithm) or isinstance(self.algorithm, KNNWrapper), (
+        assert is_classifier(self.algorithm) or isinstance(self.algorithm, KNNWrapper) or isinstance(self.algorithm, kerasClassifier_class), (
             f"The provided algorithm is not a valid scikit-learn classifier or a KNNWrapper. "
             f"Received type: {type(self.algorithm)}"
         )
@@ -88,6 +89,11 @@ class HyperparameterSearch:
         if(bayessearch and type(self.algorithm) is isinstance(self.algorithm, KNNWrapper)):
             # limit n jobs to one for gpu heavy method:
             grid_n_jobs = 1
+            
+        if(bayessearch and type(self.algorithm) is isinstance(self.algorithm, kerasClassifier_class)):
+            # limit n jobs to one for gpu heavy method:
+            grid_n_jobs = 1
+            
 
         if(bayessearch is False):
             # Validate parameters
