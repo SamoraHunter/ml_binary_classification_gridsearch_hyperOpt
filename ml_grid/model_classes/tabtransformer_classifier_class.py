@@ -8,6 +8,38 @@ from ml_grid.util.global_params import global_parameters
 
 print("Imported TabTransformerClassifier class")
 
+class TabTransformerWrapper(TabTransformerClassifier):
+    """
+    Wrapper for TabTransformerClassifier to handle tuple-based parameters
+    with BayesSearchCV or GridSearchCV.
+    """
+
+    def set_params(self, **params):
+        # Mapping for tuple-based parameters
+        tuple_mapping = {
+            "categories": [
+                (10, 5, 6, 5, 8),
+                (15, 7, 8, 6, 10),
+                (12, 6, 7, 5, 9),
+                # Add more tuples as needed
+            ],
+            "mlp_hidden_mults": [
+                (4, 2),
+                (3, 1),
+                # Add more tuples as needed
+            ],
+        }
+
+        # Replace indices with corresponding tuples
+        for key, mapping in tuple_mapping.items():
+            if key in params:
+                index = params.pop(key)
+                if isinstance(index, int) and 0 <= index < len(mapping):
+                    params[key] = mapping[index]
+
+        return super().set_params(**params)
+
+
 class TabTransformer_class:
     """TabTransformerClassifier with support for Bayesian and Grid Search parameter spaces."""
 
@@ -83,7 +115,13 @@ class TabTransformer_class:
         self.method_name = "TabTransformerClassifier"
 
         # Algorithm Implementation
-        self.algorithm_implementation = TabTransformerClassifier(categories, num_continuous)
+        #self.algorithm_implementation = TabTransformerClassifier(categories, num_continuous)
+        
+        if global_parameters().bayessearch is False:
+            self.algorithm_implementation = TabTransformerClassifier(categories, num_continuous)
+        else:
+            self.algorithm_implementation = TabTransformerWrapper(categories, num_continuous) #Wrapper necessary for passing priors to bayescv
+            
 
         # Parameter Space
         self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
@@ -91,7 +129,7 @@ class TabTransformer_class:
         if global_parameters().bayessearch:
             # Bayesian Optimization: Define parameter space using Real and Categorical
             self.parameter_space = {
-                "categories": Categorical([(10, 5, 6, 5, 8)]),  # Example categories: Tuple of category counts
+                "categories": Categorical([0, 1, 2]),  # Indices for the tuple mapping
                 "num_continuous": Real(1, 10),  # Number of continuous features
                 "dim": Real(1, 32),  # Dimensionality of token embeddings
                 "dim_out": Real(0, 1),  # Output dimensionality
@@ -99,10 +137,11 @@ class TabTransformer_class:
                 "heads": Real(2, 8),  # Number of attention heads
                 "attn_dropout": Real(0.0, 0.5),  # Dropout rate for attention layers
                 "ff_dropout": Real(0.0, 0.5),  # Dropout rate for feedforward layers
-                "mlp_hidden_mults": Categorical([(4, 2)]),  # Multipliers for hidden layer dimensions in the MLP
-                "mlp_act": Categorical([nn.ReLU()]),  # Activation function for the MLP
-                "continuous_mean_std": Categorical([torch.randn(10, 2)]),  # Mean and std of continuous features
+                "mlp_hidden_mults": Categorical([0, 1]),  # Indices for the tuple mapping  # Multipliers for hidden layer dimensions
+                "mlp_act": Categorical(['ReLU']),  # Activation function as string
+                "continuous_mean_std": Categorical([None]),  # Handle tensor creation later
             }
+
         else:
             # Traditional Grid Search: Define parameter space using lists
             self.parameter_space = {
