@@ -127,6 +127,8 @@ class project_score_save_class:
         self.y_test_orig = self.ml_grid_object_iter.y_test_orig
 
         self.param_space_index = ml_grid_object.param_space_index
+        
+        self.bayessearch = self.global_parameters.bayessearch
         # n_iter_v = np.nan ##????????????
 
         try:
@@ -250,20 +252,47 @@ class project_score_save_class:
             line["X_test_size"] = [len(self.X_test)]
 
             end = time.time()
+            
+            print("Debug scores:")
+            print(scores)
+            
+        
+                
 
             line["run_time"] = int((end - start) / 60)
             line["t_fits"] = pg
             line["n_fits"] = n_iter_v
             line["i"] = self.param_space_index  # 0 # should be index of the iterator
-            line["fit_time_m"] = scores["fit_time"].mean()
-            line["fit_time_std"] = scores["fit_time"].std()
+            
+            if self.bayessearch:
+                try:
+                    line["fit_time_m"] = np.array([scores["fit_time"]]).mean()
+                    line["fit_time_std"] = np.array([scores["fit_time"]]).std()
+                    
+                    line["score_time_m"] = np.array(scores["score_time"]).mean()
+                    line["score_time_std"] = np.array(scores["score_time"]).std()
+                    
+                    for metric in self.metric_list:
+                        line[f"{metric}_m"] = np.array(scores[f"test_{metric}"]).mean()
+                        line[f"{metric}_std"] = np.array(scores[f"test_{metric}"]).std()
+                    
+                except Exception as e:
+                    print(e)
+                    print(scores)
+                    raise e
+            else:
+                line["fit_time_m"] = scores["fit_time"].mean() #deprecated for bayes
+                line["fit_time_std"] = scores["fit_time"].std()
+                line["score_time_m"] = scores["score_time"].mean()
+                line["score_time_std"] = scores["score_time"].std()
+                
+                for metric in self.metric_list:
+                    line[f"{metric}_m"] = scores[f"test_{metric}"].mean()
+                    line[f"{metric}_std"] = scores[f"test_{metric}"].std()
 
-            line["score_time_m"] = scores["score_time"].mean()
-            line["score_time_std"] = scores["score_time"].std()
-
-            for metric in self.metric_list:
-                line[f"{metric}_m"] = scores[f"test_{metric}"].mean()
-                line[f"{metric}_std"] = scores[f"test_{metric}"].std()
+            
+            
+            
 
             print(line)
 
