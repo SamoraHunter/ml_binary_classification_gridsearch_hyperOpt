@@ -1,4 +1,4 @@
-from ml_grid.model_classes import H2OAutoMLClassifier
+from ml_grid.model_classes.H2OAutoMLClassifier import H2OAutoMLClassifier
 from ml_grid.util import param_space
 from ml_grid.util.global_params import global_parameters
 from skopt.space import Categorical, Real, Integer
@@ -32,10 +32,10 @@ class h2o_classifier_class:
         if global_params.bayessearch:
             # Define the parameter space for Bayesian optimization
             self.parameter_space = [
-                {"max_runtime_secs": Real(60, 360, prior="uniform"),  # Uniform between 1 minute and 1 hour
+                {"max_runtime_secs": Integer(60, 900),  # Uniform between 1 minute and 15 mins
                  "nfolds": Integer(2, 10),  # Number of folds in cross-validation
                  "seed": Integer(1, 1000),  # Random seed for reproducibility
-                 "max_models": Integer(10, 50),  # Number of models to build
+                 "max_models": Integer(2, 10),  # Number of models to build
                  "balance_classes": Categorical([True, False]),  # Whether to balance classes
                  "project_name": Categorical([None])  # Project name (None means auto-generated)
                 }
