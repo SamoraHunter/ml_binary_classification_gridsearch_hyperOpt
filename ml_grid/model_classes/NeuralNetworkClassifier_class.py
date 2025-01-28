@@ -11,7 +11,7 @@ print("Imported NeuralNetworkClassifier class")
 class NeuralNetworkClassifier_class:
     """NeuralNetworkClassifier."""
 
-    def __init__(self, X=None, y=None, parameter_space_size=None):
+    def __init__(self, X=None, y=None, parameter_space_size=None, global_parameters=None):
         """_summary_
 
         Args:
