@@ -75,16 +75,16 @@ class grid_search_crossvalidate:
 
         grid_n_jobs = self.global_params.grid_n_jobs
 
-        if "keras" in method_name.lower():
+        if "keras" in method_name.lower(): # kerasClassifier_class
             grid_n_jobs = 1
             gpu_devices = tf.config.experimental.list_physical_devices("GPU")
             for device in gpu_devices:
                 tf.config.experimental.set_memory_growth(device, True)
 
-        if "XGBClassifier" in method_name.lower():
+        if "XGBClassifier".lower() in str(algorithm_implementation).lower():
             grid_n_jobs = 1
 
-        if "CatBoostClassifier" in method_name.lower():
+        if "CatBoostClassifier".lower() in method_name.lower(): #CatBoostClassifier
             grid_n_jobs = 1 # needs to write to directory
 
         
@@ -112,7 +112,7 @@ class grid_search_crossvalidate:
 
         self.y_test_orig = self.ml_grid_object_iter.y_test_orig
 
-        max_param_space_iter_value = 2 # hard limit on param space exploration
+        max_param_space_iter_value = 5 # hard limit on param space exploration
 
         if "svc" in method_name.lower():
             self.X_train = scale_data(self.X_train)
@@ -266,10 +266,12 @@ class grid_search_crossvalidate:
         default_scores = {
             'test_accuracy': [0.5],   # Default to random classifier performance (0.5 for binary classification)
             'test_f1': [0.5],         # Default F1 score (again, 0.5 for random classification)
-            'test_roc_auc': [0.5],     # Default ROC AUC score (0.5 for random classifier)
+            'test_auc': [0.5],     # Default ROC AUC score (0.5 for random classifier) #is only auc not roc_auc?
             'fit_time': [0],           # No fitting time if the model fails
             'score_time': [0],         # No scoring time if the model fails
             'train_score': [0.5],      # Default train score
+            'test_recall':[0.5]
+            #'test_auc': [0.5] # ?
         }
 
         try:
