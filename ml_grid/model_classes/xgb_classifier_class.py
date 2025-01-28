@@ -26,7 +26,7 @@ class XGB_class_class:
 
         # Initialize the algorithm implementation using XGBClassifier
         self.algorithm_implementation = xgb.XGBClassifier()
-        self.method_name = "xgb"
+        self.method_name = "XGBClassifier"
 
         # Initialize the parameter space handler
         self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
@@ -69,6 +69,8 @@ class XGB_class_class:
                 "reg_lambda": self.parameter_vector_space.param_dict.get("log_small"),  # L2 regularization term
                 "sampling_method": Categorical(["uniform"]),  # Sampling method during training
                 "verbosity": Categorical([0]),  # Verbosity level during training
+                "tree_method": Categorical(["gpu_hist"])
+                
 
                 },{
                     "objective": Categorical(["binary:logistic"]),  # Objective function for binary classification
@@ -87,6 +89,7 @@ class XGB_class_class:
                 "reg_lambda": self.parameter_vector_space.param_dict.get("log_small"),  # L2 regularization term
                 "sampling_method": Categorical(["uniform"]),  # Sampling method during training
                 "verbosity": Categorical([0]),  # Verbosity level during training
+                "tree_method": Categorical(["gpu_hist"])
 
                 #value 1 for Parameter max_bin should be greater equal to 2
                 #max_bin: if using histogram-based algorithm, maximum number of bins per feature
