@@ -1,3 +1,4 @@
+import inspect
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, ParameterGrid
 from sklearn.exceptions import ConvergenceWarning
 import warnings
@@ -8,7 +9,7 @@ from ml_grid.util.validate_parameters import validate_parameters_helper
 from ml_grid.util.global_params import global_parameters
 from ml_grid.model_classes.knn_wrapper_class import KNNWrapper
 from ml_grid.model_classes.keras_classifier_class import kerasClassifier_class
-
+from ml_grid.model_classes.H2OAutoMLClassifier import H2OAutoMLClassifier
 class HyperparameterSearch:
     def __init__(
         self,
@@ -51,11 +52,30 @@ class HyperparameterSearch:
         
         if self.ml_grid_object is None:
             raise ValueError("ml_grid_object is required.")
-
-        assert is_classifier(self.algorithm) or isinstance(self.algorithm, KNNWrapper) or isinstance(self.algorithm, kerasClassifier_class), (
-            f"The provided algorithm is not a valid scikit-learn classifier or a KNNWrapper. "
-            f"Received type: {type(self.algorithm)}"
+        
+        custom_classifier_names = [
+        'KNNWrapper',
+        'h2o_classifier_class',
+        'kerasClassifier_class'
+        ]
+        class_name = self.algorithm
+        #Check if it's a module
+        if inspect.ismodule(self.algorithm):
+           raise ValueError(f"Expected classifier instance, received module: {type(self.algorithm)}")
+            
+        #Check if it's a valid classifier
+        is_valid = (
+            is_classifier(self.algorithm) or  # scikit-learn classifier
+            (class_name in custom_classifier_names) or  # custom classifier
+            (hasattr(self.algorithm, 'fit') and hasattr(self.algorithm, 'predict'))  # has required methods
         )
+        
+        if not is_valid:
+            raise ValueError(
+                f"The provided algorithm is not a valid classifier. "
+                f"Received type: {type(self.algorithm)}, "
+                f"class name: {class_name}"
+            )
         
         # Configure warnings
         warnings.filterwarnings("ignore", category=ConvergenceWarning)
