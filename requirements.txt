@@ -558,6 +558,8 @@ scikit-learn==1.5.2
     #   scikeras
     #   shap
     #   simbsig
+scikit-optimize==0.10.2
+    # manual
 scipy==1.12.0
     # via
     #   -r requirements.in
@@ -596,6 +598,8 @@ slicer==0.0.8
     # via
     #   -r requirements.in
     #   shap
+scikit-optimize==0.10.2
+    # manual    
 stack-data==0.6.3
     # via
     #   -r requirements.in
