@@ -10,9 +10,11 @@ def setup_logger(log_folder_path="."):
     module_dir = os.path.dirname(os.path.realpath(__file__))
 
     # Get the root directory of the notebook
-    notebook_dir = os.path.dirname(
-        get_ipython().config["IPKernelApp"]["connection_file"]
-    )
+    try:
+        from IPython import get_ipython
+        notebook_dir = os.path.dirname(get_ipython().config["IPKernelApp"]["connection_file"])
+    except (AttributeError, NameError):
+        notebook_dir = os.path.dirname(os.path.abspath(__file__))
     print("notebook_dir", notebook_dir)
 
     # Navigate up from the notebook directory to get the logs directory
