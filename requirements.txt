@@ -598,7 +598,7 @@ slicer==0.0.8
     # via
     #   -r requirements.in
     #   shap
-scikit-optimize==0.10.2
+scikit-optimize==0.10.2 #skopt
     # manual    
 stack-data==0.6.3
     # via
