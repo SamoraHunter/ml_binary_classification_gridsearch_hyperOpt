@@ -69,7 +69,7 @@ class XGB_class_class:
                 "reg_lambda": self.parameter_vector_space.param_dict.get("log_small"),  # L2 regularization term
                 "sampling_method": Categorical(["uniform"]),  # Sampling method during training
                 "verbosity": Categorical([0]),  # Verbosity level during training
-                "tree_method": Categorical(["gpu_hist"])
+                "tree_method": Categorical(["auto"])
                 
 
                 },{
@@ -89,7 +89,7 @@ class XGB_class_class:
                 "reg_lambda": self.parameter_vector_space.param_dict.get("log_small"),  # L2 regularization term
                 "sampling_method": Categorical(["uniform"]),  # Sampling method during training
                 "verbosity": Categorical([0]),  # Verbosity level during training
-                "tree_method": Categorical(["gpu_hist"])
+                "tree_method": Categorical(["auto"])
 
                 #value 1 for Parameter max_bin should be greater equal to 2
                 #max_bin: if using histogram-based algorithm, maximum number of bins per feature
