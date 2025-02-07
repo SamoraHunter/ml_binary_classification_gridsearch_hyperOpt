@@ -12,7 +12,7 @@ Binary classification is a common machine learning task where the goal is to cat
 
 Before you can run the code in this repository, make sure you have the following prerequisites installed:
 
-- Python (>=3.6)
+- Python (>=3.6) -requirements.txt built for python3.10.12
 - NumPy
 - Pandas
 - Scikit-Learn
