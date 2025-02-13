@@ -59,7 +59,8 @@ class pipe:
         test_sample_n=0,
         column_sample_n=0,
         time_series_mode=False,
-        model_class_dict = None
+        model_class_dict = None,
+        outcome_var_override = None
     ):  # kwargs**
 
         self.base_project_dir = base_project_dir
@@ -127,8 +128,29 @@ class pipe:
             local_param_dict=local_param_dict,
             drop_term_list=drop_term_list,
         )
-
-        self.outcome_variable = f'outcome_var_{local_param_dict.get("outcome_var_n")}'
+        if(outcome_var_override == None):
+            self.outcome_variable = f'outcome_var_{local_param_dict.get("outcome_var_n")}'
+        
+        else:
+            print("outcome_var_override:", outcome_var_override)
+            print("setting outcome var to:", outcome_var_override)
+            self.outcome_variable = outcome_var_override
+            
+            # get list of variables with substring "outcome_var"
+            outcome_vars = [col for col in self.df.columns if "outcome_var" in col]
+            print("outcome_vars:", len(outcome_vars))
+            
+            #remove outcome_var_override from list
+            
+            outcome_vars.remove(outcome_var_override)
+            
+            # add additional outcome variables to drop list
+            
+            self.drop_list.extend(outcome_vars)
+            
+            
+            
+        
 
         print(
             f"Using {len(self.pertubation_columns)}/{len(self.all_df_columns)} columns for {self.outcome_variable} outcome"

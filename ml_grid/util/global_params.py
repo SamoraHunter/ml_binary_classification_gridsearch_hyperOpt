@@ -44,7 +44,7 @@ class global_parameters:
         """
         Verbose level for sklearn models
         """
-        self.verbose = 9
+        self.verbose = 0
 
         """
         Rename cols of dataframes
@@ -54,7 +54,7 @@ class global_parameters:
         """
         Raise errors from ml_grid
         """
-        self.error_raise = True
+        self.error_raise = False
 
         """
         Randomize search space for GridSearchCV
