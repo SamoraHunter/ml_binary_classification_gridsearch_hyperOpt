@@ -11,6 +11,7 @@ from numpy import absolute, mean, std
 from scikeras.wrappers import KerasClassifier
 from sklearn import metrics
 from IPython.display import display
+from xgboost.core import XGBoostError
 
 # from sklearn.utils.testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
@@ -38,6 +39,7 @@ from ml_grid.util.project_score_save import project_score_save_class
 from ml_grid.util.validate_parameters import validate_parameters_helper
 from sklearn.preprocessing import MinMaxScaler
 from ml_grid.util.bayes_utils import calculate_combinations
+from skopt.space import Categorical
 
 class grid_search_crossvalidate:
 
@@ -82,7 +84,7 @@ class grid_search_crossvalidate:
                 tf.config.experimental.set_memory_growth(device, True)
 
         if "XGBClassifier".lower() in str(algorithm_implementation).lower():
-            grid_n_jobs = 1
+            grid_n_jobs = -1
 
         if "CatBoostClassifier".lower() in method_name.lower(): #CatBoostClassifier
             grid_n_jobs = 1 # needs to write to directory
@@ -234,7 +236,42 @@ class grid_search_crossvalidate:
 
         if self.global_parameters.verbose >= 3:
             print("Running hyperparameter search")
-        current_algorithm = search.run_search(self.X_train, self.y_train)
+        
+        try:    
+            
+            current_algorithm = search.run_search(self.X_train, self.y_train)
+            
+        except XGBoostError as e:
+            if 'cudaErrorMemoryAllocation' in str(e) or 'std::bad_alloc' in str(e):
+                print("GPU memory error detected, falling back to CPU...")
+                 
+                 # Change the tree_method in parameter_space dynamically
+                for param_dict in parameter_space:
+                    if 'tree_method' in param_dict:
+                        if(self.global_params.bayessearch):
+                            param_dict['tree_method'] = Categorical(['hist'])
+                        else:
+                            param_dict['tree_method'] = ["hist"]
+                 
+                    search = HyperparameterSearch(
+                        algorithm=current_algorithm,
+                        parameter_space=parameter_space,
+                        method_name=method_name,
+                        global_params=self.global_parameters,
+                        sub_sample_pct=self.sub_sample_param_space_pct,  # Explore 50% of the parameter space
+                        max_iter=n_iter_v,         # Maximum iterations for randomized search
+                        ml_grid_object=ml_grid_object
+                    )
+                    # Try again with non gpu method. 
+                    current_algorithm = search.run_search(self.X_train, self.y_train)
+            else: 
+                print("unknown xgb error")
+                print(e)
+            
+        except Exception as e:
+            print(e)
+            print("Failed to run search in gridsearch cross validate")
+            
 
 
         if self.global_parameters.verbose >= 3:
@@ -286,6 +323,29 @@ class grid_search_crossvalidate:
                 pre_dispatch=80,
                 error_score='raise',  # Raise error if cross-validation fails
             )
+            
+            
+        except XGBoostError as e:
+            if 'cudaErrorMemoryAllocation' in str(e) or 'std::bad_alloc' in str(e):
+                print("GPU memory error detected, falling back to CPU...")
+                current_algorithm.set_params(tree_method='hist') 
+                
+                try:
+                    scores = cross_validate(
+                        current_algorithm,
+                        self.X_train,
+                        self.y_train,
+                        scoring=self.metric_list,
+                        cv=self.cv,
+                        n_jobs=grid_n_jobs,  # Full CV on final best model
+                        pre_dispatch=80,
+                        error_score='raise',  # Raise error if cross-validation fails
+                    )
+                except Exception as e:
+                    print(f"An unexpected error occurred during cross-validation attempt 2: {e}")
+                    scores = default_scores  # Use default scores for other errors
+                    
+  
 
         except ValueError as e:
             # Handle specific ValueError if AdaBoostClassifier fails due to poor performance
