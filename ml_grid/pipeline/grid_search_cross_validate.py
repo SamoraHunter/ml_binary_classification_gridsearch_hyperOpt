@@ -121,7 +121,9 @@ class grid_search_crossvalidate:
             self.X_test = scale_data(self.X_test)
 
         self.cv = RepeatedKFold(
-            n_splits=min(10, len(self.X_train)), n_repeats=3, random_state=1
+            n_splits=max(2, min(len(self.X_train), 2) + 1), 
+            n_repeats=2, 
+            random_state=1
         )
 
         start = time.time()
