@@ -114,7 +114,7 @@ class grid_search_crossvalidate:
 
         self.y_test_orig = self.ml_grid_object_iter.y_test_orig
 
-        max_param_space_iter_value = 5 # hard limit on param space exploration
+        max_param_space_iter_value = 10 # hard limit on param space exploration
 
         if "svc" in method_name.lower():
             self.X_train = scale_data(self.X_train)
@@ -410,9 +410,12 @@ class grid_search_crossvalidate:
             start=start,
             n_iter_v=n_iter_v,
         )
+        
+        # return metric for optimisation
+        auc = metrics.roc_auc_score(self.y_test, best_pred_orig)
 
+        return auc
 
-#         when to use validation set... and how to store which cases are in this valid set? can withold valid set even earlier...? should?
 
 
 def dummy_auc():
