@@ -106,6 +106,8 @@ class run:
         # needs implementing*
 
         self.model_error_list = []
+        
+        highest_score = 0 # for optimisation
 
         if self.multiprocess:
 
@@ -125,10 +127,14 @@ class run:
             for k in range(0, len(self.arg_list)):
                 try:
                     print("grid searching...")
-                    grid_search_cross_validate.grid_search_crossvalidate(
+                    res = grid_search_cross_validate.grid_search_crossvalidate(
                         *self.arg_list[k]
                         # algorithm_implementation = LogisticRegression_class(parameter_space_size=self.parameter_space_size).algorithm_implementation, parameter_space = self.arg_list[k][1], method_name=self.arg_list[k][2], X = self.arg_list[k][3], y=self.arg_list[k][4]
-                    )
+                    ).grid_search_cross_validate_score_result
+                    
+                    highest_score = max(highest_score, res[0])
+                    print(f"highest score: {highest_score}")
+
                 except Exception as e:
 
                     print(e)
@@ -150,5 +156,8 @@ class run:
             f"Model error list: nb. errors returned from func: {self.model_error_list}"
         )
         print(self.model_error_list)
+        
+        # return highest score from run for additional optimisation:
+        
 
-        return self.model_error_list
+        return self.model_error_list, highest_score
