@@ -411,10 +411,11 @@ class grid_search_crossvalidate:
             n_iter_v=n_iter_v,
         )
         
-        # return metric for optimisation
+        # calculate metric for optimisation
         auc = metrics.roc_auc_score(self.y_test, best_pred_orig)
+        
+        self.grid_search_cross_validate_score_result = auc
 
-        return auc
 
 
 
