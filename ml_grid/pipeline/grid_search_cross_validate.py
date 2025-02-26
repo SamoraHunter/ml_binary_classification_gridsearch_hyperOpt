@@ -61,7 +61,7 @@ class grid_search_crossvalidate:
 
         warnings.filterwarnings("ignore", category=UserWarning)
 
-        self.global_params = global_parameters()
+        self.global_params = global_parameters
 
         self.verbose = self.global_params.verbose
 
@@ -98,7 +98,7 @@ class grid_search_crossvalidate:
         if self.verbose >= 3:
             print(f"crossvalidating {method_name}")
 
-        self.global_parameters = global_parameters()
+        self.global_parameters = global_parameters
 
         self.ml_grid_object_iter = ml_grid_object
 
@@ -114,7 +114,7 @@ class grid_search_crossvalidate:
 
         self.y_test_orig = self.ml_grid_object_iter.y_test_orig
 
-        max_param_space_iter_value = 10 # hard limit on param space exploration
+        max_param_space_iter_value = self.global_params.max_param_space_iter_value # hard limit on param space exploration
 
         if "svc" in method_name.lower():
             self.X_train = scale_data(self.X_train)
@@ -129,6 +129,9 @@ class grid_search_crossvalidate:
         start = time.time()
 
         current_algorithm = algorithm_implementation
+        
+        if self.verbose >= 1:
+            print(f"algorithm_implementation: {algorithm_implementation}")
 
         parameters = parameter_space
         if(self.global_params.bayessearch is False):
@@ -312,6 +315,8 @@ class grid_search_crossvalidate:
             'test_recall':[0.5]
             #'test_auc': [0.5] # ?
         }
+        
+        failed = False
 
         try:
             # Perform the cross-validation
@@ -323,7 +328,7 @@ class grid_search_crossvalidate:
                 cv=self.cv,
                 n_jobs=grid_n_jobs,  # Full CV on final best model
                 pre_dispatch=80,
-                error_score='raise',  # Raise error if cross-validation fails
+                error_score=self.error_raise,  # Raise error if cross-validation fails
             )
             
             
@@ -341,10 +346,12 @@ class grid_search_crossvalidate:
                         cv=self.cv,
                         n_jobs=grid_n_jobs,  # Full CV on final best model
                         pre_dispatch=80,
-                        error_score='raise',  # Raise error if cross-validation fails
+                        error_score=self.error_raise,  # Raise error if cross-validation fails
                     )
                 except Exception as e:
                     print(f"An unexpected error occurred during cross-validation attempt 2: {e}")
+                    print("Returning default scores")
+                    failed = True
                     scores = default_scores  # Use default scores for other errors
                     
   
@@ -398,6 +405,8 @@ class grid_search_crossvalidate:
 
         #         this should be x_test...?
         best_pred_orig = current_algorithm.predict(self.X_test)  # exp
+        
+        
 
         project_score_save_class.update_score_log(
             self=self,
@@ -409,6 +418,7 @@ class grid_search_crossvalidate:
             pg=pg,
             start=start,
             n_iter_v=n_iter_v,
+            failed=failed
         )
         
         # calculate metric for optimisation
