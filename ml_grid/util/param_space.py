@@ -15,7 +15,7 @@ class ParamSpace:
 
         self.param_dict = None
         
-        global_parameters_val = global_parameters()
+        global_parameters_val = global_parameters
         
         if global_parameters_val is None:
             

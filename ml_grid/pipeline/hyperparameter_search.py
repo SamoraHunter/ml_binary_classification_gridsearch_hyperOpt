@@ -48,7 +48,7 @@ class HyperparameterSearch:
         self.sub_sample_pct = sub_sample_pct
         self.max_iter = max_iter
         self.ml_grid_object = ml_grid_object
-        global_params = global_parameters()
+        global_params = global_parameters
         
         if self.ml_grid_object is None:
             raise ValueError("ml_grid_object is required.")

@@ -16,7 +16,7 @@ def filter_substring_list(string, substr):
 
 def get_pertubation_columns(all_df_columns, local_param_dict, drop_term_list):
 
-    global_params = global_parameters()
+    global_params = global_parameters
 
     verbose = global_params.verbose
 

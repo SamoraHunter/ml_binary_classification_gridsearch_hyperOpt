@@ -9,7 +9,7 @@ class clean_up_class:
 
     def __init__(self):
 
-        self.global_params = global_parameters()
+        self.global_params = global_parameters
 
         self.verbose = self.global_params.verbose
 

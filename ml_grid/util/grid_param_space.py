@@ -8,7 +8,7 @@ class Grid:
 
     def __init__(self, sample_n=1000):
 
-        self.global_params = global_parameters()
+        self.global_params = global_parameters
 
         self.verbose = self.global_params.verbose
 
