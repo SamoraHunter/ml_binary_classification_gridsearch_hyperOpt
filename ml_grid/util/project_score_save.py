@@ -26,7 +26,7 @@ class project_score_save_class:
 
         warnings.filterwarnings("ignore", category=UserWarning)
 
-        self.global_params = global_parameters()
+        self.global_params = global_parameters
 
         self.metric_list = self.global_params.metric_list
 
@@ -78,7 +78,8 @@ class project_score_save_class:
             "n_fits",
             "t_fits",
             "i",
-            "outcome_variable"
+            "outcome_variable",
+            'failed'
         ]
 
         metric_names = []
@@ -109,9 +110,10 @@ class project_score_save_class:
         pg,
         start,
         n_iter_v,
+        failed,
     ):
 
-        self.global_parameters = global_parameters()
+        self.global_parameters = global_parameters
 
         self.ml_grid_object_iter = ml_grid_object
 
@@ -180,7 +182,8 @@ class project_score_save_class:
                 "n_fits",
                 "t_fits",
                 "i",
-                "outcome_variable"
+                "outcome_variable",
+                'failed'
             ]
 
             metric_names = []
@@ -266,6 +269,7 @@ class project_score_save_class:
             line["n_fits"] = n_iter_v
             line["i"] = self.param_space_index  # 0 # should be index of the iterator
             line['outcome_variable'] = self.ml_grid_object_iter.outcome_variable
+            line['failed'] = failed
             
             if self.bayessearch:
                 try:

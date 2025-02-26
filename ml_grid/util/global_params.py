@@ -11,7 +11,7 @@ def custom_roc_auc_score(y_true, y_pred):
     else:
         return roc_auc_score(y_true, y_pred)
     
-class global_parameters:
+class GlobalParameters:
     """
     Global parameters for ml_grid
 
@@ -28,85 +28,65 @@ class global_parameters:
         random_state_val (int): Random state value
         n_jobs_model_val (int): Number of jobs for models
         metric_list (dict): Dictionary of sklearn metrics to pass to GridSearchCV
+        max_param_space_iter_value: hard limit on hyperparam search iterations.
     """
 
-    def __init__(self, debug_level=0, knn_n_jobs=-1):
-        """
-        Initialize global parameters
+    _instance = None
 
-        Args:
-            debug_level (int): Debug level, 0==minimal, 1,2,3,4
-            knn_n_jobs (int): Number of jobs for knn, -1==all
-        """
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(GlobalParameters, cls).__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+
+    def __init__(self, debug_level=0, knn_n_jobs=-1):
+        if self._initialized:
+            return
+        self._initialized = True
+
         self.debug_level = debug_level
         self.knn_n_jobs = knn_n_jobs
-
-        """
-        Verbose level for sklearn models
-        """
         self.verbose = 0
-
-        """
-        Rename cols of dataframes
-        """
         self.rename_cols = True
-
-        """
-        Raise errors from ml_grid
-        """
         self.error_raise = False
-
-        """
-        Randomize search space for GridSearchCV
-        """
         self.random_grid_search = False
-        
-        """
-        Bayesian optimization for GridSearchCV
-        """
-        
         self.bayessearch = True
-
-        """
-        Percentage of param space to sub sample
-        """
         self.sub_sample_param_space_pct = 0.0005  # 0.05==360
-
-        """
-        Number of jobs for GridSearchCV
-        """
-        self.grid_n_jobs = 4
-
-        """
-        Time limit for GridSearchCV
-        """
+        self.grid_n_jobs = -1
         self.time_limit_param = [3]
+        self.random_state_val = 1234
+        self.n_jobs_model_val = -1
+        self.max_param_space_iter_value = 10
 
-        """
-        Random state value
-        """
-        self.random_state_val = 0
-
-        """
-        Number of jobs for models
-        """
-        self.n_jobs_model_val = 2
-
-        """
-        Dictionary of sklearn metrics to pass to GridSearchCV
-        """
         custom_scorer = make_scorer(custom_roc_auc_score)
-
         self.metric_list = {
-            #"auc": make_scorer(roc_auc_score, needs_proba=False),
-            #"auc": "roc_auc",
             "auc": custom_scorer,
             "f1": "f1",
             "accuracy": "accuracy",
             "recall": "recall",
         }
 
+    def update_parameters(self, **kwargs):
+        """
+        Update global parameters at runtime.
 
+        Args:
+            **kwargs: Key-value pairs of parameters to update.
+        """
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
+            else:
+                raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{key}'")
+        """
+        Dictionary of sklearn metrics to pass to GridSearchCV
+        """
+        custom_scorer = make_scorer(custom_roc_auc_score)
+
+
+
+# Singleton instance
+global_parameters = GlobalParameters()
 
     
     
