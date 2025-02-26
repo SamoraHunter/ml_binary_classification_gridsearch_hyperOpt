@@ -28,7 +28,7 @@ class mlp_classifier_class:
         # Define the parameter vector space
         self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
 
-        if global_parameters().bayessearch:
+        if global_parameters.bayessearch:
             # Bayesian Optimization: Define parameter space using skopt.space
             self.parameter_space = {
                 "activation": Categorical(["relu"]),  # Fixed value as per the original

@@ -2,7 +2,7 @@
 
 from simbsig.neighbors import KNeighborsClassifier
 from sklearn import metrics
-
+import torch
 
 class KNNWrapper:
     def __init__(
@@ -14,7 +14,7 @@ class KNNWrapper:
         p=2,
         metric="minkowski",
         metric_params=None,
-        device="gpu",
+        device=None,
     ):
         self.n_neighbors = n_neighbors
         self.weights = weights
@@ -23,8 +23,9 @@ class KNNWrapper:
         self.p = p
         self.metric = metric
         self.metric_params = metric_params
-        self.device = device
-
+        self.device = self.device = device if device else ("gpu" if torch.cuda.is_available() else "cpu")
+        if(self.device == "cpu"):
+            print("warning using cpu KNNWrapper")
         # self.model = KNeighborsClassifier(n_neighbors=self.n_neighbors, weights=self.weights, algorithm=self.algorithm, leaf_size=self.leaf_size, p=self.p, metric=self.metric, metric_params=self.metric_params)
 
     def fit(self, X, y):

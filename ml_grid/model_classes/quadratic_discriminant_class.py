@@ -20,7 +20,7 @@ class quadratic_discriminant_analysis_class:
             X_train (_type_): _description_
             y_train (_type_): _description_
         """
-        global_params = global_parameters()
+        global_params = global_parameters
         self.X = X
         self.y = y
 

@@ -17,7 +17,7 @@ class knn_classifiers_class:
             y (_type_): Target vector for training (optional).
             parameter_space_size (_type_): Size of the parameter space for optimization.
         """
-        knn_n_jobs = global_parameters().knn_n_jobs  # Get the number of jobs from global parameters
+        knn_n_jobs = global_parameters.knn_n_jobs  # Get the number of jobs from global parameters
 
         self.X = X
         self.y = y
@@ -29,7 +29,7 @@ class knn_classifiers_class:
         # Define the parameter vector space
         self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
 
-        if global_parameters().bayessearch:
+        if global_parameters.bayessearch:
             # Bayesian Optimization: Use skopt's Real, Integer, and Categorical for continuous, integer, and categorical parameters
             self.parameter_space = {
                 "algorithm": Categorical(["auto", "ball_tree", "kd_tree", "brute"]),

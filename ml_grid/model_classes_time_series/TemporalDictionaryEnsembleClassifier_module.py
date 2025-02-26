@@ -12,7 +12,7 @@ class TemporalDictionaryEnsemble_class:
 
         random_state_val = ml_grid_object.global_params.random_state_val
 
-        time_limit_param = global_parameters().time_limit_param
+        time_limit_param = global_parameters.time_limit_param
 
         n_jobs_model_val = ml_grid_object.global_params.n_jobs_model_val
 

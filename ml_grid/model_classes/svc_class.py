@@ -32,7 +32,7 @@ class SVC_class:
         # Define the parameter vector space
         self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
 
-        if global_parameters().bayessearch:
+        if global_parameters.bayessearch:
             # Bayesian Optimization: Define parameter space using pre-defined schemes
             self.parameter_space = [{
                 

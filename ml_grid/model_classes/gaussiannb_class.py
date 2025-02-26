@@ -42,7 +42,7 @@ class GaussianNB_class:
             y_train (_type_): _description_
         """
         
-        global_params = global_parameters()
+        global_params = global_parameters
         self.X = X
         self.y = y
 

@@ -17,7 +17,7 @@ class adaboost_class:
             y (_type_): Target vector for training (optional).
             parameter_space_size (_type_): Size of the parameter space for optimization.
         """
-        global_params = global_parameters()
+        global_params = global_parameters
         self.X = X
         self.y = y
 

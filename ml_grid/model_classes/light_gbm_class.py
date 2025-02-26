@@ -13,7 +13,7 @@ class LightGBMClassifierWrapper:
         self.X = X
         self.y = y
 
-        global_params = global_parameters()
+        global_params = global_parameters
 
         self.algorithm_implementation = (
             LightGBMClassifier()

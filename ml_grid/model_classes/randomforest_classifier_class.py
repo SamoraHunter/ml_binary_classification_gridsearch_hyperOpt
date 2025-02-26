@@ -28,7 +28,7 @@ class RandomForestClassifier_class:
         self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
 
         # Define the parameter space for Bayesian and traditional search
-        if global_parameters().bayessearch:
+        if global_parameters.bayessearch:
             # Bayesian Optimization: Adjust parameters if traditional doesn't use param_dict
             self.parameter_space = {
                 "bootstrap": Categorical([True, False]),

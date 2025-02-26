@@ -16,7 +16,7 @@ class LogisticRegression_class:
             y (numpy.ndarray): Target variable
             parameter_space_size (int): Size of the parameter space
         """
-        global_params = global_parameters()
+        global_params = global_parameters
         self.X = X
         self.y = y
 

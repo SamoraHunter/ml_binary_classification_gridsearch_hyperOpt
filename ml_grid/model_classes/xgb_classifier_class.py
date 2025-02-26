@@ -50,7 +50,7 @@ class XGB_class_class:
                 return param_value
 
         # Set up the parameter space based on the selected optimization method
-        if global_parameters().bayessearch:
+        if global_parameters.bayessearch:
             # Bayesian Optimization: Define parameter space using Real and Categorical
             self.parameter_space = [{
                 "objective": Categorical(["binary:logistic"]),  # Objective function for binary classification

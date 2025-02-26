@@ -27,9 +27,9 @@ class knn__gpu_wrapper_class:
         # Define the parameter vector space
         self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
 
-        knn_n_jobs = global_parameters().knn_n_jobs  # Get the number of jobs from global parameters
+        knn_n_jobs = global_parameters.knn_n_jobs  # Get the number of jobs from global parameters
 
-        if global_parameters().bayessearch:
+        if global_parameters.bayessearch:
             # Bayesian Optimization: Use skopt's Integer and Categorical for the parameter space
             self.parameter_space = {
                 "algorithm": Categorical(["auto", "ball_tree", "kd_tree", "brute"]),

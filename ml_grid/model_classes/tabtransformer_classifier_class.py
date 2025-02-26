@@ -117,7 +117,7 @@ class TabTransformer_class:
         # Algorithm Implementation
         #self.algorithm_implementation = TabTransformerClassifier(categories, num_continuous)
         
-        if global_parameters().bayessearch is False:
+        if global_parameters.bayessearch is False:
             self.algorithm_implementation = TabTransformerClassifier(categories, num_continuous)
         else:
             self.algorithm_implementation = TabTransformerWrapper(categories, num_continuous) #Wrapper necessary for passing priors to bayescv
@@ -126,7 +126,7 @@ class TabTransformer_class:
         # Parameter Space
         self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
 
-        if global_parameters().bayessearch:
+        if global_parameters.bayessearch:
             # Bayesian Optimization: Define parameter space using Real and Categorical
             self.parameter_space = {
                 "categories": Categorical([0, 1, 2]),  # Indices for the tuple mapping
