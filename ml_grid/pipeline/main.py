@@ -11,7 +11,7 @@ class run:
 
     def __init__(self, ml_grid_object, local_param_dict):  # kwargs**
 
-        self.global_params = global_parameters()
+        self.global_params = global_parameters
 
         self.verbose = self.global_params.verbose
 
@@ -132,7 +132,7 @@ class run:
                         # algorithm_implementation = LogisticRegression_class(parameter_space_size=self.parameter_space_size).algorithm_implementation, parameter_space = self.arg_list[k][1], method_name=self.arg_list[k][2], X = self.arg_list[k][3], y=self.arg_list[k][4]
                     ).grid_search_cross_validate_score_result
                     
-                    highest_score = max(highest_score, res[0])
+                    highest_score = max(highest_score, res)
                     print(f"highest score: {highest_score}")
 
                 except Exception as e:
@@ -144,6 +144,7 @@ class run:
                     )
 
                     if self.error_raise:
+                        raise e
                         res = input(
                             "error thrown in grid_search_crossvalidate on model class list, input pass to pass else raise"
                         )
