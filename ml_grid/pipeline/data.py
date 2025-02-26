@@ -9,6 +9,7 @@ from tabulate import tabulate
 from ml_grid.pipeline import read_in
 from ml_grid.pipeline.column_names import get_pertubation_columns
 from ml_grid.pipeline.data_clean_up import clean_up_class
+from ml_grid.pipeline.data_constant_columns import remove_constant_columns
 from ml_grid.pipeline.data_correlation_matrix import handle_correlation_matrix
 from ml_grid.pipeline.data_feature_importance_methods import feature_importance_methods
 from ml_grid.pipeline.data_outcome_list import handle_outcome_list
@@ -69,7 +70,7 @@ class pipe:
 
         self.local_param_dict = local_param_dict
 
-        self.global_params = global_parameters()
+        self.global_params = global_parameters
 
         self.verbose = self.global_params.verbose
 
@@ -177,6 +178,9 @@ class pipe:
         self.drop_list = handle_outcome_list(
             drop_list=self.drop_list, outcome_variable=self.outcome_variable
         )
+        
+        self.drop_list = remove_constant_columns(
+            X=self.df, drop_list=self.drop_list, verbose=self.verbose)
 
         self.final_column_list = [
             self.X
@@ -201,9 +205,13 @@ class pipe:
         scale = self.local_param_dict.get("scale")
 
         if scale:
-
-            self.X = data_scale_methods().standard_scale_method(self.X)
-
+            try:
+                self.X = data_scale_methods().standard_scale_method(self.X)
+            except Exception as e:
+                print(e)
+                print("Exception scaling data, continuing...")
+                print(self.X.shape)
+                print(self.X.head())
         if self.verbose >= 1:
             print(
                 f"len final droplist: {len(self.drop_list)} \ {len(list(self.df.columns))}"
