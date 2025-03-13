@@ -29,7 +29,12 @@ def handle_percent_missing(
 
     filename = file_name.replace(".csv", "")
 
-    percent_missing_filename = f"{filename}_percent_missing.pickle"
+    
+    # Check if the file with .pkl extension exists, otherwise use .pickle
+    if os.path.exists(f"{filename}_percent_missing.pkl"):
+        percent_missing_filename = f"{filename}_percent_missing.pkl"
+    else:
+        percent_missing_filename = f"{filename}_percent_missing.pickle"
 
     # Check if the file exists
     if os.path.exists(percent_missing_filename):
