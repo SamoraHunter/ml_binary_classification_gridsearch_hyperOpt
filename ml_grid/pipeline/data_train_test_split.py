@@ -41,6 +41,7 @@ def get_data_split(X, y, local_param_dict):
     # X_train_orig, X_test_orig, y_train_orig, y_test_orig = None, None, None, None
     
     random.seed(1234)
+    np.random.seed(1234)
 
     # Check if data is valid
     if not is_valid_shape(X):
@@ -134,3 +135,20 @@ def is_valid_shape(input_data):
     else:
         # Input data is neither a numpy array nor a pandas DataFrame
         return False
+
+
+## Reproduce data split:
+
+
+# from ml_grid.pipeline.data_train_test_split import get_data_split
+
+# local_param_dict  = {'resample': str(df.iloc[0]['resample'])}
+
+# # replace nan value in local_param_dict with None
+
+# local_param_dict = {k: v if v!= 'nan' else None for k, v in local_param_dict.items()}
+
+# print(local_param_dict)
+
+
+# X_train, X_test, y_train, y_test, X_train_orig, y_test_orig = get_data_split(X, y, local_param_dict)
