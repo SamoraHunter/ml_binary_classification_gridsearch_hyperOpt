@@ -1,3 +1,4 @@
+from scipy import sparse
 from ml_grid.util import param_space
 from ml_grid.util.global_params import global_parameters
 from sklearn.svm import SVC
@@ -24,7 +25,56 @@ class SVC_class:
 
         # Enforce scaling for SVM method
         if not self.is_data_scaled():
-            self.scale_data()
+            try:
+                # Data validation checks before scaling
+                if self.X is None:
+                    raise ValueError("Input data X is None - data not loaded properly")
+                    
+                if isinstance(self.X, pd.DataFrame) and self.X.empty:
+                    #raise ValueError("Input data X is an empty DataFrame")
+                    print("warn: SVC data scaling, X data is empty")
+
+                if( self.X.empty == False):
+                    if not hasattr(self, 'scaler'):
+                        self.scaler = StandardScaler()  # or whichever scaler you're using
+                        
+                    # Convert sparse matrices if needed
+                    if sparse.issparse(self.X):
+                        self.X = self.X.toarray()
+                        
+                    # Ensure numeric data
+                    if isinstance(self.X, pd.DataFrame):
+                        non_numeric = self.X.select_dtypes(exclude=['number']).columns
+                        if len(non_numeric) > 0:
+                            raise ValueError(f"Non-numeric columns found: {list(non_numeric)}")
+                            
+                    # Debug logging 
+                    #print(f"Scaling data with shape: {self.X.shape}")
+                    #print(f"Sample values before scaling:\n{self.X.iloc[:3,:3] if isinstance(self.X, pd.DataFrame) else self.X[:3,:3]}")
+                    
+                    # Perform scaling
+                    self.X = pd.DataFrame(
+                        self.scaler.fit_transform(self.X), 
+                        columns=self.X.columns if hasattr(self.X, 'columns') else None,
+                        index=self.X.index if hasattr(self.X, 'index') else None
+                    )
+                    
+                    print("Data scaling completed successfully")
+                
+            except Exception as e:
+                error_msg = f"Data scaling failed: {str(e)}"
+                print(error_msg)
+                
+                # Additional debug info
+                if hasattr(self, 'X'):
+                    print(f"Data type: {type(self.X)}")
+                    if hasattr(self.X, 'shape'):
+                        print(f"Shape: {self.X.shape}")
+                    if isinstance(self.X, pd.DataFrame):
+                        print(f"Columns: {self.X.columns.tolist()}")
+                        print(f"Data types:\n{self.X.dtypes}")
+                        
+                raise RuntimeError(error_msg) from e
 
         self.algorithm_implementation = SVC()
         self.method_name = "SVC"
