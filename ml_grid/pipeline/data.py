@@ -187,6 +187,42 @@ class pipe:
             for self.X in self.pertubation_columns
             if (self.X not in self.drop_list and self.X in self.df.columns)
         ]
+        # Add safety mechanism to retain minimum features
+        min_required_features = 5  # Set your minimum threshold
+        core_protected_columns = ['age', 'male', 'client_idcode']  # Columns to protect
+
+        if not self.final_column_list:
+            print("WARNING: All features pruned! Activating safety retention...")
+            
+            # Try to keep protected columns first
+            safety_columns = [col for col in core_protected_columns 
+                            if col in self.df.columns and col in self.pertubation_columns]
+            
+            # If no protected columns, use first available columns
+            if not safety_columns:
+                safety_columns = [col for col in self.pertubation_columns 
+                                if col in self.df.columns][:min_required_features]
+            
+            # Update final columns and drop list
+            self.final_column_list = safety_columns
+            self.drop_list = [col for col in self.drop_list 
+                            if col not in self.final_column_list]
+            
+            print(f"Retaining minimum features: {self.final_column_list}")
+
+            # Add two random features if list still empty
+            if not self.final_column_list:
+                print("Warning no feature columns retained, selecting two at random")
+                final_column_list = []
+                final_column_list.append(random.choice(self.orignal_feature_names))
+                final_column_list.append(random.choice(self.orignal_feature_names))
+
+        # Ensure we still have at least 1 feature
+        if not self.final_column_list:
+            raise ValueError("CRITICAL: Unable to retain any features despite safety measures")
+
+        if not self.final_column_list:
+            raise ValueError("All features pruned. No columns remaining in final_column_list.")
 
         if self.time_series_mode:
             # Re add client_idcode
@@ -284,6 +320,8 @@ class pipe:
                         ml_grid_object=self
                     )
                 )
+                if self.X_train.shape[1] == 0:
+                    raise ValueError("Feature importance selection removed all features.")
 
             except Exception as e:
                 print("failed target_n_features", e)
@@ -315,3 +353,6 @@ class pipe:
                 self.model_class_dict = model_class_dict
             
             self.model_class_list = get_model_class_list(self)
+
+        if isinstance(self.X_train, pd.DataFrame) and self.X_train.empty:
+            raise ValueError("-- end data pipeline-- Input data X_train is an empty DataFrame -- end data pipeline--")
