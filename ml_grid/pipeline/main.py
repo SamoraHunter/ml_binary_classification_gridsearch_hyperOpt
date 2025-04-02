@@ -5,7 +5,7 @@ from ml_grid.util import grid_param_space
 from ml_grid.util.global_params import global_parameters
 from sklearn.model_selection import ParameterGrid
 from ml_grid.util.bayes_utils import calculate_combinations
-
+from catboost import CatBoostError
 
 class run:
 
@@ -134,6 +134,10 @@ class run:
                     
                     highest_score = max(highest_score, res)
                     print(f"highest score: {highest_score}")
+
+                except CatBoostError as e:
+                    print(f"CatBoostError: {e}")
+                    print(f"continuing despite catboost error...")
 
                 except Exception as e:
 
