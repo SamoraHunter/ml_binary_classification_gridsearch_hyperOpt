@@ -57,6 +57,7 @@ class GlobalParameters:
         self.random_state_val = 1234
         self.n_jobs_model_val = -1
         self.max_param_space_iter_value = 10
+        self.store_models = True
 
         custom_scorer = make_scorer(custom_roc_auc_score)
         self.metric_list = {
