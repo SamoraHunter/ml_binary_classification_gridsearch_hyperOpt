@@ -1,3 +1,4 @@
+import pathlib
 import time
 import traceback
 
@@ -6,7 +7,8 @@ import pandas as pd
 from ml_grid.util.global_params import global_parameters
 from sklearn import metrics
 from sklearn.metrics import *
-
+import pickle
+import os
 
 import warnings
 
@@ -132,6 +134,8 @@ class project_score_save_class:
         self.param_space_index = ml_grid_object.param_space_index
         
         self.bayessearch = self.global_parameters.bayessearch
+
+        self.store_models = self.global_parameters.store_models
         # n_iter_v = np.nan ##????????????
 
         try:
@@ -316,6 +320,20 @@ class project_score_save_class:
                 header=False,
                 index=True,
             )
+            if self.store_models:
+                if "keras" not in method_name.lower():
+                    #print("SAVING MODEL!")
+                    models_dir = pathlib.Path(os.path.join(ml_grid_object.base_project_dir, "models"))
+                    models_dir.mkdir(parents=True, exist_ok=True)
+
+                    model_path = os.path.join(ml_grid_object.base_project_dir, "models", f"{str(self.param_space_index)}.pkl")
+                    try:
+                        # save pickled model
+                        with open(model_path, 'wb') as f:
+                            pickle.dump(current_algorithm, f)
+                    except Exception as e:
+                        print(e)
+                        raise e
             # ---------------------------
         except Exception as e:
             print(e)
