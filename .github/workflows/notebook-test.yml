@@ -86,6 +86,7 @@ jobs:
 
       - name: Run tests
         run: |
+          -set e
           cd $GITHUB_WORKSPACE
           source "$VENV_PATH/bin/activate"
-          pytest notebooks/unit_test_synthetic.ipynb
+          pytest --nbmake notebooks/unit_test_synthetic.ipynb
