@@ -9,7 +9,7 @@ from tabulate import tabulate
 from ml_grid.pipeline import read_in
 from ml_grid.pipeline.column_names import get_pertubation_columns
 from ml_grid.pipeline.data_clean_up import clean_up_class
-from ml_grid.pipeline.data_constant_columns import remove_constant_columns
+from ml_grid.pipeline.data_constant_columns import remove_constant_columns, remove_constant_columns_with_debug
 from ml_grid.pipeline.data_correlation_matrix import handle_correlation_matrix
 from ml_grid.pipeline.data_feature_importance_methods import feature_importance_methods
 from ml_grid.pipeline.data_outcome_list import handle_outcome_list
@@ -292,6 +292,14 @@ class pipe:
             self.X_test_orig,
             self.y_test_orig,
         ) = get_data_split(X=self.X, y=self.y, local_param_dict=self.local_param_dict)
+        
+        # Handle columns made constant by splitting
+        self.X_train, self.X_test, self.X_test_orig = remove_constant_columns_with_debug(
+            self.X_train,
+            self.X_test,
+            self.X_test_orig,
+            verbosity=self.verbose
+        )
 
         target_n_features = self.local_param_dict.get("feature_n")
 
