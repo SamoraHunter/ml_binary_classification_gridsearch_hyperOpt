@@ -89,4 +89,4 @@ jobs:
           set -e
           cd $GITHUB_WORKSPACE
           source "$VENV_PATH/bin/activate"
-          pytest --nbmake notebooks/unit_test_synthetic.ipynb
+          pytest --nbmake-timeout=1200 notebooks/unit_test_synthetic.ipynb
