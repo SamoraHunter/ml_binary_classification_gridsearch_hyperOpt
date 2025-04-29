@@ -3,6 +3,7 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 import numpy as np
 import random
+import pickle
 
 def mean_impute_dataframe(data, y_vars, test_size=0.25, val_size=0.25, random_state=1, seed=1234):
     
@@ -89,9 +90,6 @@ def mean_impute_dataframe(data, y_vars, test_size=0.25, val_size=0.25, random_st
 
 #df_merged = mean_impute_dataframe(df_merged, y_vars=outcome_columns, test_size=0.25, val_size=0.25, random_state=1, seed=1)
 
-
-import pandas as pd
-import pickle
 
 def save_missing_percentage(df, output_file='percent_missing.pkl'):
     """
