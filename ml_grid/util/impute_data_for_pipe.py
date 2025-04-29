@@ -74,7 +74,17 @@ def mean_impute_dataframe(data, y_vars, test_size=0.25, val_size=0.25, random_st
     # Combine features and target
     final_data = pd.concat([X_final, y_final], axis=1)
     
+    # Verification step: Check for NaN values post-imputation
+    if final_data.isnull().sum().any():
+        print("Warning: There are still NaN values after imputation!")
+        # Optionally, print which columns still have NaNs
+        print(final_data.isnull().sum()[final_data.isnull().sum() > 0])
+    else:
+        print("No NaN values found after imputation.")
+    
     print(f"Final data shape: {final_data.shape}")
+    
+    
     return final_data
 
 #df_merged = mean_impute_dataframe(df_merged, y_vars=outcome_columns, test_size=0.25, val_size=0.25, random_state=1, seed=1)
