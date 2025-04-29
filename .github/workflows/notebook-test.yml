@@ -1,0 +1,91 @@
+name: ML Project Test
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      DEBIAN_FRONTEND: noninteractive
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Install Act dependencies 
+        if: ${{ env.ACT }} 
+        run: | 
+          apt-get update && apt-get install sudo -y 
+
+      - name: Install ping utility
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y iputils-ping
+
+      - name: Set timezone to UTC
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          if [ -n "$ACT" ]; then
+            ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
+            echo "Etc/UTC" > /etc/timezone
+            apt-get update
+            apt-get install -y tzdata
+            dpkg-reconfigure -f noninteractive tzdata
+          else
+            sudo ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
+            echo "Etc/UTC" | sudo tee /etc/timezone
+            sudo apt-get update
+            sudo apt-get install -y tzdata
+            sudo dpkg-reconfigure -f noninteractive tzdata
+          fi
+
+      - name: Install Python 3.10 and Git
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt-get update
+          sudo apt-get install -y gnupg lsb-release software-properties-common curl git
+
+          echo "deb [trusted=yes] http://ppa.launchpadcontent.net/deadsnakes/ppa/ubuntu $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/deadsnakes-ppa.list
+          sudo apt-get update
+          sudo apt-get install -y python3.10 python3.10-venv python3.10-distutils
+
+          # Set Python 3.10 as default
+          ln -sf /usr/bin/python3.10 /usr/local/bin/python
+          ln -sf /usr/bin/python3.10 /usr/local/bin/python3
+
+          curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10
+          python3.10 -m ensurepip --upgrade
+          ln -sf /usr/local/bin/pip3.10 /usr/local/bin/pip
+          ln -sf /usr/local/bin/pip3.10 /usr/local/bin/pip3
+
+          python --version
+          pip --version
+
+      - name: Set environment variables
+        run: |
+          echo "PYTHONHTTPSVERIFY=0" >> $GITHUB_ENV
+          echo "CURL_CA_BUNDLE=" >> $GITHUB_ENV
+          echo "SSL_CERT_FILE=" >> $GITHUB_ENV
+          echo "GIT_SSL_NO_VERIFY=true" >> $GITHUB_ENV
+
+      - name: Setup ML project
+        run: |
+          cd $GITHUB_WORKSPACE
+          # Make install.sh executable if it isn't already
+          chmod +x install.sh
+          # Run the installation script
+          ./install.sh
+
+      - name: Debug virtual environment
+        run: |
+          VENV_PATH=$(find $GITHUB_WORKSPACE -type d -name "ml_grid_env")
+          echo "VENV_PATH=$VENV_PATH" >> $GITHUB_ENV
+          source "$VENV_PATH/bin/activate"
+          which python
+          python --version
+
+      - name: Run tests
+        run: |
+          cd $GITHUB_WORKSPACE
+          source "$VENV_PATH/bin/activate"
+          pytest notebooks/unit_test_synthetic.ipynb
