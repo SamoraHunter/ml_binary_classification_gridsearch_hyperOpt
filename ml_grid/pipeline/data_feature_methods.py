@@ -1,15 +1,15 @@
 import numpy as np
 import pandas as pd
-import sklearn
-import sklearn.feature_selection
 from PyImpetus import PPIMBC
 from sklearn.svm import SVC
-import pandas as pd
+from sklearn.feature_selection import f_classif
 
 class feature_methods:
 
     def __init__(self):
         """set 100% for all, if not 100 then pass to function, always % of n input features. Calculate dynamically."""
+
+
 
     def getNfeaturesANOVAF(self, n, X_train, y_train):
         """
@@ -37,35 +37,34 @@ class feature_methods:
             are used, otherwise the column indices are used.
         """
 
-        # check if input is a pandas DataFrame or numpy array
+        # Check if input is a pandas DataFrame or numpy array
         if isinstance(X_train, pd.DataFrame):
-            feature_names = X_train.columns  # get column names
-            X_train = X_train.values  # convert to numpy array
+            feature_names = X_train.columns  # Get column names
+            X_train = X_train.values  # Convert to numpy array
         elif isinstance(X_train, np.ndarray):
-            feature_names = np.arange(X_train.shape[1])  # use indices as column names
+            feature_names = np.arange(X_train.shape[1])  # Use indices as column names
         else:
             raise ValueError("X_train must be a pandas DataFrame or numpy array")
 
-        # calculate F-value for each column in X_train
-        # F-value is calculated by sklearn.feature_selection.f_classif
-        # input is a 2D numpy array and target variable y_train
-        # output is a 1D numpy array of F-values
+        # Calculate F-value for each column in X_train
         res = []
         for i, col in enumerate(X_train.T):
-            res.append(
-                (
-                    feature_names[i],  # add column name or index to tuple
-                    sklearn.feature_selection.f_classif(col.reshape(-1, 1), y_train)[0],
-                )
-            )
+            # Get the F-values from f_classif
+            f_values = f_classif(col.reshape(-1, 1), y_train)[0]
 
-        # sort the list based on F-value in descending order
-        sortedList = sorted(res, key=lambda X: X[1], reverse=True)
-        print(sortedList)
-        # return column names of top n features
-        nFeatures = sortedList[:n]  # get top n features
-        finalColNames = [elem[0] for elem in nFeatures]  # get column names
+            # If the F-value is not NaN, add it to the results
+            if not np.isnan(f_values[0]):
+                res.append((feature_names[i], f_values[0]))
+
+        # Sort the list based on F-value in descending order
+        sortedList = sorted(res, key=lambda x: x[1], reverse=True)
+
+        # Return column names of top n features
+        nFeatures = sortedList[:n]  # Get top n features
+        finalColNames = [elem[0] for elem in nFeatures]  # Get column names
+
         return finalColNames
+
 
 
     def getNFeaturesMarkovBlanket(self, n, X_train, y_train):
