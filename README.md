@@ -2,9 +2,31 @@
 
 This repository contains Python code for binary classification using grid search and hyperparameter optimization techniques.
 
+# Table of Contents
+
+- [ml_binary_classification_gridsearch_hyperOpt](#ml_binary_classification_gridsearch_hyperopt)
+- [Overview](#overview)
+- [ML repository architecture](#ml-repository-architecture)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+- [Installation](#installation)
+  - [Windows](#windows)
+  - [Unix/Linux](#unixlinux)
+- [Usage](#usage)
+- [Examples](#examples)
+- [Contributing](#contributing)
+- [License](#license)
+- [Appendix](#appendix)
+- [Acknowledgments](#acknowledgments)
+
+
 ## Overview
 
 Binary classification is a common machine learning task where the goal is to categorize data into one of two classes. This repository provides a framework for performing binary classification using various machine learning algorithms and optimizing their hyperparameters through grid search and hyperparameter optimization techniques.
+
+## ML repository architecture
+
+![Alt text](assets/ml_repository_architecture.png)
 
 ## Getting Started
 
