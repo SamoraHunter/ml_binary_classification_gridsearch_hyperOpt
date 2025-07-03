@@ -32,18 +32,7 @@ Binary classification is a common machine learning task where the goal is to cat
 
 ### Prerequisites
 
-Before you can run the code in this repository, make sure you have the following prerequisites installed:
-
-- Python (>=3.6) -requirements.txt built for python3.10.12
-- NumPy
-- Pandas
-- Scikit-Learn
-- HyperOpt (for hyperparameter optimization)
-- Pytorch
-
-You can install these dependencies using pip:
-
-pip install numpy pandas scikit-learn hyperopt
+Designed for usage with a numeric data matrix for binary classification. Single or multiple outcome variables (One v rest). An example is provided. Time series is also implemented.
 
 ## Installation
 
@@ -75,8 +64,6 @@ pip install numpy pandas scikit-learn hyperopt
     ```
 
 
-
-
 ```python
 import sys
 sys.path.append('/path/to/ml_grid')
@@ -91,9 +78,7 @@ See Appendix
 
 ## Examples
 
-
 See [ml_grid/tests/unit_test_synthetic.ipynb]
-
 
 
 Contributing
@@ -109,7 +94,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 
 ## Appendix
-
 
 
 Acknowledgments
