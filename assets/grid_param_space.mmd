@@ -1,0 +1,68 @@
+graph TD
+    A[Grid Class Initialization] --> B[Set Global Parameters]
+    B --> C[Set sample_n default=1000]
+    C --> D[Initialize Grid Dictionary]
+    
+    D --> E[Grid Parameters]
+    E --> E1[resample: undersample/oversample/None]
+    E --> E2[scale: True/False]
+    E --> E3[feature_n: 100,95,75,50,25,5]
+    E --> E4[param_space_size: medium/xsmall]
+    E --> E5[n_unique_out: 10]
+    E --> E6[outcome_var_n: 1]
+    E --> E7[percent_missing: 99,95,80]
+    E --> E8[corr: 0.98,0.85,0.5,0.25]
+    E --> E9[feature_selection_method: anova/markov_blanket]
+    E --> E10[data: nested dictionary]
+    
+    E10 --> F[Data Features]
+    F --> F1[age: True/False]
+    F --> F2[sex: True/False]
+    F --> F3[bmi: True]
+    F --> F4[ethnicity: True/False]
+    F --> F5[bloods: True/False]
+    F --> F6[diagnostic_order: True/False]
+    F --> F7[drug_order: True/False]
+    F --> F8[annotation_n: True/False]
+    F --> F9[meta_sp_annotation_n: True/False]
+    F --> F10[annotation_mrc_n: True/False]
+    F --> F11[meta_sp_annotation_mrc_n: True/False]
+    F --> F12[vte_status: True]
+    F --> F13[hosp_site: True]
+    F --> F14[Other features: False]
+    
+    D --> G[c_prod Function Definition]
+    G --> H[Generate Cartesian Product]
+    H --> I[Create settings_list]
+    I --> J[Print Full Size]
+    J --> K[Shuffle List]
+    K --> L[Sample n Items]
+    L --> M[Create Iterator]
+    
+    subgraph "c_prod Function Logic"
+        N[Input: Dictionary or List]
+        N --> O{Is List?}
+        O -->|Yes| P[Yield Items Recursively]
+        O -->|No| Q[Generate Product of Values]
+        Q --> R[Yield Dictionary with Keys]
+    end
+    
+    subgraph "Key Dependencies"
+        S[itertools as it]
+        T[random]
+        U[ml_grid.util.global_params]
+    end
+    
+    subgraph "Class Attributes"
+        V[self.global_params]
+        W[self.verbose]
+        X[self.sample_n]
+        Y[self.grid]
+        Z[self.settings_list]
+        AA[self.settings_list_iterator]
+    end
+    
+    style A fill:#e1f5fe
+    style D fill:#f3e5f5
+    style G fill:#fff3e0
+    style M fill:#e8f5e8

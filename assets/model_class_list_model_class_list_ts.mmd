@@ -1,0 +1,90 @@
+graph TB
+    %% External Dependencies
+    sklearn[sklearn.model_selection.ParameterGrid]
+    pipeline[ml_grid.pipeline.grid_search_cross_validate]
+    utils[ml_grid.util.grid_param_space]
+    globals[ml_grid.util.global_params.global_parameters]
+    
+    %% Main Functions
+    get_model_class_list[get_model_class_list<br/>ml_grid_object]
+    get_model_class_list_ts[get_model_class_list_ts<br/>ml_grid_object]
+    
+    %% Traditional ML Models
+    subgraph Traditional["Traditional ML Models"]
+        LogisticRegression_class[LogisticRegression_class]
+        knn_classifiers_class[knn_classifiers_class]
+        knn__gpu_wrapper_class[knn__gpu_wrapper_class]
+        quadratic_discriminant_analysis_class[quadratic_discriminant_analysis_class]
+        SVC_class[SVC_class]
+        GaussianNB_class[GaussianNB_class]
+        mlp_classifier_class[mlp_classifier_class]
+    end
+    
+    %% Tree-based Models
+    subgraph TreeBased["Tree-based Models"]
+        RandomForestClassifier_class[RandomForestClassifier_class]
+        GradientBoostingClassifier_class[GradientBoostingClassifier_class]
+        XGB_class_class[XGB_class_class]
+        CatBoost_class[CatBoost_class]
+        LightGBMClassifierWrapper[LightGBMClassifierWrapper]
+        adaboost_class[adaboost_class]
+    end
+    
+    %% Neural Networks
+    subgraph NeuralNets["Neural Networks"]
+        kerasClassifier_class[kerasClassifier_class]
+        NeuralNetworkClassifier_class[NeuralNetworkClassifier_class]
+        TabTransformer_class[TabTransformer_class]
+    end
+    
+    %% Time Series Models
+    subgraph TimeSeries["Time Series Models"]
+        KNeighborsTimeSeriesClassifier_class[KNeighborsTimeSeriesClassifier_class]
+        Arsenal_class[Arsenal_class]
+        CNNClassifier_class[CNNClassifier_class]
+        InceptionTimeClassifier_class[InceptionTimeClassifier_class]
+        HIVECOTEV2_class[HIVECOTEV2_class]
+        FreshPRINCEClassifier_class[FreshPRINCEClassifier_class]
+        FCNClassifier_class[FCNClassifier_class]
+        EncoderClassifier_class[EncoderClassifier_class]
+        IndividualInceptionClassifier_class[IndividualInceptionClassifier_class]
+        IndividualTDE_class[IndividualTDE_class]
+        MLPClassifier_class[MLPClassifier_class]
+        MUSE_class[MUSE_class]
+        OrdinalTDE_class[OrdinalTDE_class]
+        ResNetClassifier_class[ResNetClassifier_class]
+        RocketClassifier_class[RocketClassifier_class]
+        ShapeDTW_class[ShapeDTW_class]
+        SignatureClassifier_class[SignatureClassifier_class]
+        SummaryClassifier_class[SummaryClassifier_class]
+        TapNetClassifier_class[TapNetClassifier_class]
+        TemporalDictionaryEnsemble_class[TemporalDictionaryEnsemble_class]
+        TSFreshClassifier_class[TSFreshClassifier_class]
+        ElasticEnsemble_class[ElasticEnsemble_class]
+    end
+    
+    %% Relationships
+    sklearn --> get_model_class_list
+    pipeline --> get_model_class_list
+    utils --> get_model_class_list
+    globals --> get_model_class_list
+    
+    get_model_class_list --> Traditional
+    get_model_class_list --> TreeBased
+    get_model_class_list --> NeuralNets
+    
+    get_model_class_list_ts --> TimeSeries
+    
+    %% Styling
+    classDef functionStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef traditionalStyle fill:#f3e5f5,stroke:#4a148c,stroke-width:1px
+    classDef treeStyle fill:#e8f5e8,stroke:#1b5e20,stroke-width:1px
+    classDef neuralStyle fill:#fff3e0,stroke:#e65100,stroke-width:1px
+    classDef timeSeriesStyle fill:#fce4ec,stroke:#880e4f,stroke-width:1px
+    classDef utilStyle fill:#f1f8e9,stroke:#33691e,stroke-width:1px
+    
+    class get_model_class_list,get_model_class_list_ts functionStyle
+    class LogisticRegression_class,knn_classifiers_class,knn__gpu_wrapper_class,quadratic_discriminant_analysis_class,SVC_class,GaussianNB_class,mlp_classifier_class traditionalStyle
+    class RandomForestClassifier_class,GradientBoostingClassifier_class,XGB_class_class,CatBoost_class,LightGBMClassifierWrapper,adaboost_class treeStyle
+    class kerasClassifier_class,NeuralNetworkClassifier_class,TabTransformer_class neuralStyle
+    class sklearn,pipeline,utils,globals utilStyle

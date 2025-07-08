@@ -1,0 +1,70 @@
+flowchart TD
+    A[Start Pipeline] --> B[Initialize Parameters]
+    B --> C{Read Data}
+    C -->|Sample Mode| D[Read Sample Data]
+    C -->|Full Mode| E[Read Full Data]
+    
+    D --> F[Apply Test/Column Sampling]
+    E --> F
+    
+    F --> G[Get Perturbation Columns]
+    G --> H[Set Outcome Variable]
+    H --> I[Handle Correlation Matrix]
+    
+    I --> J[Handle Percent Missing]
+    J --> K[Handle Outcome List]
+    K --> L[Remove Constant Columns]
+    
+    L --> M{Final Column List Empty?}
+    M -->|Yes| N[Safety Retention Mechanism]
+    M -->|No| O[Proceed with Final Columns]
+    
+    N --> P[Retain Protected Columns]
+    P --> Q{Still Empty?}
+    Q -->|Yes| R[Select Random Features]
+    Q -->|No| O
+    R --> O
+    
+    O --> S[Clean Up Data]
+    S --> T[Screen Non-Float Types]
+    T --> U[Handle Column Names]
+    
+    U --> V{Scale Data?}
+    V -->|Yes| W[Apply Standard Scaling]
+    V -->|No| X[Skip Scaling]
+    W --> X
+    
+    X --> Y{Time Series Mode?}
+    Y -->|Yes| Z[Convert to Time Series]
+    Y -->|No| AA[Regular Processing]
+    
+    Z --> BB[Get Max Sequence Length]
+    BB --> CC[Convert X,y to Time Series]
+    CC --> DD[Train/Test Split]
+    
+    AA --> DD
+    DD --> EE[Remove Constant Columns After Split]
+    
+    EE --> FF{Feature Reduction Needed?}
+    FF -->|Yes| GG[Apply Feature Importance Methods]
+    FF -->|No| HH[Skip Feature Reduction]
+    
+    GG --> II{Features Remain?}
+    II -->|No| JJ[Error: All Features Removed]
+    II -->|Yes| HH
+    
+    HH --> KK{Time Series Mode?}
+    KK -->|Yes| LL[Get Time Series Model List]
+    KK -->|No| MM[Get Regular Model List]
+    
+    LL --> NN[Pipeline Complete]
+    MM --> NN
+    
+    JJ --> OO[Pipeline Failed]
+    
+    style A fill:#e1f5fe
+    style NN fill:#c8e6c9
+    style OO fill:#ffcdd2
+    style N fill:#fff3e0
+    style P fill:#fff3e0
+    style R fill:#fff3e0
