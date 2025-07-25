@@ -15,6 +15,45 @@ def filter_substring_list(string, substr):
 
 
 def get_pertubation_columns(all_df_columns, local_param_dict, drop_term_list):
+    
+    """Identifies and categorizes columns for perturbation and dropping based on predefined rules and
+    local parameters.
+
+    This function processes a list of all DataFrame columns, categorizing them into various
+    groups such as blood tests, diagnostic orders, drug orders, BMI, ethnicity, and
+    different types of annotation counts. It also identifies columns to be dropped based
+    on specific keywords and prefixes. The selection of columns for 'perturbation'
+    is determined by flags within `local_param_dict`.
+
+    Args:
+        all_df_columns (list): A list of all column names in the DataFrame.
+        local_param_dict (dict): A dictionary containing local parameters, including
+            'outcome_var_n' and a 'data' sub-dictionary that specifies which column
+            categories to include for perturbation (e.g., 'age', 'sex', 'bmi', 'bloods').
+        drop_term_list (list): A list of strings. Any column name containing these
+            strings (case-insensitive) will be added to the `drop_list`.
+
+    Returns:
+        tuple: A tuple containing two lists:
+            - pertubation_columns (list): A list of column names selected for perturbation
+              based on the `local_param_dict` settings.
+            - drop_list (list): A list of column names identified to be dropped from the
+              DataFrame.
+
+    Raises:
+        NameError: If `global_parameters` or `find_near_matches` or `filter_substring_list`
+                   or `plot_candidate_feature_category_lists` or `plot_dict_values` are not defined.
+                   These are assumed to be accessible in the global scope or imported.
+
+    Notes:
+        - The function relies on several global or externally defined functions:
+          `global_parameters`, `find_near_matches`, `filter_substring_list`,
+          `plot_candidate_feature_category_lists`, and `plot_dict_values`.
+        - Column categorization is based on hardcoded substrings and prefixes.
+        - Overlapping columns are handled by removing elements from `bloods_list` if
+          they appear in any other categorized list.
+        - Verbose output and plotting are controlled by the `verbose` level from `global_parameters`.
+    """
 
     global_params = global_parameters
 
@@ -170,6 +209,47 @@ def get_pertubation_columns(all_df_columns, local_param_dict, drop_term_list):
     date_time_stamp_list = list(
         filter(lambda k: "date_time_stamp" in k, all_df_columns)
     )
+    
+    # Combine these into a single conceptual list for overlap check later
+    meta_sp_annotation_all_counts = (
+        meta_sp_annotation_count_list +
+        not_meta_sp_annotation_count_list +
+        meta_rp_annotation_count_list +
+        not_meta_rp_annotation_count_list
+    )
+    # Combine these into a single conceptual list for overlap check later
+    meta_sp_annotation_mrc_all_counts = (
+        meta_sp_annotation_mrc_count_list +
+        not_meta_sp_annotation_mrc_count_list +
+        relative_meta_rp_annotation_mrc_count_list +
+        not_relative_meta_rp_annotation_mrc_count_list
+    )
+    
+    # --- Post-Processing: Remove overlaps from bloods_list ---
+    # Create a set of all columns in other categories
+    all_other_categorized_cols = set()
+    
+    # Add all columns from other specific lists to this set
+    all_other_categorized_cols.update(annotation_count_list)
+    all_other_categorized_cols.update(meta_sp_annotation_all_counts) # Use the combined list
+    all_other_categorized_cols.update(diagnostic_order_list)
+    all_other_categorized_cols.update(drug_order_list)
+    all_other_categorized_cols.update(bmi_list)
+    all_other_categorized_cols.update(ethnicity_list)
+    all_other_categorized_cols.update(annotation_mrc_count_list)
+    all_other_categorized_cols.update(meta_sp_annotation_mrc_all_counts) # Use the combined list
+    all_other_categorized_cols.update(core_02_list)
+    all_other_categorized_cols.update(bed_list)
+    all_other_categorized_cols.update(vte_status_list) 
+    all_other_categorized_cols.update(hosp_site_list)
+    all_other_categorized_cols.update(core_resus_list)
+    all_other_categorized_cols.update(news_list)
+    all_other_categorized_cols.update(date_time_stamp_list)
+    all_other_categorized_cols.update(appointments_list)
+
+    # Filter bloods_list: keep only elements NOT found in any other category to avoid vte status and others being added to bloods.
+    bloods_list = [col for col in bloods_list if col not in all_other_categorized_cols]
+
 
     candidate_feature_category_lists = [
         meta_sp_annotation_count_list,
