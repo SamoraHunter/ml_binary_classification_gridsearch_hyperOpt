@@ -735,3 +735,6 @@ zipp==3.20.2
 # setuptools
 pytest
 nbmake
+
+upsetplot==0.9.0
+    # manually added for results processing

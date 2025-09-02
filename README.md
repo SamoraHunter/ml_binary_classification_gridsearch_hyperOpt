@@ -68,6 +68,10 @@ Below are visual diagrams representing various components of the project. All `.
 - [Mermaid source](assets/unit_test_synthetic.mmd)  
   <img src="assets/unit_test_synthetic.svg" width="400" height="300"/>
 
+### Results Processing Pipeline
+- [Mermaid source](assets/results_processing_pipeline.mmd)
+  <img src="assets/results_processing_pipeline.svg" width="600" height="450"/>
+
 
 ## Getting Started
 

@@ -1,0 +1,54 @@
+graph TD
+    subgraph "1. Data Loading (core.py)"
+        A["Raw 'final_grid_score_log.csv' files"] -- "Located in timestamped folders" --> B(ResultsAggregator);
+        B -- "aggregate_all_runs()" --> C(Aggregated DataFrame);
+    end
+
+    subgraph "2. Data Preparation (core.py)"
+        C --> D(get_clean_data);
+        D -- "Removes failed runs" --> E(Clean DataFrame);
+    end
+
+    subgraph "3. Analysis & Plotting Modules"
+        direction LR
+        E -- "Input Data" --> F(DistributionPlotter);
+        F -- "plot_metric_distributions()" --> F_Out[Metric Distributions];
+
+        E -- "Input Data" --> G(AlgorithmComparisonPlotter);
+        G -- "plot_algorithm_boxplots()" --> G_Out[Algorithm Comparisons];
+
+        E -- "Input Data" --> H(FeatureCategoryPlotter);
+        H -- "plot_category_performance_boxplots()" --> H_Out[Feature Category Impact];
+
+        E -- "Input Data" --> I(PipelineParameterPlotter);
+        I -- "plot_categorical_parameters()" --> I_Out[Pipeline Parameter Impact];
+
+        E -- "Input Data" --> J(HyperparameterAnalysisPlotter);
+        J -- "plot_performance_by_hyperparameter()" --> J_Out[Hyperparameter vs. Performance];
+
+        E -- "Input Data" --> K(InteractionPlotter);
+        K -- "plot_categorical_interaction()" --> K_Out[Parameter Interactions];
+
+        E -- "Input Data" --> L(GlobalImportancePlotter);
+        L -- "plot_global_importance()" --> L_Out[Global Parameter Importance];
+
+        E -- "Input Data" --> M(TimelineAnalysisPlotter);
+        M -- "plot_performance_timeline()" --> M_Out[Performance Timelines];
+    end
+
+    subgraph "4. Outputs"
+        direction LR
+        F_Out --> Z[Visualizations & Tables];
+        G_Out --> Z;
+        H_Out --> Z;
+        I_Out --> Z;
+        J_Out --> Z;
+        K_Out --> Z;
+        L_Out --> Z;
+        M_Out --> Z;
+    end
+
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style C fill:#ccf,stroke:#333,stroke-width:2px
+    style E fill:#lightgreen,stroke:#333,stroke-width:2px
+    style Z fill:#b8d8d8,stroke:#333,stroke-width:2px
