@@ -13,7 +13,7 @@ import warnings
 from ml_grid.results_processing.core import get_clean_data, stratify_by_outcome
 
 # Maximum number of outcomes to display in stratified plots to avoid clutter.
-MAX_OUTCOMES_FOR_STRATIFIED_PLOT = 10
+MAX_OUTCOMES_FOR_STRATIFIED_PLOT = 20
 MAX_OUTCOMES_FOR_HEATMAP = 25
 
 class DistributionPlotter:
@@ -112,7 +112,7 @@ class DistributionPlotter:
             raise ValueError("outcome_variable column not found for stratification")
         
         outcomes = outcomes_to_plot or sorted(self.clean_data['outcome_variable'].unique())
-        if len(outcomes) > MAX_OUTCOMES_FOR_STRATIFIED_PLOT and outcomes_to_plot is None:
+        if len(outcomes) > MAX_OUTCOMES_FOR_STRATIFIED_PLOT:
             warnings.warn(
                 f"Found {len(outcomes)} outcomes, which is more than the display limit of {MAX_OUTCOMES_FOR_STRATIFIED_PLOT}. "
                 f"Displaying the first {MAX_OUTCOMES_FOR_STRATIFIED_PLOT}. "
@@ -194,7 +194,7 @@ class DistributionPlotter:
         
         outcomes = outcomes_to_compare or sorted(self.clean_data['outcome_variable'].unique())
 
-        if len(outcomes) > MAX_OUTCOMES_FOR_STRATIFIED_PLOT and outcomes_to_compare is None:
+        if len(outcomes) > MAX_OUTCOMES_FOR_STRATIFIED_PLOT:
             warnings.warn(
                 f"Found {len(outcomes)} outcomes, which is more than the display limit of {MAX_OUTCOMES_FOR_STRATIFIED_PLOT}. "
                 f"Displaying the first {MAX_OUTCOMES_FOR_STRATIFIED_PLOT}. "
@@ -453,7 +453,7 @@ def plot_metric_correlation_by_outcome(data: pd.DataFrame,
     available_metrics = [col for col in metrics if col in clean_data.columns]
     
     outcomes = outcomes_to_plot or sorted(clean_data['outcome_variable'].unique())
-    if len(outcomes) > MAX_OUTCOMES_FOR_STRATIFIED_PLOT and outcomes_to_plot is None:
+    if len(outcomes) > MAX_OUTCOMES_FOR_STRATIFIED_PLOT:
         warnings.warn(
             f"Found {len(outcomes)} outcomes, which is more than the display limit of {MAX_OUTCOMES_FOR_STRATIFIED_PLOT}. "
             f"Displaying the first {MAX_OUTCOMES_FOR_STRATIFIED_PLOT}. "

@@ -11,6 +11,10 @@ import seaborn as sns
 from scipy.stats import ttest_ind
 from typing import List, Dict, Optional, Union, Tuple
 from ml_grid.results_processing.core import get_clean_data
+import warnings
+
+# Maximum number of outcomes to display in stratified plots to avoid clutter.
+MAX_OUTCOMES_FOR_STRATIFIED_PLOT = 20
 
 
 class AlgorithmComparisonPlotter:
@@ -99,6 +103,15 @@ class AlgorithmComparisonPlotter:
             raise ValueError("outcome_variable column not found for stratification")
         
         outcomes = outcomes_to_plot or sorted(self.clean_data['outcome_variable'].unique())
+        if len(outcomes) > MAX_OUTCOMES_FOR_STRATIFIED_PLOT:
+            warnings.warn(
+                f"Found {len(outcomes)} outcomes, which is more than the display limit of {MAX_OUTCOMES_FOR_STRATIFIED_PLOT}. "
+                f"Displaying the first {MAX_OUTCOMES_FOR_STRATIFIED_PLOT}. "
+                "Use the 'outcomes_to_plot' parameter to select specific outcomes.",
+                stacklevel=2
+            )
+            outcomes = outcomes[:MAX_OUTCOMES_FOR_STRATIFIED_PLOT]
+
         n_outcomes = len(outcomes)
         
         # Calculate subplot layout
@@ -130,8 +143,9 @@ class AlgorithmComparisonPlotter:
                     if len(algo_data) > 0:
                         mean_val = algo_data.mean()
                         ax.scatter(j, mean_val, color='red', s=60, marker='D', zorder=10)
-                
-                ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right')
+
+                ax.tick_params(axis='x', rotation=45)
+                plt.setp(ax.get_xticklabels(), ha='right')
                 ax.set_title(f'{outcome}\n{metric.upper()}', fontsize=11, fontweight='bold')
                 ax.set_xlabel('Algorithm' if i >= len(outcomes) - cols else '')
                 ax.set_ylabel(metric.upper() if i % cols == 0 else '')
@@ -277,6 +291,15 @@ class AlgorithmComparisonPlotter:
                                  outcomes_to_plot: List[str], top_n: int, figsize: Tuple[int, int]):
         """Plot stratified ranking bar charts by outcome."""
         outcomes = outcomes_to_plot or sorted(self.clean_data['outcome_variable'].unique())
+        if len(outcomes) > MAX_OUTCOMES_FOR_STRATIFIED_PLOT:
+            warnings.warn(
+                f"Found {len(outcomes)} outcomes, which is more than the display limit of {MAX_OUTCOMES_FOR_STRATIFIED_PLOT}. "
+                f"Displaying the first {MAX_OUTCOMES_FOR_STRATIFIED_PLOT}. "
+                "Use the 'outcomes_to_plot' parameter to select specific outcomes.",
+                stacklevel=2
+            )
+            outcomes = outcomes[:MAX_OUTCOMES_FOR_STRATIFIED_PLOT]
+
         n_outcomes = len(outcomes)
         
         cols = min(2, n_outcomes)
