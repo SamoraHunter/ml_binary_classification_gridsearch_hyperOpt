@@ -46,28 +46,47 @@ class feature_methods:
         else:
             raise ValueError("X_train must be a pandas DataFrame or numpy array")
 
-        # Calculate F-value for each column in X_train
-        res = []
-        for i, col in enumerate(X_train.T):
-            # Get the F-values from f_classif
-            f_values = f_classif(col.reshape(-1, 1), y_train)[0]
+        # Calculate F-values for all features at once
+        f_values, _ = f_classif(X_train, y_train)
 
-            # If the F-value is not NaN, add it to the results
-            if not np.isnan(f_values[0]):
-                res.append((feature_names[i], f_values[0]))
+        # Create a list of (feature_name, f_value) tuples, ignoring NaNs
+        res = [
+            (feature_names[i], f_values[i])
+            for i in range(len(feature_names))
+            if not np.isnan(f_values[i])
+        ]
 
         # Sort the list based on F-value in descending order
         sortedList = sorted(res, key=lambda x: x[1], reverse=True)
 
         # Return column names of top n features
         nFeatures = sortedList[:n]  # Get top n features
-        finalColNames = [elem[0] for elem in nFeatures]  # Get column names
+        finalColNames = [elem[0] for elem in nFeatures]
+
+        # Add a check to ensure that at least one feature is returned.
+        # If not, it means all features were filtered out (e.g., all had NaN F-values),
+        # which would lead to an empty X_train and cause pipeline failure.
+        if not finalColNames:
+            # Fallback: if all features were filtered, return the single best one that is not NaN.
+            # This can happen if n is too small or all f-values are NaN.
+            if sortedList:
+                return [sortedList[0][0]]
+            else:
+                raise ValueError("getNfeaturesANOVAF returned no features. All features might have NaN F-values.")
 
         return finalColNames
 
 
 
-    def getNFeaturesMarkovBlanket(self, n, X_train, y_train):
+    def getNFeaturesMarkovBlanket(
+        self,
+        n,
+        X_train,
+        y_train,
+        num_simul: int = 30,
+        cv: int = 5,
+        svc_kernel: str = "rbf",
+    ):
 
         """
         Get the names of the top n features from the Markov Blanket (MB) using PyImpetus.
@@ -76,6 +95,9 @@ class feature_methods:
         - n (int): The number of top features to retrieve.
         - X_train (array-like): The training input samples.
         - y_train (array-like): The target values.
+        - num_simul (int): Number of simulations for stability selection in PyImpetus.
+        - cv (int): Number of cross-validation folds.
+        - svc_kernel (str): The kernel to be used by the SVC model.
 
         Returns:
         - list: A list containing the names of the top n features from the Markov Blanket.
@@ -96,28 +118,40 @@ class feature_methods:
         top_features = getNFeaturesMarkovBlanket(5, X_train, y_train)
         ```
         """
+        # Ensure input is a pandas DataFrame to access column names
+        if not isinstance(X_train, pd.DataFrame):
+            raise TypeError(
+                "X_train must be a pandas DataFrame for getNFeaturesMarkovBlanket."
+            )
+        original_columns = X_train.columns
         
         # Initialize the PyImpetus object with desired parameters
-        model = PPIMBC(model=SVC(random_state=27, class_weight="balanced"), 
+        model = PPIMBC(model=SVC(random_state=27, class_weight="balanced", kernel=svc_kernel),
                     p_val_thresh=0.05, 
-                    num_simul=30, 
+                    num_simul=num_simul,
                     simul_size=0.2, 
                     simul_type=0, 
                     sig_test_type="non-parametric", 
-                    cv=5, 
+                    cv=cv,
                     random_state=27, 
                     n_jobs=-1, 
                     verbose=2)
         
         # Fit and transform the training data
-        df_train_transformed = model.fit_transform(X_train, y_train)
+        # PyImpetus works with numpy arrays and returns feature indices in model.MB
+        model.fit(X_train.values, y_train)
         
-        # Get the feature names from the Markov blanket (MB) and truncate by n elements
-        feature_names = model.MB[:n]
+        # Get the feature indices from the Markov blanket (MB)
+        feature_indices = model.MB
+
+        # Map indices back to original column names and truncate by n
+        feature_names = [original_columns[i] for i in feature_indices][:n]
+
+        # Fallback: If feature selection returns an empty list, but the model found features,
+        # return the single most important one. This prevents pipeline failure.
+        if not feature_names and feature_indices:
+            feature_names = [original_columns[feature_indices[0]]]
         
         return feature_names
 
     
-
-
-
