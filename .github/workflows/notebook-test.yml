@@ -10,12 +10,18 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Act dependencies 
         if: ${{ env.ACT }} 
         run: | 
           apt-get update && apt-get install sudo -y 
+
+      - name: Install CA cert tools and trust internal CA
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ca-certificates
+          sudo update-ca-certificates
 
       - name: Install ping utility
         run: |
@@ -24,49 +30,37 @@ jobs:
 
       - name: Set timezone to UTC
         run: |
-          export DEBIAN_FRONTEND=noninteractive
-          if [ -n "$ACT" ]; then
-            ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
-            echo "Etc/UTC" > /etc/timezone
-            apt-get update
-            apt-get install -y tzdata
-            dpkg-reconfigure -f noninteractive tzdata
-          else
-            sudo ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
-            echo "Etc/UTC" | sudo tee /etc/timezone
-            sudo apt-get update
-            sudo apt-get install -y tzdata
-            sudo dpkg-reconfigure -f noninteractive tzdata
-          fi
-
-      - name: Install Python 3.10 and Git
-        run: |
-          export DEBIAN_FRONTEND=noninteractive
+          # Use sudo for all commands to ensure permissions in all runner environments
+          sudo ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
+          echo "Etc/UTC" | sudo tee /etc/timezone
           sudo apt-get update
-          sudo apt-get install -y gnupg lsb-release software-properties-common curl git
+          sudo apt-get install -y tzdata
+          sudo dpkg-reconfigure -f noninteractive tzdata
 
-          echo "deb [trusted=yes] http://ppa.launchpadcontent.net/deadsnakes/ppa/ubuntu $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/deadsnakes-ppa.list
+      - name: Install Python 3.10, Git, and set CA environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lsb-release software-properties-common gnupg curl git
+
+          # Properly and securely add the GPG key for the deadsnakes PPA
+          sudo gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys BA6932366A755776
+          sudo gpg --export BA6932366A755776 | sudo gpg --dearmor -o /usr/share/keyrings/deadsnakes-archive-keyring.gpg
+
+          # Add the PPA repository, signed by the new key
+          echo "deb [signed-by=/usr/share/keyrings/deadsnakes-archive-keyring.gpg] http://ppa.launchpadcontent.net/deadsnakes/ppa/ubuntu $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/deadsnakes-ppa.list
+          
           sudo apt-get update
           sudo apt-get install -y python3.10 python3.10-venv python3.10-distutils
 
-          # Set Python 3.10 as default
-          ln -sf /usr/bin/python3.10 /usr/local/bin/python
-          ln -sf /usr/bin/python3.10 /usr/local/bin/python3
-
-          curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10
-          python3.10 -m ensurepip --upgrade
-          ln -sf /usr/local/bin/pip3.10 /usr/local/bin/pip
-          ln -sf /usr/local/bin/pip3.10 /usr/local/bin/pip3
+          # Set Python 3.10 as default using symbolic links
+          sudo ln -sf /usr/bin/python3.10 /usr/local/bin/python
+          sudo ln -sf /usr/bin/python3.10 /usr/local/bin/python3
 
           python --version
-          pip --version
-
-      - name: Set environment variables
-        run: |
-          echo "PYTHONHTTPSVERIFY=0" >> $GITHUB_ENV
-          echo "CURL_CA_BUNDLE=" >> $GITHUB_ENV
-          echo "SSL_CERT_FILE=" >> $GITHUB_ENV
-          echo "GIT_SSL_NO_VERIFY=true" >> $GITHUB_ENV
+          
+          # Set the certificate path for all subsequent steps in the job
+          echo "SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt" >> $GITHUB_ENV
+          echo "REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt" >> $GITHUB_ENV
 
       - name: Setup ML project
         run: |
@@ -89,4 +83,4 @@ jobs:
           set -e
           cd $GITHUB_WORKSPACE
           source "$VENV_PATH/bin/activate"
-          pytest --nbmake-timeout=1200 notebooks/unit_test_synthetic.ipynb
+          pytest --nbmake --nbmake-timeout=1200 notebooks/unit_test_synthetic.ipynb
