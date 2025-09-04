@@ -19,12 +19,7 @@ from ml_grid.pipeline.data_scale import data_scale_methods
 from ml_grid.pipeline.data_train_test_split import *
 from ml_grid.pipeline.logs_project_folder import log_folder
 from ml_grid.pipeline.model_class_list import get_model_class_list
-from ml_grid.pipeline.model_class_list_ts import get_model_class_list_ts
 from ml_grid.util.global_params import global_parameters
-from ml_grid.util.time_series_helper import (
-    convert_Xy_to_time_series,
-    max_client_idcode_sequence_length,
-)
 
 ConvergenceWarning("ignore")
 
@@ -270,13 +265,29 @@ class pipe:
         # self.X = self.X.rename(columns = lambda x:re.sub('[^A-Za-z0-9]+', '', x))
 
         if self.time_series_mode:
+            try:
+                from ml_grid.util.time_series_helper import (
+                    convert_Xy_to_time_series,
+                    max_client_idcode_sequence_length,
+                )
+            except (ImportError, ModuleNotFoundError):
+                print("\n--- WARNING: Time-series libraries not found. ---")
+                print(
+                    "To run in time-series mode, please install the required dependencies:"
+                )
+                print(
+                    "1. Activate the correct virtual environment: source ml_grid_ts_env/bin/activate"
+                )
+                print("2. If not installed, run: ./install_ts.sh (or install_ts.bat on Windows)")
+                print("-----------------------------------------------------\n")
+                raise
+
             if self.verbose >= 1:
                 print("pre func")
                 display(self.X)
 
             max_seq_length = max_client_idcode_sequence_length(self.df)
 
-        if self.time_series_mode:
             if self.verbose >= 1:
                 print("time_series_mode", "convert_df_to_time_series")
                 print(self.X.shape)
@@ -284,6 +295,7 @@ class pipe:
             self.X, self.y = convert_Xy_to_time_series(self.X, self.y, max_seq_length)
             if self.verbose >= 1:
                 print(self.X.shape)
+
         (
             self.X_train,
             self.X_test,
@@ -309,8 +321,9 @@ class pipe:
                 (target_n_features / 100) * self.X_train.shape[1]
             )
 
-            if target_n_features_eval < self.X_train.shape[1]:
-                target_n_features_eval = self.X_train.shape[1]
+            # Ensure at least one feature is selected. The previous logic here
+            # was incorrect and disabled feature selection entirely.
+            target_n_features_eval = max(1, target_n_features_eval)
 
             print(
                 f"Pre target_n_features {target_n_features}% reduction {target_n_features_eval}/{self.X_train.shape[1]}"
@@ -352,6 +365,21 @@ class pipe:
         if time_series_mode:
             if self.verbose >= 2:
                 print("data>>", "get_model_class_list_ts")
+            try:
+                from ml_grid.pipeline.model_class_list_ts import (
+                    get_model_class_list_ts,
+                )
+            except (ImportError, ModuleNotFoundError):
+                print("\n--- WARNING: Time-series libraries not found. ---")
+                print(
+                    "To run in time-series mode, please install the required dependencies:"
+                )
+                print(
+                    "1. Activate the correct virtual environment: source ml_grid_ts_env/bin/activate"
+                )
+                print("2. If not installed, run: ./install_ts.sh (or install_ts.bat on Windows)")
+                print("-----------------------------------------------------\n")
+                raise
             self.model_class_list = get_model_class_list_ts(self)
 
         else:
