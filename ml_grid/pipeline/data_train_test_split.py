@@ -66,9 +66,15 @@ def get_data_split(X, y, local_param_dict):
         # print((y.shape))
         # print(X.shape)
 
+        # Store original column names and y name to reconstruct DataFrame after resampling
+        original_columns = X.columns
+        y_name = y.name
+
         # Undersample data
         rus = RandomUnderSampler(random_state=0)
-        X, y = rus.fit_resample(X, y)
+        X_res, y_res = rus.fit_resample(X, y)
+        X = pd.DataFrame(X_res, columns=original_columns)
+        y = pd.Series(y_res, name=y_name)
 
         # Split into training and testing sets
         X_train_orig, X_test_orig, y_train_orig, y_test_orig = train_test_split(
@@ -89,10 +95,16 @@ def get_data_split(X, y, local_param_dict):
             X, y, test_size=0.25, random_state=1
         )
 
+        # Store original column names to reconstruct DataFrame after resampling
+        original_columns = X_train_orig.columns
+        y_name = y_train_orig.name
+
         # Oversample training set
         sampling_strategy = 1
         ros = RandomOverSampler(sampling_strategy=sampling_strategy)
-        X_train_orig, y_train_orig = ros.fit_resample(X_train_orig, y_train_orig)
+        X_train_orig_res, y_train_orig_res = ros.fit_resample(X_train_orig, y_train_orig)
+        X_train_orig = pd.DataFrame(X_train_orig_res, columns=original_columns)
+        y_train_orig = pd.Series(y_train_orig_res, name=y_name)
         print(y_train_orig.value_counts())
 
         # Split training set into final training and validation sets
