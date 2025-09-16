@@ -423,8 +423,8 @@ class grid_search_crossvalidate:
         
 
         project_score_save_class.update_score_log(
-            self=self,
-            ml_grid_object=self.ml_grid_object_iter,
+            
+            ml_grid_object=ml_grid_object,
             scores=scores,
             best_pred_orig=best_pred_orig,
             current_algorithm=current_algorithm,

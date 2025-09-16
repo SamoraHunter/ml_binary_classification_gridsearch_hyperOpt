@@ -14,6 +14,34 @@ from typing import Any, Dict, List
 # from sklearn.utils.testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 
+def _get_score_log_columns(metric_list: List[str]) -> List[str]:
+    """Generates the list of column names for the score log file.
+
+    Args:
+        metric_list (List[str]): A list of metric names to include.
+
+    Returns:
+        List[str]: A comprehensive list of column names for the log.
+    """
+    column_list: List[str] = [
+        "algorithm_implementation", "parameter_sample", "method_name", "nb_size",
+        "f_list", "auc", "mcc", "f1", "precision", "recall", "accuracy",
+        "resample", "scale", "n_features", "param_space_size", "n_unique_out",
+        "outcome_var_n", "percent_missing", "corr", "age", "sex", "bmi",
+        "ethnicity", "bloods", "diagnostic_order", "drug_order", "annotation_n",
+        "meta_sp_annotation_n", "meta_sp_annotation_mrc_n", "annotation_mrc_n",
+        "core_02", "bed", "vte_status", "hosp_site", "core_resus", "news",
+        "date_time_stamp", "X_train_size", "X_test_orig_size", "X_test_size",
+        "run_time", "n_fits", "t_fits", "i", "outcome_variable", 'failed'
+    ]
+
+    metric_names: List[str] = []
+    for metric in metric_list:
+        metric_names.append(f"{metric}_m")
+        metric_names.append(f"{metric}_std")
+
+    column_list.extend(metric_names)
+    return column_list
 
 class project_score_save_class:
     """Handles the creation and updating of the project's score log file."""
@@ -40,62 +68,7 @@ class project_score_save_class:
 
         self.error_raise = self.global_params.error_raise
 
-        # init final grid scores
-        self.column_list: List[str] = [
-            "algorithm_implementation",
-            "parameter_sample",
-            "method_name",
-            "nb_size",
-            "f_list",
-            "auc",
-            "mcc",
-            "f1",
-            "precision",
-            "recall",
-            "accuracy",
-            "resample",
-            "scale",
-            "n_features",
-            "param_space_size",
-            "n_unique_out",
-            "outcome_var_n",
-            "percent_missing",
-            "corr",
-            "age",
-            "sex",
-            "bmi",
-            "ethnicity",
-            "bloods",
-            "diagnostic_order",
-            "drug_order",
-            "annotation_n",
-            "meta_sp_annotation_n",
-            "meta_sp_annotation_mrc_n",
-            "annotation_mrc_n",
-            "core_02",
-            "bed",
-            "vte_status",
-            "hosp_site",
-            "core_resus",
-            "news",
-            "date_time_stamp",
-            "X_train_size",
-            "X_test_orig_size",
-            "X_test_size",
-            "run_time",
-            "n_fits",
-            "t_fits",
-            "i",
-            "outcome_variable",
-            'failed'
-        ]
-
-        metric_names: List[str] = []
-        for metric in self.metric_list:
-            metric_names.append(f"{metric}_m")
-            metric_names.append(f"{metric}_std")
-
-        self.column_list.extend(metric_names)
+        self.column_list = _get_score_log_columns(list(self.metric_list.keys()))
 
         # column_list = column_list +['BL_' + str(x) for x in range(0, 64)]
 
@@ -108,8 +81,9 @@ class project_score_save_class:
             index=False,
         )
 
+    @staticmethod
     def update_score_log(
-        self,
+        
         ml_grid_object: Any,
         scores: Dict[str, np.ndarray],
         best_pred_orig: np.ndarray,
@@ -137,60 +111,60 @@ class project_score_save_class:
             failed (bool): A flag indicating if the run failed.
         """
 
-        self.global_parameters = global_parameters
+        global_params = global_parameters
 
-        self.ml_grid_object_iter = ml_grid_object
+        ml_grid_object_iter = ml_grid_object
 
-        self.X_train = self.ml_grid_object_iter.X_train
+        X_train = ml_grid_object_iter.X_train
 
-        self.y_train = self.ml_grid_object_iter.y_train
+        y_train = ml_grid_object_iter.y_train
 
-        self.X_test = self.ml_grid_object_iter.X_test
+        X_test = ml_grid_object_iter.X_test
 
-        self.y_test = self.ml_grid_object_iter.y_test
+        y_test = ml_grid_object_iter.y_test
 
-        self.X_test_orig = self.ml_grid_object_iter.X_test_orig
+        X_test_orig = ml_grid_object_iter.X_test_orig
 
-        self.y_test_orig = self.ml_grid_object_iter.y_test_orig
+        y_test_orig = ml_grid_object_iter.y_test_orig
 
-        self.param_space_index = ml_grid_object.param_space_index
+        param_space_index = ml_grid_object.param_space_index
         
-        self.bayessearch = self.global_parameters.bayessearch
+        bayessearch = global_params.bayessearch
 
-        self.store_models = self.global_parameters.store_models
+        store_models = global_params.store_models
         # n_iter_v = np.nan ##????????????
 
         try:
             print("Writing grid permutation to log")
             # write line to best grid scores---------------------
-
-            line = pd.DataFrame(data=None, columns=self.column_list)
+            column_list = _get_score_log_columns(list(global_params.metric_list.keys()))
+            line = pd.DataFrame(data=None, columns=column_list)
 
             # best_pred_orig = grid.best_estimator_.predict(X_test_orig)
             try:
-                auc = metrics.roc_auc_score(self.y_test, best_pred_orig)
+                auc = metrics.roc_auc_score(y_test, best_pred_orig)
             except Exception as e:
                 if ml_grid_object.verbose >= 1:
                     print(best_pred_orig)
                     print(e)
                 auc = np.nan
 
-            mcc = matthews_corrcoef(self.y_test, best_pred_orig)
-            f1 = f1_score(self.y_test, best_pred_orig, average="binary")
-            precision = precision_score(self.y_test, best_pred_orig, average="binary")
-            recall = recall_score(self.y_test, best_pred_orig, average="binary")
-            accuracy = accuracy_score(self.y_test, best_pred_orig)
+            mcc = matthews_corrcoef(y_test, best_pred_orig)
+            f1 = f1_score(y_test, best_pred_orig, average="binary")
+            precision = precision_score(y_test, best_pred_orig, average="binary")
+            recall = recall_score(y_test, best_pred_orig, average="binary")
+            accuracy = accuracy_score(y_test, best_pred_orig)
 
             # get info from current settings iter...local_param_dict ml_grid_object
             for key in ml_grid_object.local_param_dict:
                 # print(key)
                 if key != "data":
-                    if key in self.column_list:
+                    if key in column_list:
                         line[key] = [ml_grid_object.local_param_dict.get(key)]
                 else:
                     for key_1 in ml_grid_object.local_param_dict.get("data"):
                         # print(key_1)
-                        if key_1 in self.column_list:
+                        if key_1 in column_list:
                             line[key_1] = [
                                 ml_grid_object.local_param_dict.get("data").get(key_1)
                             ]
@@ -221,9 +195,9 @@ class project_score_save_class:
             line["recall"] = [recall]
             line["accuracy"] = [accuracy]
 
-            line["X_train_size"] = [len(self.X_train)]
-            line["X_test_orig_size"] = [len(self.X_test_orig)]
-            line["X_test_size"] = [len(self.X_test)]
+            line["X_train_size"] = [len(X_train)]
+            line["X_test_orig_size"] = [len(X_test_orig)]
+            line["X_test_size"] = [len(X_test)]
 
             end = time.time()
             
@@ -236,11 +210,11 @@ class project_score_save_class:
             line["run_time"] = int((end - start) / 60)
             line["t_fits"] = pg
             line["n_fits"] = n_iter_v
-            line["i"] = self.param_space_index  # 0 # should be index of the iterator
-            line['outcome_variable'] = self.ml_grid_object_iter.outcome_variable
+            line["i"] = param_space_index  # 0 # should be index of the iterator
+            line['outcome_variable'] = ml_grid_object_iter.outcome_variable
             line['failed'] = failed
             
-            if self.bayessearch:
+            if bayessearch:
                 try:
                     line["fit_time_m"] = np.array([scores["fit_time"]]).mean()
                     line["fit_time_std"] = np.array([scores["fit_time"]]).std()
@@ -248,7 +222,7 @@ class project_score_save_class:
                     line["score_time_m"] = np.array(scores["score_time"]).mean()
                     line["score_time_std"] = np.array(scores["score_time"]).std()
                     
-                    for metric in self.metric_list:
+                    for metric in global_params.metric_list:
                         line[f"{metric}_m"] = np.array(scores[f"test_{metric}"]).mean()
                         line[f"{metric}_std"] = np.array(scores[f"test_{metric}"]).std()
                     
@@ -262,7 +236,7 @@ class project_score_save_class:
                 line["score_time_m"] = scores["score_time"].mean()
                 line["score_time_std"] = scores["score_time"].std()
                 
-                for metric in self.metric_list:
+                for metric in global_params.metric_list:
                     line[f"{metric}_m"] = scores[f"test_{metric}"].mean()
                     line[f"{metric}_std"] = scores[f"test_{metric}"].std()
 
@@ -279,19 +253,19 @@ class project_score_save_class:
             # line['g_val'] = [g_val]
             # line['g'] = [g]
 
-            line[self.column_list].to_csv(
+            line[column_list].to_csv(
                 os.path.join(ml_grid_object.base_project_dir, "final_grid_score_log.csv"),
                 mode="a",
                 header=False,
                 index=True,
             )
-            if self.store_models:
+            if store_models:
                 if "keras" not in method_name.lower():
                     #print("SAVING MODEL!")
                     models_dir = pathlib.Path(os.path.join(ml_grid_object.base_project_dir, "models"))
                     models_dir.mkdir(parents=True, exist_ok=True)
 
-                    model_path = os.path.join(ml_grid_object.base_project_dir, "models", f"{str(self.param_space_index)}.pkl")
+                    model_path = os.path.join(ml_grid_object.base_project_dir, "models", f"{str(param_space_index)}.pkl")
                     try:
                         # save pickled model
                         with open(model_path, 'wb') as f:
@@ -304,5 +278,5 @@ class project_score_save_class:
             print(e)
             print(traceback.format_exc())
             print("Failed to upgrade grid entry")
-            if self.error_raise:
+            if global_params.error_raise:
                 input()
