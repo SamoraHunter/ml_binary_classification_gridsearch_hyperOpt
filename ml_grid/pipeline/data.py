@@ -1,6 +1,7 @@
 import re
 import random
 from typing import Any, Dict, List, Optional
+import warnings
 
 import pandas as pd
 from IPython.display import display
@@ -18,7 +19,6 @@ from ml_grid.pipeline.data_plot_split import plot_pie_chart_with_counts
 from ml_grid.pipeline.data_scale import data_scale_methods
 from ml_grid.pipeline.data_train_test_split import get_data_split, is_valid_shape
 from ml_grid.pipeline.logs_project_folder import log_folder
-from ml_grid.pipeline.model_class_list import get_model_class_list
 from ml_grid.util.global_params import global_parameters
 
 warnings.filterwarnings("ignore", category=ConvergenceWarning)
@@ -382,6 +382,8 @@ class pipe:
             if model_class_dict is not None:
                 self.model_class_dict = model_class_dict
             
+            from ml_grid.pipeline.model_class_list import get_model_class_list
+
             self.model_class_list = get_model_class_list(self)
 
         if isinstance(self.X_train, pd.DataFrame) and self.X_train.empty:
