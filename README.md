@@ -135,6 +135,23 @@ If you are using Jupyter, you can also select the kernel created during installa
 
 See [ml_grid/tests/unit_test_synthetic.ipynb]
 
+## Documentation
+
+This project uses Sphinx for documentation. The documentation includes usage guides and an auto-generated API reference.
+
+To build the documentation locally:
+
+1.  Install the documentation dependencies (make sure your virtual environment is activated):
+    ```bash
+    pip install -e .[docs]
+    ```
+
+2.  Build the HTML documentation:
+    ```bash
+    sphinx-build -b html docs/source docs/build
+    ```
+
+3.  Open `docs/build/index.html` in your web browser to view the documentation.
 
 ## Contributing
 If you would like to contribute to this project, please follow these steps:

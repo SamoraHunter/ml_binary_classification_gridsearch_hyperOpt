@@ -30,7 +30,24 @@ dependencies = [
     "imbalanced-learn",
     "loguru",
     "polars",
-    "pyarrow"
+    "pyarrow",
+    "fitter",
+    "shap",
+    "pydotplus",
+    "jinja2",
+    "filelock",
+    "fsspec",
+    "upsetplot",
+    "pyimpetus",
+    "torch",
+    "torchvision",
+    "tab-transformer-pytorch",
+    "simbsig",
+    "google-auth-oauthlib",
+    "lxml",
+    "pyyaml",
+    "sympy",
+    "pickleshare"
 ]
 
 [project.optional-dependencies]
@@ -38,14 +55,43 @@ dependencies = [
 test = [
     "pytest",
     "nbmake",
+    "scikit-optimize",
+    "h2o",
+    "ipywidgets",
     "nbconvert",
-    "nbformat"
+    "nbformat",
+    "fuzzysearch",
+    "ipykernel",
+    "tensorflow",
+    "scikeras",
+    "keras-applications",
+    "keras-preprocessing",
+    "tensorflow-addons",
+    "tensorflow-estimator",
+    "tensorflow-intel",
+    "tensorboard-plugin-wit"
 ]
 # Additional dependencies for time-series functionality
 ts = [
-    "aeon",
+    "aeon[dl]",
     "tensorflow",
-    "scikeras"
+    "scikeras",
+    "tsfresh",
+    "tensorflow-probability[tf]",
+    "keras-self-attention",
+    "pmdarima",
+    "prophet",
+    "gluonts",
+    "statsmodels"
+]
+
+# Dependencies for building documentation
+docs = [
+    "sphinx",
+    "sphinx-rtd-theme",
+    "myst-parser",
+    "sphinx-autoapi",
+    "myst-nb"
 ]
 
 
