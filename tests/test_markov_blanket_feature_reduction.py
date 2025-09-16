@@ -1,7 +1,8 @@
 import unittest
-from ml_grid.pipeline.data_feature_importance_methods import (
-    feature_importance_methods,
-)  # Replace 'your_module' with the actual module name where MyClass is defined
+import pandas as pd
+from ml_grid.pipeline.data_feature_methods import (
+    feature_methods,
+)
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
 
@@ -15,14 +16,18 @@ class TestGetNFeaturesMarkovBlanket(unittest.TestCase):
 
         # Split the data into training and testing sets
         X_train, _, y_train, _ = train_test_split(X, y, test_size=0.33, random_state=42)
+        
+        # Convert numpy array to pandas DataFrame as the method expects it
+        X_train = pd.DataFrame(X_train, columns=[f'feature_{i}' for i in range(X_train.shape[1])])
 
-        # Create an instance of MyClass
-        my_instance = feature_importance_methods()
+        # Create an instance of the correct class
+        my_instance = feature_methods()
 
-        # Call the function to get the top 3 features
+        # Call the function to get the top 5 features
         top_features = my_instance.getNFeaturesMarkovBlanket(5, X_train, y_train)
 
-        # Assert that the number of features returned is approximately 5
+        # Assert that the number of features returned is reasonable.
+        # The method may return fewer than n features.
         self.assertAlmostEqual(len(top_features), 3, delta=1)
 
 

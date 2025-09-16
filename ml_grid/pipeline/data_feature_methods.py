@@ -114,6 +114,10 @@ class feature_methods:
                 "X_train must be a pandas DataFrame for getNFeaturesMarkovBlanket."
             )
         original_columns = X_train.columns
+
+        # Ensure y_train is a pandas Series, as expected by PyImpetus internally
+        if not isinstance(y_train, pd.Series):
+            y_train = pd.Series(y_train)
         
         # Initialize the PyImpetus object with desired parameters
         model = PPIMBC(model=SVC(random_state=27, class_weight="balanced", kernel=svc_kernel),
@@ -132,15 +136,23 @@ class feature_methods:
         model.fit(X_train.values, y_train)
         
         # Get the feature indices from the Markov blanket (MB)
-        feature_indices = model.MB
+        selected_features = model.MB
 
-        # Map indices back to original column names and truncate by n
-        feature_names = [original_columns[i] for i in feature_indices][:n]
+        # PyImpetus can return column names (str) or indices (int).
+        # We need to handle both cases to get the final list of feature names.
+        if all(isinstance(f, int) for f in selected_features):
+            # It returned indices, so map them to names
+            feature_names = [original_columns[i] for i in selected_features][:n]
+        else:
+            # It returned names directly
+            feature_names = list(selected_features)[:n]
 
         # Fallback: If feature selection returns an empty list, but the model found features,
         # return the single most important one. This prevents pipeline failure.
-        if not feature_names and feature_indices:
-            feature_names = [original_columns[feature_indices[0]]]
+        if not feature_names and selected_features:
+            # Re-evaluate the first selected feature to ensure it's a valid name
+            first_feature = selected_features[0]
+            feature_names = [original_columns[first_feature] if isinstance(first_feature, int) else first_feature]
         
         return feature_names
 

@@ -48,20 +48,17 @@ class feature_importance_methods:
         feature_method = ml_grid_object.local_param_dict.get("feature_selection_method")
 
         if feature_method == "anova" or feature_method is None:
-            print("feature_method ANOVA")
-
-            features = feature_methods.getNfeaturesANOVAF(
-                self, n=target_n_features, X_train=X_train, y_train=y_train
-            )
+            print("feature_method ANOVA") 
+            fm = feature_methods() 
+            features = fm.getNfeaturesANOVAF(n=target_n_features, X_train=X_train, y_train=y_train)
 
         elif feature_method == "markov_blanket":
-            print("feature method Markov")
-
-            features = feature_methods.getNFeaturesMarkovBlanket(
-                self, n=target_n_features, X_train=X_train, y_train=y_train
-            )
+            print("feature method Markov") 
+            fm = feature_methods() 
+            features = fm.getNFeaturesMarkovBlanket(n=target_n_features, X_train=X_train, y_train=y_train)
 
         print(f"target_n_features: {target_n_features}")
+        print(f"Selected features: {features}")
 
         X_train = X_train[features]
 

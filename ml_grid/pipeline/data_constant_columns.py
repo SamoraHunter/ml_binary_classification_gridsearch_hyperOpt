@@ -99,15 +99,10 @@ def remove_constant_columns_with_debug(
         if verbosity > 0:
             print(f"Constant columns in X_train: {list(constant_columns_train)}")
 
-        test_variances = X_test.var(axis=0)
-        if verbosity > 1:
-            print(f"Variance of X_test columns:\n{test_variances}")
-
-        constant_columns_test = test_variances[test_variances == 0].index
-        if verbosity > 0:
-            print(f"Constant columns in X_test: {list(constant_columns_test)}")
-
-        constant_columns = constant_columns_train.union(constant_columns_test)
+        # A column is constant if it has no variance in the training set.
+        # We should not consider the test set variance, as a small test set
+        # might misleadingly have constant columns.
+        constant_columns = constant_columns_train
 
         X_train = X_train.loc[:, ~X_train.columns.isin(constant_columns)]
         X_test = X_test.loc[:, ~X_test.columns.isin(constant_columns)]
@@ -127,14 +122,10 @@ def remove_constant_columns_with_debug(
         if verbosity > 0:
             print(f"Constant feature indices in X_train: {list(constant_indices_train)}")
 
-        test_variances = X_test.var(axis=var_axis)
-        constant_indices_test = np.where(test_variances == 0)[0]
-        if verbosity > 0:
-            print(f"Constant feature indices in X_test: {list(constant_indices_test)}")
-
-        # Combine indices of constant features from both train and test sets
-        constant_indices = np.union1d(constant_indices_train, constant_indices_test)
-
+        # A feature is constant if it has no variance in the training set.
+        # We should not consider the test set variance, as a small test set
+        # might misleadingly have constant features.
+        constant_indices = constant_indices_train
         # Create a boolean mask for features to keep
         num_features = X_train.shape[1]
         keep_mask = np.ones(num_features, dtype=bool)
