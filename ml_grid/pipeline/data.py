@@ -35,6 +35,78 @@ class pipe:
     can be passed to classifier methods.
     """
 
+    base_project_dir: str
+    """The root directory for the project, used for saving logs and models."""
+
+    additional_naming: Optional[str]
+    """An optional string to append to log folder names for better identification."""
+
+    local_param_dict: Dict[str, Any]
+    """A dictionary of parameters for this specific pipeline run."""
+
+    global_params: global_parameters
+    """A reference to the global parameters singleton instance."""
+
+    verbose: int
+    """The verbosity level for logging, inherited from global parameters."""
+
+    param_space_index: int
+    """The index of the current parameter space permutation being run."""
+
+    time_series_mode: bool
+    """A flag indicating if the pipeline is running in time-series mode."""
+
+    model_class_dict: Optional[Dict[str, bool]]
+    """A dictionary specifying which model classes to include in the run."""
+
+    df: pd.DataFrame
+    """The raw input DataFrame after being read from the source file."""
+
+    all_df_columns: List[str]
+    """A list of all column names from the original raw DataFrame."""
+
+    orignal_feature_names: List[str]
+    """A copy of the original feature names before any processing."""
+
+    pertubation_columns: List[str]
+    """A list of columns selected for inclusion based on `local_param_dict`."""
+
+    drop_list: List[str]
+    """A list of columns identified to be dropped due to various cleaning steps."""
+
+    outcome_variable: str
+    """The name of the target variable for the current pipeline run."""
+
+    final_column_list: List[str]
+    """The final list of feature columns to be used after all filtering."""
+
+    X: pd.DataFrame
+    """The feature matrix (DataFrame) after all cleaning and selection steps."""
+
+    y: pd.Series
+    """The target variable (Series) corresponding to the feature matrix `X`."""
+
+    X_train: pd.DataFrame
+    """The training feature set."""
+
+    X_test: pd.DataFrame
+    """The validation/testing feature set."""
+
+    y_train: pd.Series
+    """The training target set."""
+
+    y_test: pd.Series
+    """The validation/testing target set."""
+
+    X_test_orig: pd.DataFrame
+    """The original, held-out test set for final validation."""
+
+    y_test_orig: pd.Series
+    """The target variable for the original, held-out test set."""
+
+    model_class_list: List[Any]
+    """A list of instantiated model class objects to be evaluated in this run."""
+
     def __init__(
         self,
         file_name: str,

@@ -10,6 +10,48 @@ from ml_grid.util.global_params import global_parameters
 class Grid:
     """Generates and manages a grid of hyperparameter settings for GA experiments."""
 
+    global_params: global_parameters
+    """A reference to the global parameters singleton instance."""
+
+    verbose: int
+    """The verbosity level, inherited from global parameters."""
+
+    sample_n: int
+    """The number of random settings to sample from the full grid."""
+
+    grid: Dict[str, Union[List, Dict]]
+    """
+    The dictionary defining the hyperparameter search space for the GA.
+
+    Keys represent different aspects of the experiment:
+    - **weighted**: The weighting strategy for the ensemble.
+    - **use_stored_base_learners**: Whether to use pre-trained base learners.
+    - **store_base_learners**: Whether to save the base learners after training.
+    - **resample**: The resampling strategy to handle class imbalance.
+    - **scale**: Whether to apply standard scaling to features.
+    - **n_features**: The number of features to use (currently 'all').
+    - **param_space_size**: The size of the hyperparameter space for base learners.
+    - **n_unique_out**: A parameter for future use.
+    - **outcome_var_n**: The index of the outcome variable to use.
+    - **div_p**: A parameter for future use.
+    - **percent_missing**: The threshold for dropping columns with missing values.
+    - **corr**: The threshold for dropping highly correlated features.
+    - **cxpb**: The crossover probability for the genetic algorithm.
+    - **mutpb**: The mutation probability for the genetic algorithm.
+    - **indpb**: The independent probability for each attribute to be mutated.
+    - **t_size**: The tournament size for selection in the genetic algorithm.
+    - **data**: A nested dictionary specifying which feature categories to include.
+    """
+
+    settings_list: List[Dict]
+    """
+    A list of hyperparameter combinations sampled from the `grid`. Each element
+    is a dictionary representing one complete experimental configuration.
+    """
+
+    settings_list_iterator: it.chain
+    """An iterator over the `settings_list`."""
+
     def __init__(self, sample_n: Optional[int] = 1000):
         """Initializes the Grid object for Genetic Algorithms.
 
@@ -110,7 +152,3 @@ class Grid:
         self.settings_list = random.sample(self.settings_list, sample_size)
 
         self.settings_list_iterator = iter(self.settings_list)
-
-        # This is likely not properly functioning. Does not return iteration, instead reinitiates.
-        # Don't need to subsample, can just generate n number of random choices from grid space.
-        # function can just return random choice from grid space, terminate at the other end once limit reached.
