@@ -2,7 +2,7 @@
 
 [![Documentation Status](https://github.com/SamoraHunter/ml_binary_classification_gridsearch_hyperOpt/actions/workflows/docs.yml/badge.svg)](https://samorahunter.github.io/ml_binary_classification_gridsearch_hyperOpt/)
 
-[![CI/CD](https://github.com/SamoraHunter/ml_binary_classification_gridsearch_hyperOpt/actions/workflows/test.yml/badge.svg)](https://github.com/SamoraHunter/ml_binary_classification_gridsearch_hyperOpt/actions/workflows/test.yml)
+[![CI/CD](https://github.com/SamoraHunter/ml_binary_classification_gridsearch_hyperOpt/actions/workflows/notebook-test.yml/badge.svg)](https://github.com/SamoraHunter/ml_binary_classification_gridsearch_hyperOpt/actions/workflows/notebook-test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 This repository contains Python code for binary classification using grid search and hyperparameter optimization techniques.
