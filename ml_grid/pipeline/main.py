@@ -12,6 +12,53 @@ from sklearn.model_selection import ParameterGrid
 class run:
     """Orchestrates the hyperparameter search for a list of models."""
 
+    global_params: global_parameters
+    """A reference to the global parameters singleton instance."""
+
+    verbose: int
+    """The verbosity level for logging, inherited from global parameters."""
+
+    error_raise: bool
+    """A flag to control error handling. If True, exceptions will be raised."""
+
+    ml_grid_object: pipe
+    """The main data pipeline object, containing data and model configurations."""
+
+    sub_sample_param_space_pct: float
+    """The percentage of the parameter space to sample in a randomized search."""
+
+    parameter_space_size: str
+    """The size of the parameter space for base learners (e.g., 'medium', 'xsmall')."""
+
+    model_class_list: List[Any]
+    """A list of instantiated model class objects to be evaluated in this run."""
+
+    pg_list: List[int]
+    """A list containing the calculated size of the parameter grid for each model."""
+
+    mean_parameter_space_val: float
+    """The mean size of the parameter spaces across all models in the run."""
+
+    sub_sample_parameter_val: int
+    """The calculated number of iterations for randomized search, based on `sub_sample_param_space_pct`."""
+
+    arg_list: List[Tuple]
+    """A list of argument tuples, one for each model, to be passed to the grid search function."""
+
+    multiprocess: bool
+    """A flag to enable or disable multiprocessing for running grid searches in parallel."""
+
+    local_param_dict: Dict[str, Any]
+    """A dictionary of parameters for the current experimental run."""
+
+    model_error_list: List[List[Any]]
+    """A list to store details of any errors encountered during model training."""
+
+    highest_score: float
+    """The highest score achieved across all successful model runs in the execute step."""
+
+
+
     def __init__(self, ml_grid_object: pipe, local_param_dict: Dict[str, Any]):
         """Initializes the run class.
 
@@ -132,7 +179,7 @@ class run:
         """
 
         self.model_error_list = []
-        
+        self.highest_score = 0
         highest_score = 0 # for optimisation
 
         if self.multiprocess:
@@ -158,7 +205,7 @@ class run:
                         # algorithm_implementation = LogisticRegression_class(parameter_space_size=self.parameter_space_size).algorithm_implementation, parameter_space = self.arg_list[k][1], method_name=self.arg_list[k][2], X = self.arg_list[k][3], y=self.arg_list[k][4]
                     ).grid_search_cross_validate_score_result
                     
-                    highest_score = max(highest_score, res)
+                    self.highest_score = max(self.highest_score, res)
                     print(f"highest score: {highest_score}")
 
                 except CatBoostError as e:
@@ -191,4 +238,4 @@ class run:
         # return highest score from run for additional optimisation:
         
 
-        return self.model_error_list, highest_score
+        return self.model_error_list, self.highest_score

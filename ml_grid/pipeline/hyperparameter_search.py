@@ -20,6 +20,33 @@ from ml_grid.model_classes.H2OAutoMLClassifier import H2OAutoMLClassifier
 class HyperparameterSearch:
     """Orchestrates hyperparameter search using GridSearchCV, RandomizedSearchCV, or BayesSearchCV."""
 
+    algorithm: BaseEstimator
+    """The scikit-learn compatible estimator instance."""
+
+    parameter_space: Union[Dict, List[Dict]]
+    """The hyperparameter search space."""
+
+    method_name: str
+    """The name of the algorithm."""
+
+    global_params: global_parameters
+    """A reference to the global parameters singleton instance."""
+
+    sub_sample_pct: int
+    """
+    Percentage of the parameter space to sample for randomized search.
+    Defaults to 100.
+    """
+
+    max_iter: int
+    """
+    The maximum number of iterations for randomized or Bayesian search.
+    Defaults to 100.
+    """
+
+    ml_grid_object: Any
+    """The main pipeline object containing data and other parameters."""
+
     def __init__(
         self,
         algorithm: BaseEstimator,
