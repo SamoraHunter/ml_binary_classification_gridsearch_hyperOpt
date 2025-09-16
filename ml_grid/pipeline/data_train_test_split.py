@@ -65,7 +65,7 @@ def get_data_split(
         y_name = y.name
 
         # Undersample data
-        rus = RandomUnderSampler(random_state=0)
+        rus = RandomUnderSampler(random_state=1)
         X_res, y_res = rus.fit_resample(X, y)
         X = pd.DataFrame(X_res, columns=original_columns)
         y = pd.Series(y_res, name=y_name)
@@ -77,7 +77,7 @@ def get_data_split(
 
         # Split training set into final training and validation sets
         X_train, X_test, y_train, y_test = train_test_split(
-            X_train_orig, y_train_orig, test_size=0.25, random_state=1
+            X_train_orig, y_train_orig, test_size=0.25, random_state=1, stratify=y_train_orig
         )
         X = X_train_orig.copy()
         y = y_train_orig.copy()
@@ -95,7 +95,7 @@ def get_data_split(
 
         # Oversample training set
         sampling_strategy = 1
-        ros = RandomOverSampler(sampling_strategy=sampling_strategy)
+        ros = RandomOverSampler(sampling_strategy=sampling_strategy, random_state=1)
         X_train_orig_res, y_train_orig_res = ros.fit_resample(X_train_orig, y_train_orig)
         X_train_orig = pd.DataFrame(X_train_orig_res, columns=original_columns)
         y_train_orig = pd.Series(y_train_orig_res, name=y_name)
@@ -103,7 +103,7 @@ def get_data_split(
 
         # Split training set into final training and validation sets
         X_train, X_test, y_train, y_test = train_test_split(
-            X_train_orig, y_train_orig, test_size=0.25, random_state=1
+            X_train_orig, y_train_orig, test_size=0.25, random_state=1, stratify=y_train_orig
         )
 
     return X_train, X_test, y_train, y_test, X_test_orig, y_test_orig
