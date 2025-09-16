@@ -8,7 +8,7 @@ from typing import Optional, List
 from sklearn.preprocessing import MultiLabelBinarizer
 import warnings
 
-from .core import get_clean_data
+from ml_grid.results_processing.core import get_clean_data
 
 class ResultsSummarizer:
     """Provides methods to summarize and transform results data into concise DataFrames."""

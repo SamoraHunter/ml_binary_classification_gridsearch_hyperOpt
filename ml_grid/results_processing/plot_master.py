@@ -9,17 +9,17 @@ import pandas as pd
 from typing import List, Optional, NoReturn
 
 # Import all the individual plotter classes
-from .plot_algorithms import AlgorithmComparisonPlotter
-from .plot_distributions import DistributionPlotter
-from .plot_features import FeatureAnalysisPlotter
-from .plot_timeline import TimelineAnalysisPlotter
-from .plot_hyperparameters import HyperparameterAnalysisPlotter
-from .plot_feature_categories import FeatureCategoryPlotter
-from .plot_pipeline_parameters import PipelineParameterPlotter
-from .plot_global_importance import GlobalImportancePlotter
-from .plot_interactions import InteractionPlotter
-from .plot_best_model import BestModelAnalyzerPlotter
-from .summarize_results import ResultsSummarizer
+from ml_grid.results_processing.plot_algorithms import AlgorithmComparisonPlotter
+from ml_grid.results_processing.plot_distributions import DistributionPlotter
+from ml_grid.results_processing.plot_features import FeatureAnalysisPlotter
+from ml_grid.results_processing.plot_timeline import TimelineAnalysisPlotter
+from ml_grid.results_processing.plot_hyperparameters import HyperparameterAnalysisPlotter
+from ml_grid.results_processing.plot_feature_categories import FeatureCategoryPlotter
+from ml_grid.results_processing.plot_pipeline_parameters import PipelineParameterPlotter
+from ml_grid.results_processing.plot_global_importance import GlobalImportancePlotter
+from ml_grid.results_processing.plot_interactions import InteractionPlotter
+from ml_grid.results_processing.plot_best_model import BestModelAnalyzerPlotter
+from ml_grid.results_processing.summarize_results import ResultsSummarizer
 
 
 class MasterPlotter:

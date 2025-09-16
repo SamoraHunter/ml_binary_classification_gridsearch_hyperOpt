@@ -7,7 +7,7 @@ Provides flexible filtering capabilities with outcome variable stratification.
 import pandas as pd
 import numpy as np
 from typing import List, Dict, Optional, Union, Tuple, Any
-from .core import get_clean_data
+from ml_grid.results_processing.core import get_clean_data
 
 
 class ResultsFilter:

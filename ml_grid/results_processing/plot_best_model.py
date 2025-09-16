@@ -11,8 +11,8 @@ import warnings
 import textwrap
 import ast
 
-from .core import get_clean_data
-from .plot_hyperparameters import HyperparameterAnalysisPlotter # To reuse parsing logic
+from ml_grid.results_processing.core import get_clean_data
+from ml_grid.results_processing.plot_hyperparameters import HyperparameterAnalysisPlotter # To reuse parsing logic
 
 # Limit on how many outcomes to plot automatically to avoid generating too many figures.
 MAX_OUTCOMES_TO_PLOT = 10
