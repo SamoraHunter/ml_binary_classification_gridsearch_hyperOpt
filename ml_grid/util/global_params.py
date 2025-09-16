@@ -38,73 +38,46 @@ class GlobalParameters:
     of the application. To change a parameter, access the singleton instance
     `global_parameters` and set the attribute directly, or use the
     `update_parameters` method.
-    
+
     Example:
         from ml_grid.util.global_params import global_parameters
         global_parameters.verbose = 2
         global_parameters.update_parameters(bayessearch=False, random_grid_search=True)
-    
-    Attributes:
-        debug_level (int): The verbosity level for debugging. Not widely used.
-            Defaults to 0.
-        knn_n_jobs (int): The number of parallel jobs to run for KNN algorithms.
-            -1 means using all available processors. Defaults to -1.
-        verbose (int): Controls the verbosity of output during the pipeline run.
-            Higher values produce more detailed logs. Defaults to 0.
-        rename_cols (bool): If True, renames DataFrame columns to remove special
-            characters (e.g., '[, ], <') that can cause issues with some models
-            like XGBoost. Defaults to True.
-        error_raise (bool): If True, the pipeline will stop and raise an
-            exception if an error occurs during model training or evaluation.
-            If False, it will log the error and continue. Defaults to False.
-        random_grid_search (bool): If True and `bayessearch` is False, uses
-            `RandomizedSearchCV` instead of `GridSearchCV`. Defaults to False.
-        bayessearch (bool): If True, uses `BayesSearchCV` from `scikit-optimize`
-            for hyperparameter tuning, which can be more efficient than grid
-            or random search. Defaults to True.
-        sub_sample_param_space_pct (float): The percentage of the total parameter
-            space to sample when using `RandomizedSearchCV`. For example, 0.1
-            means 10% of the combinations will be tried. Defaults to 0.0005.
-        grid_n_jobs (int): The number of jobs to run in parallel for
-            hyperparameter search (`GridSearchCV`, `RandomizedSearchCV`,
-            `BayesSearchCV`). -1 means using all available processors.
-            Defaults to -1.
-        time_limit_param (list): A parameter for future use, intended to set
-            time limits on model fitting. Currently not implemented.
-            Defaults to [3].
-        random_state_val (int): A seed value for random number generation to
-            ensure reproducibility across runs. Defaults to 1234.
-        n_jobs_model_val (int): The number of parallel jobs for models that
-            support it (e.g., RandomForest). -1 means using all available
-            processors. Defaults to -1.
-        max_param_space_iter_value (int): A hard limit on the number of
-            parameter combinations to evaluate in `RandomizedSearchCV` or
-            `BayesSearchCV`. Prevents excessively long run times.
-            Defaults to 10.
-        store_models (bool): Whether to save trained models to disk.
-        metric_list (Dict[str, Union[str, Callable]]): A dictionary of scoring
-            metrics to evaluate models during cross-validation. Keys are metric
-            names and values are scikit-learn scorer strings or callable objects.
     """
 
     _instance = None
 
     # Class attributes with type hints
     debug_level: int
+    """The verbosity level for debugging. Not widely used. Defaults to 0."""
     knn_n_jobs: int
+    """The number of parallel jobs to run for KNN algorithms. -1 means using all available processors. Defaults to -1."""
     verbose: int
+    """Controls the verbosity of output during the pipeline run. Higher values produce more detailed logs. Defaults to 0."""
     rename_cols: bool
+    """If True, renames DataFrame columns to remove special characters (e.g., '[, ], <') that can cause issues with some models like XGBoost. Defaults to True."""
     error_raise: bool
+    """If True, the pipeline will stop and raise an exception if an error occurs during model training or evaluation. If False, it will log the error and continue. Defaults to False."""
     random_grid_search: bool
+    """If True and `bayessearch` is False, uses `RandomizedSearchCV` instead of `GridSearchCV`. Defaults to False."""
     bayessearch: bool
+    """If True, uses `BayesSearchCV` from `scikit-optimize` for hyperparameter tuning, which can be more efficient than grid or random search. Defaults to True."""
     sub_sample_param_space_pct: float
+    """The percentage of the total parameter space to sample when using `RandomizedSearchCV`. For example, 0.1 means 10% of the combinations will be tried. Defaults to 0.0005."""
     grid_n_jobs: int
+    """The number of jobs to run in parallel for hyperparameter search (`GridSearchCV`, `RandomizedSearchCV`, `BayesSearchCV`). -1 means using all available processors. Defaults to -1."""
     time_limit_param: List[int]
+    """A parameter for future use, intended to set time limits on model fitting. Currently not implemented. Defaults to [3]."""
     random_state_val: int
+    """A seed value for random number generation to ensure reproducibility across runs. Defaults to 1234."""
     n_jobs_model_val: int
+    """The number of parallel jobs for models that support it (e.g., RandomForest). -1 means using all available processors. Defaults to -1."""
     max_param_space_iter_value: int
+    """A hard limit on the number of parameter combinations to evaluate in `RandomizedSearchCV` or `BayesSearchCV`. Prevents excessively long run times. Defaults to 10."""
     store_models: bool
+    """Whether to save trained models to disk. Defaults to True."""
     metric_list: Dict[str, Union[str, Callable]]
+    """A dictionary of scoring metrics to evaluate models during cross-validation. Keys are metric names and values are scikit-learn scorer strings or callable objects."""
 
     def __new__(cls, *args: Any, **kwargs: Any) -> "GlobalParameters":
         """Creates a new instance if one does not already exist (Singleton pattern)."""
