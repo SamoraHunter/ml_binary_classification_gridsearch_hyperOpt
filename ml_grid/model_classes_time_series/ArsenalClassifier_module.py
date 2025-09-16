@@ -1,21 +1,30 @@
+from typing import Any, Dict, List
+
 from aeon.classification.convolution_based import Arsenal
+from ml_grid.pipeline.data import pipe
 
 
 class Arsenal_class:
+    """A wrapper for the aeon Arsenal time-series classifier."""
 
-    def __init__(self, ml_grid_object):
+    def __init__(self, ml_grid_object: pipe):
+        """Initializes the Arsenal_class.
 
+        Args:
+            ml_grid_object (pipe): The main data pipeline object, which contains
+                data and global parameters.
+        """
         time_limit_param = ml_grid_object.global_params.time_limit_param
 
         n_jobs_model_val = ml_grid_object.global_params.n_jobs_model_val
 
         random_state_val = ml_grid_object.global_params.random_state_val
 
-        self.algorithm_implementation = Arsenal()
+        self.algorithm_implementation: Arsenal = Arsenal()
 
-        self.method_name = "Arsenal"
+        self.method_name: str = "Arsenal"
 
-        self.parameter_space = {
+        self.parameter_space: Dict[str, List[Any]] = {
             "num_kernels": [
                 1000,
                 2000,

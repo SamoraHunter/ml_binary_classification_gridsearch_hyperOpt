@@ -1,17 +1,26 @@
+from typing import Any, Dict, List
+
 from aeon.classification.deep_learning import EncoderClassifier
+from ml_grid.pipeline.data import pipe
 
 
 class EncoderClassifier_class:
+    """A wrapper for the aeon EncoderClassifier time-series classifier."""
 
-    def __init__(self, ml_grid_object):
+    def __init__(self, ml_grid_object: pipe):
+        """Initializes the EncoderClassifier_class.
 
+        Args:
+            ml_grid_object (pipe): The main data pipeline object, which contains
+                data and global parameters.
+        """
         random_state_val = ml_grid_object.global_params.random_state_val
 
-        self.algorithm_implementation = EncoderClassifier()
+        self.algorithm_implementation: EncoderClassifier = EncoderClassifier()
 
-        self.method_name = "EncoderClassifier"
+        self.method_name: str = "EncoderClassifier"
 
-        self.parameter_space = {
+        self.parameter_space: Dict[str, List[Any]] = {
             "kernel_size": [
                 [5],
                 [11],

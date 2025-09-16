@@ -1,4 +1,7 @@
+from typing import Any, Optional, Union
+
 import numpy as np
+import pandas as pd
 import xgboost as xgb
 from ml_grid.util import param_space
 from skopt.space import Real, Categorical, Integer
@@ -7,19 +10,25 @@ from ml_grid.util.global_params import global_parameters
 print("Imported XGB class")
 
 class XGB_class_class:
-    """xgb with support for Bayesian and Grid Search parameter spaces."""
+    """XGBoost classifier with support for Bayesian and Grid Search parameter spaces."""
 
-    def __init__(self, X=None, y=None, parameter_space_size=None):
-        """Initialize XGBClassifier.
+    def __init__(
+        self,
+        X: Optional[pd.DataFrame] = None,
+        y: Optional[pd.Series] = None,
+        parameter_space_size: Optional[str] = None,
+    ):
+        """Initializes the XGB_class_class.
+
+        The XGB_class_class wraps the XGBoost classifier algorithm, allowing for
+        easy configuration and use within a grid search or Bayesian optimization
+        framework by setting up a customizable parameter space.
 
         Args:
-            X (pd.DataFrame): DataFrame containing input features.
-            y (pd.Series): Series containing target labels.
-            parameter_space_size (int): Size of the parameter space.
-        
-        The XGB_class_class wraps the XGBoost classifier algorithm. The class
-        allows for easy configuration and use within a grid search or Bayesian 
-        optimization framework by setting up a parameter space that can be customized.
+            X (Optional[pd.DataFrame]): Feature matrix for training. Defaults to None.
+            y (Optional[pd.Series]): Target vector for training. Defaults to None.
+            parameter_space_size (Optional[str]): Size of the parameter space for
+                optimization. Defaults to None.
         """
         self.X = X
         self.y = y
@@ -30,17 +39,22 @@ class XGB_class_class:
 
         # Initialize the parameter space handler
         self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
-        
+
         # Patch max_bin dynamically for compatibility
-        def patch_max_bin(param_value):
-            """
-            Ensure max_bin parameter is >= 2.
+        def patch_max_bin(param_value: Any) -> Union[int, Real, Integer, Any]:
+            """Ensures the 'max_bin' parameter is >= 2.
+
+            XGBoost's 'max_bin' parameter must be at least 2. This function
+            patches the provided value to meet this requirement, handling integers
+            and skopt space objects.
 
             Args:
-                param_value: The original parameter value.
+                param_value (Any): The original parameter value, which can be an
+                    integer or a skopt space object (Real, Integer).
 
             Returns:
-                Patched parameter value.
+                Union[int, Real, Integer, Any]: The patched parameter value,
+                ensuring it is >= 2.
             """
             if isinstance(param_value, int):
                 return max(2, param_value)

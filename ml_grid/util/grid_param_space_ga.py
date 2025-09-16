@@ -1,24 +1,40 @@
+"""Defines the Grid class for creating a hyperparameter search space for GA."""
+
 import itertools as it
 import random
+from typing import Dict, Generator, List, Optional, Union
 
 from ml_grid.util.global_params import global_parameters
 
 
 class Grid:
+    """Generates and manages a grid of hyperparameter settings for GA experiments."""
 
-    def __init__(self, sample_n=1000):
+    def __init__(self, sample_n: Optional[int] = 1000):
+        """Initializes the Grid object for Genetic Algorithms.
+
+        This class creates a comprehensive grid of settings by taking the
+        Cartesian product of all specified hyperparameters. It then randomly
+        samples a specified number of these settings to create a manageable
+        list for experimentation.
+
+        Args:
+            sample_n (Optional[int], optional): The number of random settings to
+                sample from the full grid. Defaults to 1000.
+        """
 
         self.global_params = global_parameters
 
         self.verbose = self.global_params.verbose
 
-        if sample_n == None:
+        if sample_n is None:
             self.sample_n = 1000
         else:
             self.sample_n = sample_n
 
         if self.verbose >= 1:
             print(f"Feature space slice sample_n {self.sample_n}")
+
         # Default grid
         # User can update grid dictionary on the object
         self.grid = {
@@ -61,7 +77,16 @@ class Grid:
             ],
         }
 
-        def c_prod(d):
+        def c_prod(d: Union[Dict, List]) -> Generator[Dict, None, None]:
+            """Recursively generates the Cartesian product of a nested dictionary.
+
+            Args:
+                d (Union[Dict, List]): The dictionary or list of settings.
+
+            Yields:
+                Generator[Dict, None, None]: A generator of dictionaries, each
+                representing a unique combination of settings.
+            """
             if isinstance(d, list):
                 for i in d:
                     yield from ([i] if not isinstance(i, (dict, list)) else c_prod(i))
@@ -70,11 +95,19 @@ class Grid:
                     yield dict(zip(d.keys(), i))
 
         self.settings_list = list(c_prod(self.grid))
-        print(f"Full settings_list size: {len(self.settings_list)}")
+        full_settings_size = len(self.settings_list)
+        print(f"Full settings_list size: {full_settings_size}")
 
         random.shuffle(self.settings_list)
 
-        self.settings_list = random.sample(self.settings_list, self.sample_n)
+        # Ensure sample_n is not greater than the number of available settings
+        sample_size = min(self.sample_n, full_settings_size)
+        if self.sample_n > full_settings_size and self.verbose >= 1:
+            print(
+                f"Warning: sample_n ({self.sample_n}) is larger than the number of settings ({full_settings_size}). Using all settings."
+            )
+
+        self.settings_list = random.sample(self.settings_list, sample_size)
 
         self.settings_list_iterator = iter(self.settings_list)
 

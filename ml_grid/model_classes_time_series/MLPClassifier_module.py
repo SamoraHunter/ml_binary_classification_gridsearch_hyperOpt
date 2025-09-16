@@ -1,23 +1,35 @@
-import keras
+from typing import Any, Dict, List
 
+import keras
 from aeon.classification.deep_learning import MLPClassifier
+from ml_grid.pipeline.data import pipe
 
 
 class MLPClassifier_class:
+    """A wrapper for the aeon MLPClassifier time-series classifier."""
 
-    def __init__(self, ml_grid_object):
+    def __init__(self, ml_grid_object: pipe):
+        """Initializes the MLPClassifier_class.
+
+        Args:
+            ml_grid_object (pipe): The main data pipeline object, which contains
+                data and global parameters.
+        """
 
         random_state_val = ml_grid_object.global_params.random_state_val
 
         verbose_param = ml_grid_object.verbose
 
-        log_epoch = ml_grid_object.local_param_dict.get("log_epoch")
+        # This seems to be trying to get a parameter that is not set in the time-series grid space.
+        # It might be better to define it directly or add it to the GA grid.
+        # For now, we'll default to a reasonable value if it's not found.
+        log_epoch = ml_grid_object.local_param_dict.get("log_epoch", [100])
 
-        self.algorithm_implementation = MLPClassifier()
+        self.algorithm_implementation: MLPClassifier = MLPClassifier()
 
-        self.method_name = "MLPClassifier"
+        self.method_name: str = "MLPClassifier"
 
-        self.parameter_space = {
+        self.parameter_space: Dict[str, List[Any]] = {
             "n_epochs": [log_epoch],  # Number of epochs to train the model
             "batch_size": [8, 16, 32],  # Number of samples per gradient update
             "random_state": [random_state_val],  # Seed for random number generation

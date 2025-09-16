@@ -16,14 +16,17 @@ import warnings
 MAX_OUTCOMES_FOR_STRATIFIED_PLOT = 8
 
 class TimelineAnalysisPlotter:
-    """Class for creating timeline and temporal analysis visualizations."""
+    """A class for creating timeline and temporal analysis visualizations."""
     
     def __init__(self, data: pd.DataFrame):
-        """
-        Initialize the timeline analysis plotter.
-        
+        """Initializes the timeline analysis plotter.
+
         Args:
-            data: Results DataFrame with run_timestamp column
+            data (pd.DataFrame): Results DataFrame, which must contain a
+                'run_timestamp' column.
+
+        Raises:
+            ValueError: If the 'run_timestamp' column is not found in the data.
         """
         self.data = data
         self.clean_data = get_clean_data(data)
@@ -38,22 +41,30 @@ class TimelineAnalysisPlotter:
         # Sort data by timestamp
         self.clean_data = self.clean_data.sort_values('run_timestamp')
     
-    def plot_performance_timeline(self, metric: str = 'auc',
-                                algorithms_to_plot: List[str] = None,
-                                stratify_by_outcome: bool = False,
-                                outcomes_to_plot: List[str] = None,
-                                aggregation: str = 'mean',
-                                figsize: Tuple[int, int] = (14, 6)):
-        """
-        Plot performance metrics over time (across runs).
-        
+    def plot_performance_timeline(
+        self,
+        metric: str = 'auc',
+        algorithms_to_plot: Optional[List[str]] = None,
+        stratify_by_outcome: bool = False,
+        outcomes_to_plot: Optional[List[str]] = None,
+        aggregation: str = 'mean',
+        figsize: Tuple[int, int] = (14, 6),
+    ) -> None:
+        """Plots performance metrics over time (across runs).
+
         Args:
-            metric: Performance metric to plot
-            algorithms_to_plot: Specific algorithms to include
-            stratify_by_outcome: If True, create separate plots for each outcome
-            outcomes_to_plot: Specific outcomes to plot
-            aggregation: How to aggregate within runs ('mean', 'best', 'median')
-            figsize: Figure size
+            metric (str, optional): The performance metric to plot.
+                Defaults to 'auc'.
+            algorithms_to_plot (Optional[List[str]], optional): A list of
+                specific algorithms to include. Defaults to None.
+            stratify_by_outcome (bool, optional): If True, creates separate
+                plots for each outcome. Defaults to False.
+            outcomes_to_plot (Optional[List[str]], optional): A list of specific
+                outcomes to plot. Defaults to None.
+            aggregation (str, optional): How to aggregate within runs ('mean',
+                'best', 'median'). Defaults to 'mean'.
+            figsize (Tuple[int, int], optional): The figure size.
+                Defaults to (14, 6).
         """
         if metric not in self.clean_data.columns:
             raise ValueError(f"Metric '{metric}' not found in data")
@@ -64,9 +75,15 @@ class TimelineAnalysisPlotter:
             self._plot_stratified_timeline(metric, algorithms_to_plot, outcomes_to_plot, 
                                          aggregation, figsize)
     
-    def _plot_single_timeline(self, metric: str, algorithms_to_plot: List[str],
-                            aggregation: str, figsize: Tuple[int, int]):
-        """Plot single timeline for all outcomes combined."""
+    def _plot_single_timeline(
+        self,
+        metric: str,
+        algorithms_to_plot: Optional[List[str]],
+        aggregation: str,
+        figsize: Tuple[int, int],
+    ) -> None:
+        """Helper to plot a single timeline for all outcomes combined.
+        """
         plot_data = self.clean_data.copy()
         
         if algorithms_to_plot:
@@ -110,10 +127,16 @@ class TimelineAnalysisPlotter:
         plt.tight_layout()
         plt.show()
     
-    def _plot_stratified_timeline(self, metric: str, algorithms_to_plot: List[str],
-                                outcomes_to_plot: List[str], aggregation: str, 
-                                figsize: Tuple[int, int]):
-        """Plot timeline stratified by outcome variable."""
+    def _plot_stratified_timeline(
+        self,
+        metric: str,
+        algorithms_to_plot: Optional[List[str]],
+        outcomes_to_plot: Optional[List[str]],
+        aggregation: str,
+        figsize: Tuple[int, int],
+    ) -> None:
+        """Helper to plot timelines stratified by outcome variable.
+        """
         if 'outcome_variable' not in self.clean_data.columns:
             raise ValueError("outcome_variable column not found for stratification")
         
@@ -184,21 +207,30 @@ class TimelineAnalysisPlotter:
         plt.tight_layout()
         plt.show()
     
-    def plot_improvement_trends(self, metric: str = 'auc',
-                              algorithms_to_plot: Optional[List[str]] = None,
-                              stratify_by_outcome: bool = False,
-                              outcomes_to_plot: Optional[List[str]] = None,
-                              figsize: Tuple[int, int] = (14, 7)):
-        """
-        Plots the optimization progress within each run, showing the best metric score found over trials.
+    def plot_improvement_trends(
+        self,
+        metric: str = 'auc',
+        algorithms_to_plot: Optional[List[str]] = None,
+        stratify_by_outcome: bool = False,
+        outcomes_to_plot: Optional[List[str]] = None,
+        figsize: Tuple[int, int] = (14, 7),
+    ) -> None:
+        """Plots the optimization progress within each run.
+
         This helps visualize how quickly the optimization finds better models within each batch/run.
         
         Args:
-            metric: Performance metric to analyze.
-            algorithms_to_plot: Specific algorithms to include. If None, all are used.
-            stratify_by_outcome: If True, create separate plots for each outcome.
-            outcomes_to_plot: Specific outcomes to plot if stratified.
-            figsize: Figure size.
+            metric (str, optional): The performance metric to analyze.
+                Defaults to 'auc'.
+            algorithms_to_plot (Optional[List[str]], optional): A list of
+                specific algorithms to include. If None, all are used.
+                Defaults to None.
+            stratify_by_outcome (bool, optional): If True, creates separate
+                plots for each outcome. Defaults to False.
+            outcomes_to_plot (Optional[List[str]], optional): A list of specific
+                outcomes to plot if stratified. Defaults to None.
+            figsize (Tuple[int, int], optional): The figure size.
+                Defaults to (14, 7).
         """
         plot_data = self.clean_data.copy()
         
@@ -210,8 +242,10 @@ class TimelineAnalysisPlotter:
         else:
             self._plot_stratified_intra_run_progress(plot_data, metric, outcomes_to_plot, figsize)
 
-    def _plot_single_intra_run_progress(self, plot_data: pd.DataFrame, metric: str, figsize: Tuple[int, int]):
-        """Plots optimization progress (best score so far) for multiple runs on a single plot."""
+    def _plot_single_intra_run_progress(
+        self, plot_data: pd.DataFrame, metric: str, figsize: Tuple[int, int]
+    ) -> None:
+        """Helper to plot optimization progress for multiple runs on a single plot."""
         plt.figure(figsize=figsize)
         
         runs = plot_data['run_timestamp'].unique()
@@ -238,9 +272,15 @@ class TimelineAnalysisPlotter:
         plt.tight_layout()
         plt.show()
 
-    def _plot_stratified_intra_run_progress(self, plot_data: pd.DataFrame, metric: str,
-                                            outcomes_to_plot: Optional[List[str]], figsize: Tuple[int, int]):
-        """Plots optimization progress stratified by outcome."""
+    def _plot_stratified_intra_run_progress(
+        self,
+        plot_data: pd.DataFrame,
+        metric: str,
+        outcomes_to_plot: Optional[List[str]],
+        figsize: Tuple[int, int],
+    ) -> None:
+        """Helper to plot optimization progress stratified by outcome.
+        """
         if 'outcome_variable' not in plot_data.columns:
             raise ValueError("outcome_variable column not found for stratification")
         
@@ -300,21 +340,27 @@ class TimelineAnalysisPlotter:
         plt.tight_layout(rect=[0, 0.03, 1, 0.96])
         plt.show()
 
-    def plot_computational_cost_timeline(self,
-                                         algorithms_to_plot: Optional[List[str]] = None,
-                                         stratify_by_outcome: bool = False,
-                                         outcomes_to_plot: Optional[List[str]] = None,
-                                         aggregation: str = 'mean',
-                                         figsize: Tuple[int, int] = (14, 6)):
-        """
-        Plots the computational cost (fit_time) over time (across runs).
+    def plot_computational_cost_timeline(
+        self,
+        algorithms_to_plot: Optional[List[str]] = None,
+        stratify_by_outcome: bool = False,
+        outcomes_to_plot: Optional[List[str]] = None,
+        aggregation: str = 'mean',
+        figsize: Tuple[int, int] = (14, 6),
+    ) -> None:
+        """Plots the computational cost (run_time) over time (across runs).
 
         Args:
-            algorithms_to_plot: Specific algorithms to include.
-            stratify_by_outcome: If True, create separate plots for each outcome.
-            outcomes_to_plot: Specific outcomes to plot if stratified.
-            aggregation: How to aggregate within runs ('mean', 'sum', 'median').
-            figsize: Figure size for the plot.
+            algorithms_to_plot (Optional[List[str]], optional): A list of
+                specific algorithms to include. Defaults to None.
+            stratify_by_outcome (bool, optional): If True, creates separate
+                plots for each outcome. Defaults to False.
+            outcomes_to_plot (Optional[List[str]], optional): A list of specific
+                outcomes to plot if stratified. Defaults to None.
+            aggregation (str, optional): How to aggregate within runs ('mean',
+                'sum', 'median'). Defaults to 'mean'.
+            figsize (Tuple[int, int], optional): The figure size for the plot.
+                Defaults to (14, 6).
         """
         if 'run_time' not in self.clean_data.columns:
             warnings.warn("'run_time' column not found. Skipping computational cost plot.", stacklevel=2)

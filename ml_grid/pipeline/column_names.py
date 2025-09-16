@@ -1,58 +1,59 @@
+from typing import Any, Dict, List, Tuple
+
 from fuzzysearch import find_near_matches
 
 from ml_grid.pipeline.data_plot_split import (
     plot_candidate_feature_category_lists,
     plot_dict_values,
-    plot_pie_chart_with_counts,
 )
 from ml_grid.util.global_params import global_parameters
 
 
-def filter_substring_list(string, substr):
+def filter_substring_list(string: List[str], substr: List[str]) -> List[str]:
+    """Filters a list of strings based on a list of substrings.
+
+    Args:
+        string (List[str]): The list of strings to filter.
+        substr (List[str]): The list of substrings to search for.
+
+    Returns:
+        List[str]: A new list containing strings from the input list that
+                   contain any of the specified substrings, excluding those
+                   containing "bmi".
+    """
     return [
-        str for str in string if any(sub in str for sub in substr) and "bmi" not in str
+        s for s in string if any(sub in s for sub in substr) and "bmi" not in s
     ]
 
 
-def get_pertubation_columns(all_df_columns, local_param_dict, drop_term_list):
-    
-    """Identifies and categorizes columns for perturbation and dropping based on predefined rules and
-    local parameters.
+def get_pertubation_columns(
+    all_df_columns: List[str],
+    local_param_dict: Dict[str, Any],
+    drop_term_list: List[str],
+) -> Tuple[List[str], List[str]]:
+    """Identifies and categorizes columns for perturbation and dropping.
 
-    This function processes a list of all DataFrame columns, categorizing them into various
-    groups such as blood tests, diagnostic orders, drug orders, BMI, ethnicity, and
-    different types of annotation counts. It also identifies columns to be dropped based
-    on specific keywords and prefixes. The selection of columns for 'perturbation'
-    is determined by flags within `local_param_dict`.
+    This function processes a list of all DataFrame columns, categorizing them
+    into groups like blood tests, diagnostic orders, etc. It also identifies
+    columns to be dropped based on specific keywords. The selection of columns
+    for 'perturbation' is determined by flags within `local_param_dict`.
 
     Args:
-        all_df_columns (list): A list of all column names in the DataFrame.
-        local_param_dict (dict): A dictionary containing local parameters, including
-            'outcome_var_n' and a 'data' sub-dictionary that specifies which column
-            categories to include for perturbation (e.g., 'age', 'sex', 'bmi', 'bloods').
-        drop_term_list (list): A list of strings. Any column name containing these
-            strings (case-insensitive) will be added to the `drop_list`.
+        all_df_columns (List[str]): A list of all column names in the DataFrame.
+        local_param_dict (Dict[str, Any]): A dictionary containing local parameters,
+            including 'outcome_var_n' and a 'data' sub-dictionary that
+            specifies which column categories to include for perturbation
+            (e.g., 'age', 'sex', 'bmi', 'bloods').
+        drop_term_list (List[str]): A list of strings. Any column name
+            containing these strings (case-insensitive) will be added to the
+            `drop_list`.
 
     Returns:
-        tuple: A tuple containing two lists:
-            - pertubation_columns (list): A list of column names selected for perturbation
-              based on the `local_param_dict` settings.
-            - drop_list (list): A list of column names identified to be dropped from the
-              DataFrame.
-
-    Raises:
-        NameError: If `global_parameters` or `find_near_matches` or `filter_substring_list`
-                   or `plot_candidate_feature_category_lists` or `plot_dict_values` are not defined.
-                   These are assumed to be accessible in the global scope or imported.
-
-    Notes:
-        - The function relies on several global or externally defined functions:
-          `global_parameters`, `find_near_matches`, `filter_substring_list`,
-          `plot_candidate_feature_category_lists`, and `plot_dict_values`.
-        - Column categorization is based on hardcoded substrings and prefixes.
-        - Overlapping columns are handled by removing elements from `bloods_list` if
-          they appear in any other categorized list.
-        - Verbose output and plotting are controlled by the `verbose` level from `global_parameters`.
+        Tuple[List[str], List[str]]: A tuple containing two lists:
+            - pertubation_columns: A list of column names selected for
+              perturbation based on the `local_param_dict` settings.
+            - drop_list: A list of column names identified to be dropped from
+              the DataFrame.
     """
 
     global_params = global_parameters

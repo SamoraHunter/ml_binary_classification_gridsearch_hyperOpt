@@ -1,13 +1,21 @@
+from typing import Any, Dict, List
+
 from aeon.classification.deep_learning import TapNetClassifier
-
 import keras
-
+from ml_grid.pipeline.data import pipe
 from ml_grid.util.param_space import ParamSpace
 
 
 class TapNetClassifier_class:
+    """A wrapper for the aeon TapNetClassifier time-series classifier."""
 
-    def __init__(self, ml_grid_object):
+    def __init__(self, ml_grid_object: pipe):
+        """Initializes the TapNetClassifier_class.
+
+        Args:
+            ml_grid_object (pipe): The main data pipeline object, which contains
+                data and global parameters.
+        """
 
         verbose_param = ml_grid_object.verbose
         param_space = ParamSpace(
@@ -17,11 +25,11 @@ class TapNetClassifier_class:
         log_epoch = param_space.param_dict.get("log_epoch")
         random_state_val = ml_grid_object.global_params.random_state_val
 
-        self.algorithm_implementation = TapNetClassifier()
+        self.algorithm_implementation: TapNetClassifier = TapNetClassifier()
 
-        self.method_name = "TapNetClassifier"
+        self.method_name: str = "TapNetClassifier"
 
-        self.parameter_space = {
+        self.parameter_space: Dict[str, List[Any]] = {
             "filter_sizes": [(256, 256, 128), (128, 128, 64)],
             "kernel_size": [(8, 5, 3), (4, 3, 2)],
             "layers": [(500, 300), (400, 200)],

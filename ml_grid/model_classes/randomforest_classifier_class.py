@@ -1,4 +1,7 @@
+from typing import Any, List, Optional, Union
+
 import numpy as np
+import pandas as pd
 from ml_grid.util import param_space
 from sklearn.ensemble import RandomForestClassifier
 from skopt.space import Real, Categorical, Integer
@@ -8,14 +11,21 @@ from ml_grid.util.global_params import global_parameters
 class RandomForestClassifier_class:
     """RandomForestClassifier with support for both Bayesian and non-Bayesian parameter spaces."""
 
-    def __init__(self, X=None, y=None, parameter_space_size=None):
-        """
-        Initialize the RandomForestClassifier class.
+    def __init__(
+        self,
+        X: Optional[pd.DataFrame] = None,
+        y: Optional[pd.Series] = None,
+        parameter_space_size: Optional[str] = None,
+    ):
+        """Initializes the RandomForestClassifier_class.
 
         Args:
-            X (pd.DataFrame): Feature matrix for training (optional).
-            y (pd.Series): Target vector for training (optional).
-            parameter_space_size (int): Size of the parameter space for optimization.
+            X (Optional[pd.DataFrame]): Feature matrix for training.
+                Defaults to None.
+            y (Optional[pd.Series]): Target vector for training.
+                Defaults to None.
+            parameter_space_size (Optional[str]): Size of the parameter space for
+                optimization. Defaults to None.
         """
         self.X = X
         self.y = y
@@ -65,10 +75,21 @@ class RandomForestClassifier_class:
                 "warm_start": [False],
             }
 
-    def _valid_min_samples_split(self, values):
-        """
-        Ensure values for min_samples_split are valid integers (>=2) or floats (between 0.0 and 1.0).
-        If necessary, modify values to ensure they are valid.
+    def _valid_min_samples_split(
+        self, values: Any
+    ) -> List[Union[int, float]]:
+        """Ensures values for min_samples_split are valid.
+
+        The `min_samples_split` parameter in RandomForestClassifier accepts
+        integers >= 2 or floats in the range (0.0, 1.0]. This function
+        filters the input `values` to conform to these constraints.
+
+        Args:
+            values (Any): A list of values or a `skopt.space.Integer` object.
+
+        Returns:
+            List[Union[int, float]]: A list of valid values for
+            `min_samples_split`.
         """
         # Check if values is an Integer (this is common in Bayesian optimization parameter space)
         if isinstance(values, Integer):
@@ -89,4 +110,3 @@ class RandomForestClassifier_class:
             valid_values = [2]  # Fallback to a default valid value if no valid value found
 
         return valid_values
-

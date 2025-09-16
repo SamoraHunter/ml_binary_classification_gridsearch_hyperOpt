@@ -1,12 +1,22 @@
+from typing import Any, Dict, List
+
 from aeon.classification.deep_learning import FCNClassifier
 import keras
 
+from ml_grid.pipeline.data import pipe
 from ml_grid.util.param_space import ParamSpace
 
 
 class FCNClassifier_class:
+    """A wrapper for the aeon FCNClassifier time-series classifier."""
 
-    def __init__(self, ml_grid_object):
+    def __init__(self, ml_grid_object: pipe):
+        """Initializes the FCNClassifier_class.
+
+        Args:
+            ml_grid_object (pipe): The main data pipeline object, which contains
+                data and global parameters.
+        """
 
         random_state_val = ml_grid_object.global_params.random_state_val
 
@@ -18,11 +28,11 @@ class FCNClassifier_class:
 
         log_epoch = param_space.param_dict.get("log_epoch")
 
-        self.algorithm_implementation = FCNClassifier()
+        self.algorithm_implementation: FCNClassifier = FCNClassifier()
 
-        self.method_name = "FCNClassifier"
+        self.method_name: str = "FCNClassifier"
 
-        self.parameter_space = {
+        self.parameter_space: Dict[str, List[Any]] = {
             "n_layers": [3],
             "n_filters": [128, 256, 128],
             "kernel_size": [8, 5, 3],

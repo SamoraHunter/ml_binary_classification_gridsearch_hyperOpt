@@ -1,29 +1,56 @@
-import traceback
+from typing import Any, Dict, List, Tuple
+
 import pandas as pd
-import numpy as np
 from tqdm import tqdm
 
 
-def correlation_coefficient(col1, col2):
+def correlation_coefficient(col1: pd.Series, col2: pd.Series) -> float:
+    """Calculates the Pearson correlation coefficient between two pandas Series.
+
+    Args:
+        col1 (pd.Series): The first series.
+        col2 (pd.Series): The second series.
+
+    Returns:
+        float: The correlation coefficient.
+    """
     return col1.corr(col2)
 
 
-def handle_correlation_matrix(local_param_dict, drop_list, df, chunk_size=50):
-    """
-    Calculate correlated columns in chunks.
+def handle_correlation_matrix(
+    local_param_dict: Dict[str, Any],
+    drop_list: List[Any],
+    df: pd.DataFrame,
+    chunk_size: int = 50,
+) -> List[Any]:
+    """Identifies highly correlated columns and adds them to a drop list.
+
+    This function calculates the correlation coefficient between numeric columns
+    in the input DataFrame in chunks to manage memory usage. Pairs of columns
+    with a correlation greater than the specified threshold are added to the
+    `drop_list` as tuples.
+
+    Note:
+        This function currently adds tuples of `(column, correlated_column)` to
+        the `drop_list`. Downstream processing might expect a flat list of
+        column names to drop, which could cause these correlated columns to not
+        be dropped as intended.
 
     Calculates the correlation coefficient between each column in the input DataFrame
     using chunks to avoid memory issues. The correlation threshold is defined by
     the 'corr' key in the local_param_dict dictionary.
 
     Args:
-        local_param_dict (dict): Dictionary containing local parameters, including the correlation threshold.
-        drop_list (list): List to which correlated columns will be appended.
-        df (pandas.DataFrame): Input DataFrame.
-        chunk_size (int, optional): Size of each chunk for correlation calculation. Default is 50.
+        local_param_dict (Dict[str, Any]): Dictionary containing local parameters,
+            including the 'corr' threshold.
+        drop_list (List[Any]): A list to which pairs of correlated columns will
+            be appended.
+        df (pd.DataFrame): The input DataFrame.
+        chunk_size (int, optional): The size of each chunk for correlation
+            calculation. Defaults to 50.
 
     Returns:
-        list: List of correlated columns.
+        List[Any]: The updated list containing unique pairs of correlated columns.
     """
 
     if chunk_size >= len(df):
@@ -69,7 +96,9 @@ def handle_correlation_matrix(local_param_dict, drop_list, df, chunk_size=50):
                 correlated_cols = []
 
             # Add the correlated columns to the list
-            drop_list.extend([(col, corr_col) for corr_col in correlated_cols])
+            drop_list.extend(
+                [(col, corr_col) for corr_col in correlated_cols]
+            )
 
     # Remove duplicates from the list
     drop_list = list(set(drop_list))

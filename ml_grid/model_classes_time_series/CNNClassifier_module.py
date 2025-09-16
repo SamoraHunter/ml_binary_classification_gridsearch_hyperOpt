@@ -1,12 +1,20 @@
-from aeon.classification.deep_learning import CNNClassifier
+from typing import Any, Dict, List
 
+from aeon.classification.deep_learning import CNNClassifier
+from ml_grid.pipeline.data import pipe
 from ml_grid.util.param_space import ParamSpace
 
 
 class CNNClassifier_class:
+    """A wrapper for the aeon CNNClassifier time-series classifier."""
 
-    def __init__(self, ml_grid_object):
+    def __init__(self, ml_grid_object: pipe):
+        """Initializes the CNNClassifier_class.
 
+        Args:
+            ml_grid_object (pipe): The main data pipeline object, which contains
+                data and global parameters.
+        """
         time_limit_param = ml_grid_object.global_params.time_limit_param
 
         n_jobs_model_val = ml_grid_object.global_params.n_jobs_model_val
@@ -21,11 +29,11 @@ class CNNClassifier_class:
 
         log_epoch = param_space.param_dict.get("log_epoch")
 
-        self.algorithm_implementation = CNNClassifier()
+        self.algorithm_implementation: CNNClassifier = CNNClassifier()
 
-        self.method_name = "CNNClassifier"
+        self.method_name: str = "CNNClassifier"
 
-        self.parameter_space = {
+        self.parameter_space: Dict[str, List[Any]] = {
             #'n_layers': [2, 3, 4],
             #'kernel_size': [3, 5, 7],
             #'n_filters': [[6, 12], [8, 16], [10, 20]],

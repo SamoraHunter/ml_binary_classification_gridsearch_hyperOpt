@@ -48,8 +48,14 @@ class BestModelAnalyzerPlotter:
         sns.set_palette("muted")
 
     def _get_best_models(self, metric: str) -> pd.DataFrame:
-        """
-        Finds the single best model for each outcome variable based on a given metric.
+        """Finds the single best model for each outcome variable.
+
+        Args:
+            metric (str): The performance metric to use for determining the best model.
+
+        Returns:
+            pd.DataFrame: A DataFrame containing the single best run for each
+            outcome, sorted by the specified metric in descending order.
         """
         if metric not in self.clean_data.columns:
             raise ValueError(f"Metric '{metric}' not found in the data.")
@@ -63,15 +69,20 @@ class BestModelAnalyzerPlotter:
                                 metric: str = 'auc', 
                                 outcomes_to_plot: Optional[List[str]] = None,
                                 figsize: Tuple[int, int] = (14, 9)):
-        """
-        For each outcome, finds the best performing model and generates a summary plot
-        detailing its characteristics, including algorithm, hyperparameters, and pipeline settings.
+        """Generates a summary plot for the best model of each outcome.
+
+        This method finds the best performing model for each outcome and creates
+        a detailed 2x2 plot summarizing its algorithm, performance,
+        hyperparameters, and pipeline settings.
 
         Args:
-            metric: The performance metric to use for determining the "best" model.
-            outcomes_to_plot: An optional list of specific outcome variables to analyze.
-                              If None, analyzes all outcomes up to a certain limit.
-            figsize: The figure size for each summary plot.
+            metric (str, optional): The metric to determine the "best" model.
+                Defaults to 'auc'.
+            outcomes_to_plot (Optional[List[str]], optional): A specific list of
+                outcomes to analyze. If None, analyzes all outcomes up to a limit.
+                Defaults to None.
+            figsize (Tuple[int, int], optional): The figure size for each summary
+                plot. Defaults to (14, 9).
         """
         best_models_df = self._get_best_models(metric)
 
@@ -95,8 +106,13 @@ class BestModelAnalyzerPlotter:
             self._plot_single_model_summary(model_series, metric, figsize)
 
     def _plot_single_model_summary(self, model_series: pd.Series, metric: str, figsize: Tuple[int, int]):
-        """
-        Generates a single 2x2 summary plot for one model.
+        """Generates a single 2x2 summary plot for one model series.
+
+        Args:
+            model_series (pd.Series): A row from the DataFrame representing the
+                best model for a single outcome.
+            metric (str): The primary performance metric being used.
+            figsize (Tuple[int, int]): The figure size for the plot.
         """
         fig, axes = plt.subplots(2, 2, figsize=figsize)
         fig.suptitle(f"Best Model Analysis for: {model_series['outcome_variable']}", fontsize=16, fontweight='bold')
@@ -117,6 +133,13 @@ class BestModelAnalyzerPlotter:
         plt.show()
 
     def _plot_key_info(self, ax: plt.Axes, model_series: pd.Series, metric: str):
+        """Plots key model and performance info on a given axis.
+
+        Args:
+            ax (plt.Axes): The matplotlib axis to plot on.
+            model_series (pd.Series): The data for the best model.
+            metric (str): The name of the primary metric.
+        """
         ax.set_title("Model & Performance Summary", fontsize=12, fontweight='bold')
         ax.axis('off')
         
@@ -138,6 +161,12 @@ class BestModelAnalyzerPlotter:
                 bbox=dict(boxstyle='round,pad=0.5', fc='aliceblue', ec='grey', lw=1))
 
     def _plot_hyperparameters(self, ax: plt.Axes, model_series: pd.Series):
+        """Plots the hyperparameters of the model on a given axis.
+
+        Args:
+            ax (plt.Axes): The matplotlib axis to plot on.
+            model_series (pd.Series): The data for the best model.
+        """
         ax.set_title("Hyperparameters", fontsize=12, fontweight='bold')
         ax.axis('off')
         
@@ -163,6 +192,12 @@ class BestModelAnalyzerPlotter:
                 bbox=dict(boxstyle='round,pad=0.5', fc='lightyellow', ec='grey', lw=1))
 
     def _plot_feature_categories(self, ax: plt.Axes, model_series: pd.Series):
+        """Plots which feature categories were used on a given axis.
+
+        Args:
+            ax (plt.Axes): The matplotlib axis to plot on.
+            model_series (pd.Series): The data for the best model.
+        """
         ax.set_title("Feature Categories Used", fontsize=12, fontweight='bold')
         
         used_categories = {}
@@ -195,6 +230,12 @@ class BestModelAnalyzerPlotter:
         ax.grid(axis='y', linestyle='--', alpha=0.7)
 
     def _plot_pipeline_parameters(self, ax: plt.Axes, model_series: pd.Series):
+        """Plots the pipeline settings on a given axis.
+
+        Args:
+            ax (plt.Axes): The matplotlib axis to plot on.
+            model_series (pd.Series): The data for the best model.
+        """
         ax.set_title("Pipeline Settings", fontsize=12, fontweight='bold')
         ax.axis('off')
         

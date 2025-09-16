@@ -1,25 +1,49 @@
+from typing import Optional, Union
+
 import lightgbm as lgb
 from sklearn.base import BaseEstimator, ClassifierMixin
 import pandas as pd
 import re
-import pandas
 import numpy as np
 
 
 class LightGBMClassifier(BaseEstimator, ClassifierMixin):
+    """A scikit-learn compatible wrapper for the LightGBM classifier.
+
+    This wrapper handles potential issues with special characters in feature
+    names that LightGBM does not support by sanitizing column names before
+    fitting and predicting.
+    """
+
     def __init__(
         self,
-        boosting_type="gbdt",
-        num_leaves=31,
-        learning_rate=0.05,
-        n_estimators=100,
-        objective="multiclass",
-        num_class=1,
-        metric="multi_logloss",
-        feature_fraction=0.9,
-        early_stopping_rounds=None,
-        verbosity=-1,
+        boosting_type: str = "gbdt",
+        num_leaves: int = 31,
+        learning_rate: float = 0.05,
+        n_estimators: int = 100,
+        objective: str = "multiclass",
+        num_class: int = 1,
+        metric: str = "multi_logloss",
+        feature_fraction: float = 0.9,
+        early_stopping_rounds: Optional[int] = None,
+        verbosity: int = -1,
     ):
+        """Initializes the LightGBMClassifier wrapper.
+
+        Args:
+            boosting_type (str): The type of boosting to use.
+            num_leaves (int): Maximum number of leaves in one tree.
+            learning_rate (float): Boosting learning rate.
+            n_estimators (int): Number of boosting rounds.
+            objective (str): The learning objective.
+            num_class (int): The number of classes for multiclass classification.
+            metric (str): The metric to be used for evaluation.
+            feature_fraction (float): Fraction of features to be considered for each
+                tree.
+            early_stopping_rounds (Optional[int]): Activates early stopping.
+                Defaults to None.
+            verbosity (int): Controls the level of LightGBM's verbosity.
+        """
 
         if num_leaves <= 1:
             num_leaves = 2
@@ -33,10 +57,25 @@ class LightGBMClassifier(BaseEstimator, ClassifierMixin):
         self.feature_fraction = feature_fraction
         self.early_stopping_rounds = early_stopping_rounds
 
-        self.model = None
+        self.model: Optional[lgb.LGBMClassifier] = None
         self.verbosity = verbosity
+        self.classes_: Optional[np.ndarray] = None
 
-    def fit(self, X, y):
+    def fit(
+        self, X: pd.DataFrame, y: Union[pd.Series, np.ndarray]
+    ) -> "LightGBMClassifier":
+        """Fits the LightGBM model.
+
+        This method sanitizes the feature names in `X` before fitting the
+        underlying `lgb.LGBMClassifier`.
+
+        Args:
+            X (pd.DataFrame): The training input samples.
+            y (Union[pd.Series, np.ndarray]): The target values.
+
+        Returns:
+            LightGBMClassifier: The fitted estimator.
+        """
         self.model = lgb.LGBMClassifier(
             boosting_type=self.boosting_type,
             num_leaves=self.num_leaves,
@@ -67,14 +106,30 @@ class LightGBMClassifier(BaseEstimator, ClassifierMixin):
             self.classes_ = np.unique(y)
         return self
 
-    def predict(self, X):
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
+        """Predicts class labels for samples in X.
+
+        This method sanitizes the feature names in `X` to match those used
+        during training.
+
+        Args:
+            X (pd.DataFrame): The input samples to predict.
+
+        Raises:
+            ValueError: If the model has not been fitted yet.
+
+        Returns:
+            np.ndarray: The predicted class labels.
+        """
         if self.model is None:
             raise ValueError(
                 "Model has not been fitted yet. Call 'fit' before 'predict'."
             )
 
         # Change columns names ([LightGBM] Do not support special JSON characters in feature name.)
-        new_names = {col: re.sub(r"[^A-Za-z0-9_]+", "", col) for col in X.columns}
+        new_names = {
+            col: re.sub(r"[^A-Za-z0-9_]+", "", col) for col in X.columns
+        }
         new_n_list = list(new_names.values())
         # [LightGBM] Feature appears more than one time.
         new_names = {
@@ -82,10 +137,21 @@ class LightGBMClassifier(BaseEstimator, ClassifierMixin):
             for i, (col, new_col) in enumerate(new_names.items())
         }
         X = X.rename(columns=new_names)
-
         return self.model.predict(X)
 
-    def score(self, X, y):
+    def score(self, X: pd.DataFrame, y: Union[pd.Series, np.ndarray]) -> float:
+        """Returns the mean accuracy on the given test data and labels.
+
+        Args:
+            X (pd.DataFrame): Test samples.
+            y (Union[pd.Series, np.ndarray]): True labels for X.
+
+        Raises:
+            ValueError: If the model has not been fitted yet.
+
+        Returns:
+            float: Mean accuracy of self.predict(X) wrt. y.
+        """
         if self.model is None:
             raise ValueError(
                 "Model has not been fitted yet. Call 'fit' before 'score'."

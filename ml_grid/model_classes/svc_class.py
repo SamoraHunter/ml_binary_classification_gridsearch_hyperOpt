@@ -1,4 +1,5 @@
 from scipy import sparse
+from typing import Optional
 from ml_grid.util import param_space
 from ml_grid.util.global_params import global_parameters
 from sklearn.svm import SVC
@@ -12,13 +13,22 @@ print("Imported SVC class")
 class SVC_class:
     """SVC with support for Bayesian and traditional grid search parameter spaces."""
 
-    def __init__(self, X=None, y=None, parameter_space_size=None):
-        """Initialize SVC_class.
+    def __init__(
+        self,
+        X: Optional[pd.DataFrame] = None,
+        y: Optional[pd.Series] = None,
+        parameter_space_size: Optional[str] = None,
+    ):
+        """Initializes the SVC_class.
+
+        This class requires scaled data. If the input data `X` is not detected
+        as scaled, it will be automatically scaled using `StandardScaler`.
 
         Args:
-            X (pd.DataFrame): DataFrame containing input features.
-            y (pd.Series): Series containing target labels.
-            parameter_space_size (int): Size of the parameter space.
+            X (Optional[pd.DataFrame]): Feature matrix for training. Defaults to None.
+            y (Optional[pd.Series]): Target vector for training. Defaults to None.
+            parameter_space_size (Optional[str]): Size of the parameter space for
+                optimization. Defaults to None.
         """
         self.X = X
         self.y = y
@@ -151,25 +161,36 @@ class SVC_class:
 
         return None
 
-    def is_data_scaled(self):
-        """
-        Check if data has been scaled to [0, 1] or [-1, 1] range.
+    def is_data_scaled(self) -> bool:
+        """Checks if the feature matrix `X` is scaled.
+
+        This method determines if the data appears to be scaled by checking if all
+        feature values fall within the [0, 1] or [-1, 1] range.
 
         Returns:
-            bool: True if data has been scaled, False if not.
+            bool: True if data appears to be scaled, False otherwise.
         """
+        if self.X is None or self.X.empty:
+            return False
+
+        # Select only numeric columns for min/max checks
+        numeric_X = self.X.select_dtypes(include="number")
+        if numeric_X.empty:
+            return False
+
         # Calculate the range of values for each feature
-        min_val = self.X.min().min()
-        max_val = self.X.max().max()
+        min_val = numeric_X.min().min()
+        max_val = numeric_X.max().max()
 
         # Check if data is scaled to [0, 1] or [-1, 1] range
         if (min_val >= 0 and max_val <= 1) or (min_val >= -1 and max_val <= 1):
             return True
-        else:
-            return False
 
-    def scale_data(self):
-        """Scale the data to [0, 1] range using MinMaxScaler."""
+        return False
+
+    def scale_data(self) -> None:
+        """Scales the feature matrix `X` using MinMaxScaler.
+        """
         # Initialize MinMaxScaler
         self.scaler = MinMaxScaler(feature_range=(0, 1))
 

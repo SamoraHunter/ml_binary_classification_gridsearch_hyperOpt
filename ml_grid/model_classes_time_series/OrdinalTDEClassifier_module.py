@@ -1,10 +1,20 @@
+from typing import Any, Dict, List
+
 from aeon.classification.ordinal_classification import OrdinalTDE
+from ml_grid.pipeline.data import pipe
 
 
 # unknown ts
 class OrdinalTDE_class:
+    """A wrapper for the aeon OrdinalTDE time-series classifier."""
 
-    def __init__(self, ml_grid_object):
+    def __init__(self, ml_grid_object: pipe):
+        """Initializes the OrdinalTDE_class.
+
+        Args:
+            ml_grid_object (pipe): The main data pipeline object, which contains
+                data and global parameters.
+        """
 
         random_state_val = ml_grid_object.global_params.random_state_val
 
@@ -12,11 +22,11 @@ class OrdinalTDE_class:
 
         time_limit_param = ml_grid_object.global_params.time_limit_param
 
-        self.algorithm_implementation = OrdinalTDE()
+        self.algorithm_implementation: OrdinalTDE = OrdinalTDE()
 
-        self.method_name = "OrdinalTDE"
+        self.method_name: str = "OrdinalTDE"
 
-        self.parameter_space = {
+        self.parameter_space: Dict[str, List[Any]] = {
             "n_parameter_samples": [
                 100,
                 250,
@@ -48,9 +58,9 @@ class OrdinalTDE_class:
                 20,
                 30,
             ],  # Max number of dimensions per classifier for multivariate data
-            "time_limit_in_minutes": [
+            "time_limit_in_minutes":
                 time_limit_param
-            ],  # Time contract to limit build time in minutes
+            ,  # Time contract to limit build time in minutes
             "contract_max_n_parameter_samples": [
                 1000,
                 2000,

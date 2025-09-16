@@ -1,3 +1,5 @@
+"""Generates synthetic time-series data for testing purposes."""
+
 import numpy as np
 import pandas as pd
 
@@ -105,7 +107,23 @@ columns = ["client_idcode", "timestamp"] + [
 ]
 
 
-def generate_time_series(num_clients, num_rows_per_client):
+def generate_time_series(
+    num_clients: int, num_rows_per_client: int
+) -> pd.DataFrame:
+    """Generates a synthetic time-series DataFrame.
+
+    This function creates a DataFrame with multiple clients, each having a
+    sequence of data points over time. It generates random feature values and
+    a binary target, with a simple association where features are biased
+    upwards for one of the target classes.
+
+    Args:
+        num_clients (int): The number of unique clients to generate.
+        num_rows_per_client (int): The number of time-series rows for each client.
+
+    Returns:
+        pd.DataFrame: A sorted DataFrame containing the synthetic time-series data.
+    """
     # Generate client IDs
     client_ids = [
         f"{client_id}{''.join(np.random.choice(list('ABCDEFGHIJKLMNOPQRSTUVWXYZ'), 7))}"

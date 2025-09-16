@@ -1,12 +1,44 @@
+import pickle
+import random
+from typing import Dict, List, Union
+
+import numpy as np
+import pandas as pd
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
-import pandas as pd
-import numpy as np
-import random
-import pickle
 
-def mean_impute_dataframe(data, y_vars, test_size=0.25, val_size=0.25, random_state=1, seed=1234):
-    
+
+def mean_impute_dataframe(
+    data: pd.DataFrame,
+    y_vars: Union[str, List[str]],
+    test_size: float = 0.25,
+    val_size: float = 0.25,
+    random_state: int = 1,
+    seed: int = 1234,
+) -> pd.DataFrame:
+    """Imputes missing values in a DataFrame using the mean strategy.
+
+    This function first splits the data into training, validation, and test sets.
+    It then fits a `SimpleImputer` with a 'mean' strategy on the numeric columns
+    of the training data and uses this imputer to transform all three data splits.
+    Finally, it concatenates the imputed splits back into a single DataFrame.
+
+    Args:
+        data (pd.DataFrame): The input DataFrame with features and target variables.
+        y_vars (Union[str, List[str]]): The name(s) of the target variable(s).
+        test_size (float, optional): The proportion of the dataset to include in
+            the test split. Defaults to 0.25.
+        val_size (float, optional): The proportion of the training dataset to
+            include in the validation split. Defaults to 0.25.
+        random_state (int, optional): Controls the shuffling applied to the data
+            before applying the split. Defaults to 1.
+        seed (int, optional): The seed for the random number generator.
+            Defaults to 1234.
+
+    Returns:
+        pd.DataFrame: The DataFrame with missing numeric values imputed.
+    """
+
     random.seed(seed)
     
     # Drop columns that are completely empty (no values at all)
@@ -91,16 +123,19 @@ def mean_impute_dataframe(data, y_vars, test_size=0.25, val_size=0.25, random_st
 #df_merged = mean_impute_dataframe(df_merged, y_vars=outcome_columns, test_size=0.25, val_size=0.25, random_state=1, seed=1)
 
 
-def save_missing_percentage(df, output_file='percent_missing.pkl'):
-    """
-    Calculate the percentage of missing values in a DataFrame and save it to a pickle file.
-    
-    Parameters:
-    df (pd.DataFrame): The input DataFrame.
-    output_file (str): The path to save the pickle file.
-    
+def save_missing_percentage(
+    df: pd.DataFrame, output_file: str = "percent_missing.pkl"
+) -> Dict[str, float]:
+    """Calculates the percentage of missing values and saves it to a pickle file.
+
+    Args:
+        df (pd.DataFrame): The input DataFrame.
+        output_file (str, optional): The path to save the pickle file.
+            Defaults to 'percent_missing.pkl'.
+
     Returns:
-    dict: A dictionary with column names as keys and percentage of missing values as values.
+        Dict[str, float]: A dictionary with column names as keys and the
+        percentage of missing values as values.
     """
     percent_missing = df.isnull().mean() * 100
     percent_missing = percent_missing.to_dict()

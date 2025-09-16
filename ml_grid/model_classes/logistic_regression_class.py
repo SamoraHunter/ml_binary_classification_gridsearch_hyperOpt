@@ -1,3 +1,6 @@
+from typing import Optional
+
+import pandas as pd
 from ml_grid.util import param_space
 from sklearn.linear_model import LogisticRegression
 from ml_grid.util.global_params import global_parameters
@@ -6,15 +9,23 @@ from skopt.space import Categorical, Real
 print("Imported logistic regression class")
 
 class LogisticRegression_class:
-    """LogisticRegression."""
+    """LogisticRegression with support for both Bayesian and non-Bayesian parameter spaces."""
 
-    def __init__(self, X=None, y=None, parameter_space_size=None):
-        """Initialize the LogisticRegression class.
+    def __init__(
+        self,
+        X: Optional[pd.DataFrame] = None,
+        y: Optional[pd.Series] = None,
+        parameter_space_size: Optional[str] = None,
+    ):
+        """Initializes the LogisticRegression_class.
 
         Args:
-            X (numpy.ndarray): Features
-            y (numpy.ndarray): Target variable
-            parameter_space_size (int): Size of the parameter space
+            X (Optional[pd.DataFrame]): Feature matrix for training.
+                Defaults to None.
+            y (Optional[pd.Series]): Target vector for training.
+                Defaults to None.
+            parameter_space_size (Optional[str]): Size of the parameter space for
+                optimization. Defaults to None.
         """
         global_params = global_parameters
         self.X = X
@@ -137,10 +148,10 @@ class LogisticRegression_class:
 
         return None
 
-    def __repr__(self):
-        """Return the representation of the LogisticRegression class."""
-        return "LogisticRegression class"
+    def __repr__(self) -> str:
+        """Returns the representation of the LogisticRegression class."""
+        return "LogisticRegression_class"
 
-    def __str__(self):
-        """Return the string representation of the LogisticRegression class."""
-        return "LogisticRegression class"
+    def __str__(self) -> str:
+        """Returns the string representation of the LogisticRegression class."""
+        return "LogisticRegression_class"

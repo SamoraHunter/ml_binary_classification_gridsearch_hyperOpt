@@ -1,21 +1,30 @@
 import os
 import pickle
-from typing import List
+from typing import Any, Dict, List
 
 
 def handle_percent_missing(
-    local_param_dict: dict,
+    local_param_dict: Dict[str, Any],
     all_df_columns: List[str],
     file_name: str,
     drop_list: List[str],
 ) -> List[str]:
-    """
-    Handles the removal of columns with a high percentage of missing data.
+    """Handles the removal of columns with a high percentage of missing data.
+
+    This function reads a pre-calculated dictionary of missing data percentages
+    from a pickle file. It then identifies columns that exceed the missing
+    data threshold specified in `local_param_dict` and adds them to the
+    `drop_list`.
 
     Args:
-        local_param_dict (dict): Dictionary of parameters for the current pipeline.
-        all_df_columns (List[str]): All the column names in the dataframe to be processed.
-        drop_list (List[str]): List of columns to be dropped from the dataframe.
+        local_param_dict (Dict[str, Any]): Dictionary of parameters for the
+            current pipeline, must contain a 'percent_missing' threshold.
+        all_df_columns (List[str]): All column names in the DataFrame to be
+            processed.
+        file_name (str): The base name of the input data file, used to find
+            the corresponding percent missing pickle file.
+        drop_list (List[str]): List of columns to be dropped from the
+            DataFrame.
 
     Returns:
         List[str]: Updated list of columns to be dropped from the dataframe.

@@ -1,12 +1,22 @@
+from typing import Any, Dict, List
+
 from aeon.classification.deep_learning import InceptionTimeClassifier
 import keras
 
+from ml_grid.pipeline.data import pipe
 from ml_grid.util.param_space import ParamSpace
 
 
 class InceptionTimeClassifier_class:
+    """A wrapper for the aeon InceptionTimeClassifier time-series classifier."""
 
-    def __init__(self, ml_grid_object):
+    def __init__(self, ml_grid_object: pipe):
+        """Initializes the InceptionTimeClassifier_class.
+
+        Args:
+            ml_grid_object (pipe): The main data pipeline object, which contains
+                data and global parameters.
+        """
 
         random_state_val = ml_grid_object.global_params.random_state_val
 
@@ -18,11 +28,11 @@ class InceptionTimeClassifier_class:
 
         log_epoch = param_space.param_dict.get("log_epoch")
 
-        self.algorithm_implementation = InceptionTimeClassifier()
+        self.algorithm_implementation: InceptionTimeClassifier = InceptionTimeClassifier()
 
-        self.method_name = "InceptionTimeClassifier"
+        self.method_name: str = "InceptionTimeClassifier"
 
-        self.parameter_space = {
+        self.parameter_space: Dict[str, List[Any]] = {
             "n_classifiers": [
                 3,
                 5,

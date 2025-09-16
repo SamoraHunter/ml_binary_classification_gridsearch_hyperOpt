@@ -1,24 +1,34 @@
-"""Define QuadraticDiscriminantAnalysis class"""
+"""Defines the QuadraticDiscriminantAnalysis model class."""
 
+from typing import Optional
+
+import pandas as pd
 from ml_grid.util import param_space
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from ml_grid.util.global_params import global_parameters
-from scipy.stats import uniform
-import numpy as np
 from skopt.space import Categorical
 
 print("Imported QuadraticDiscriminantAnalysis class")
 
 
 class quadratic_discriminant_analysis_class:
-    """QuadraticDiscriminantAnalysis."""
+    """QuadraticDiscriminantAnalysis with support for hyperparameter tuning."""
 
-    def __init__(self, X=None, y=None, parameter_space_size=None):
-        """_summary_
+    def __init__(
+        self,
+        X: Optional[pd.DataFrame] = None,
+        y: Optional[pd.Series] = None,
+        parameter_space_size: Optional[str] = None,
+    ):
+        """Initializes the quadratic_discriminant_analysis_class.
 
         Args:
-            X_train (_type_): _description_
-            y_train (_type_): _description_
+            X (Optional[pd.DataFrame]): Feature matrix for training.
+                Defaults to None.
+            y (Optional[pd.Series]): Target vector for training.
+                Defaults to None.
+            parameter_space_size (Optional[str]): Size of the parameter space for
+                optimization. Defaults to None.
         """
         global_params = global_parameters
         self.X = X
@@ -28,9 +38,8 @@ class quadratic_discriminant_analysis_class:
         self.method_name = "QuadraticDiscriminantAnalysis"
 
         self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
-        # print(self.parameter_vector_space)
 
-        if(global_params.bayessearch):
+        if global_params.bayessearch:
             self.parameter_space = {
                 "priors": Categorical([None]),  # Categorical: single option, None
                 "reg_param": self.parameter_vector_space.param_dict.get("log_small"),  # Log-uniform between 1e-5 and 1e-2
@@ -47,5 +56,3 @@ class quadratic_discriminant_analysis_class:
             }
 
         return None
-
-        # print("init log reg class ", self.parameter_space)

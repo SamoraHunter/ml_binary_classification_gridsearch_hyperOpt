@@ -6,7 +6,7 @@ comprehensive set of visualizations for ML results analysis.
 
 import os
 import pandas as pd
-from typing import List, Optional
+from typing import List, Optional, NoReturn
 
 # Import all the individual plotter classes
 from .plot_algorithms import AlgorithmComparisonPlotter
@@ -24,18 +24,25 @@ from .summarize_results import ResultsSummarizer
 
 class MasterPlotter:
     """
-    A facade class that orchestrates various specialized plotters to generate a
-    full suite of analysis plots from ML results data.
+    A facade that orchestrates specialized plotters to generate analysis plots.
     """
 
     def __init__(self, data: pd.DataFrame, output_dir: str = '.'):
-        """
-        Initialize the MasterPlotter with the aggregated results data.
+        """Initializes the MasterPlotter with aggregated results data.
+
+        This class acts as a facade, instantiating various specialized plotters
+        to generate a comprehensive suite of analysis visualizations from the
+        provided results DataFrame.
 
         Args:
-            data: A pandas DataFrame containing the aggregated ML experiment results.
-                  Must be a non-empty DataFrame.
-            output_dir: The directory where output files (like CSVs) will be saved.
+            data (pd.DataFrame): A DataFrame containing the aggregated ML
+                experiment results. Must be non-empty.
+            output_dir (str, optional): The directory where output files (like
+                CSVs) will be saved. Defaults to '.'.
+
+        Raises:
+            ValueError: If the input `data` is not a valid, non-empty
+                pandas DataFrame.
         """
         if not isinstance(data, pd.DataFrame) or data.empty:
             raise ValueError("Input data must be a non-empty pandas DataFrame.")
@@ -103,20 +110,25 @@ class MasterPlotter:
                  stratify_by_outcome: bool = True,
                  top_n_features: int = 20,
                  top_n_algorithms: int = 10,
-                 save_best_results: bool = True):
-        """
-        Generates a comprehensive set of standard plots from all available plotters.
+                 save_best_results: bool = True) -> None:
+        """Generates a comprehensive set of standard plots from all plotters.
 
-        This method calls the main plotting functions from each specialized plotter
-        to provide a full overview of the results, including algorithm comparisons,
-        metric distributions, timeline trends, and feature importance.
+        This method calls the main plotting functions from each specialized
+        plotter to provide a full overview of the results, including algorithm
+        comparisons, metric distributions, timeline trends, and feature
+        importance. It also handles saving a summary of the best models.
 
         Args:
-            metric: The primary performance metric to use for plotting (e.g., 'auc', 'f1').
-            stratify_by_outcome: If True, creates plots stratified by the 'outcome_variable' column.
-            top_n_features: The number of top features to show in feature-related plots.
-            top_n_algorithms: The number of top algorithms to show in ranking plots.
-            save_best_results: If True, saves a CSV summary of the best model per outcome.
+            metric (str, optional): The primary performance metric to use for
+                plotting (e.g., 'auc', 'f1'). Defaults to 'auc_m'.
+            stratify_by_outcome (bool, optional): If True, creates plots
+                stratified by the 'outcome_variable' column. Defaults to True.
+            top_n_features (int, optional): The number of top features to show
+                in feature-related plots. Defaults to 20.
+            top_n_algorithms (int, optional): The number of top algorithms to
+                show in ranking plots. Defaults to 10.
+            save_best_results (bool, optional): If True, saves a CSV summary of
+                the best model per outcome. Defaults to True.
         """
         print(f"--- Starting MasterPlotter.plot_all() ---", flush=True)
         print(f"Parameters: metric='{metric}', stratify_by_outcome={stratify_by_outcome}, save_best_results={save_best_results}", flush=True)

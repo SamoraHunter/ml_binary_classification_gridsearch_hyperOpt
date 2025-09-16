@@ -14,18 +14,20 @@ import ast
 from ml_grid.results_processing.core import get_clean_data
 
 class FeatureCategoryPlotter:
-    """
-    Class for visualizing the impact of including different feature categories on model performance.
-    These categories correspond to the boolean flags that control which data sources are included
-    at the start of the data pipeline.
+    """Visualizes the impact of feature categories on model performance.
+
+    These categories correspond to the boolean flags that control which data
+    sources are included at the start of the data pipeline.
     """
 
     def __init__(self, data: pd.DataFrame):
-        """
-        Initialize the plotter.
+        """Initializes the FeatureCategoryPlotter.
 
         Args:
-            data: Results DataFrame, must contain boolean columns for feature categories and performance metrics.
+            data (pd.DataFrame): Results DataFrame, must contain boolean columns
+                for feature categories and performance metrics.
+        Raises:
+            ValueError: If no feature category columns are found in the data.
         """
         self.data = data
         self.clean_data = get_clean_data(data)
@@ -44,13 +46,18 @@ class FeatureCategoryPlotter:
         plt.style.use('default')
         sns.set_palette("viridis")
 
-    def plot_category_performance_boxplots(self, metric: str = 'auc', figsize: Optional[Tuple[int, int]] = None):
-        """
-        Creates box plots comparing performance when a feature category is included vs. excluded.
+    def plot_category_performance_boxplots(
+        self, metric: str = 'auc', figsize: Optional[Tuple[int, int]] = None
+    ) -> None:
+        """Creates box plots comparing performance when a feature category is included.
 
         Args:
-            metric: The performance metric to plot (e.g., 'auc').
-            figsize: Figure size for the plot.
+            metric (str, optional): The performance metric to plot.
+                Defaults to 'auc'.
+            figsize (Optional[Tuple[int, int]], optional): Figure size for the
+                plot. Defaults to None.
+        Raises:
+            ValueError: If the specified metric is not found in the data.
         """
         if metric not in self.clean_data.columns:
             raise ValueError(f"Metric '{metric}' not found in data.")
@@ -95,16 +102,21 @@ class FeatureCategoryPlotter:
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         plt.show()
 
-    def plot_category_impact_on_metric(self, metric: str = 'auc', figsize: Tuple[int, int] = (10, 8)):
-        """
-        Plots the impact of including each feature category on a given performance metric.
+    def plot_category_impact_on_metric(
+        self, metric: str = 'auc', figsize: Tuple[int, int] = (10, 8)
+    ) -> None:
+        """Plots the impact of including each feature category on a metric.
 
         Impact is calculated as:
-        (Mean metric of runs WITH the category) - (Mean metric of runs WITHOUT the category)
+        (Mean metric with category) - (Mean metric without category)
 
         Args:
-            metric: The performance metric to evaluate (e.g., 'auc').
-            figsize: The figure size for the plot.
+            metric (str, optional): The performance metric to evaluate.
+                Defaults to 'auc'.
+            figsize (Tuple[int, int], optional): The figure size for the plot.
+                Defaults to (10, 8).
+        Raises:
+            ValueError: If the specified metric is not found in the data.
         """
         if metric not in self.clean_data.columns:
             raise ValueError(f"Metric '{metric}' not found in data.")

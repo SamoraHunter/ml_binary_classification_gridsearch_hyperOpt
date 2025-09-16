@@ -1,3 +1,7 @@
+"""Generates a list of time-series model classes for the pipeline."""
+
+from typing import Any, List
+
 from ml_grid.model_classes_time_series.ArsenalClassifier_module import Arsenal_class
 from ml_grid.model_classes_time_series.CNNClassifier_module import CNNClassifier_class
 from ml_grid.model_classes_time_series.ContractableBOSSClassifier_module import (
@@ -61,9 +65,21 @@ from ml_grid.model_classes_time_series.rocketClassifier_module import (
     RocketClassifier_class,
 )
 from ml_grid.model_classes_time_series.shapeDTWClassifier_module import ShapeDTW_class
+from ml_grid.pipeline.data import pipe
 
 
-def get_model_class_list_ts(ml_grid_object):
+def get_model_class_list_ts(ml_grid_object: pipe) -> List[Any]:
+    """Generates a list of instantiated time-series model classes.
+
+    This function creates a hardcoded list of time-series model classes from
+    the `aeon` library, instantiating each one with the provided `ml_grid_object`.
+
+    Args:
+        ml_grid_object (pipe): The main data pipeline object, which contains data and global parameters.
+
+    Returns:
+        List[Any]: A list of instantiated time-series model class objects.
+    """
 
     model_class_list = [
         KNeighborsTimeSeriesClassifier_class(ml_grid_object),

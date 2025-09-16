@@ -1,8 +1,15 @@
+"""Defines a list of outcome variables for the project."""
+
+from typing import List
+
+
 class OutcomeList:
+    """A class to hold a predefined list of possible outcome variable names."""
 
     def __init__(self) -> None:
+        """Initializes the OutcomeList with a hardcoded list of outcome variables."""
 
-        self.all_outcome_list = [
+        self.all_outcome_list: List[str] = [
             "Hemochromatosis (disorder)_count",
             "Hemochromatosis (disorder)_count_subject_present",
             "Hemochromatosis (disorder)_count_relative_present",

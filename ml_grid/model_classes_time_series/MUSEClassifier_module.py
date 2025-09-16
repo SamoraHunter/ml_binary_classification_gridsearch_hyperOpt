@@ -1,19 +1,29 @@
+from typing import Any, Dict, List
+
 from aeon.classification.dictionary_based._muse import MUSE
+from ml_grid.pipeline.data import pipe
 
 
 class MUSE_class:
+    """A wrapper for the aeon MUSE (MUltivariate Symbolic Extension) time-series classifier."""
 
-    def __init__(self, ml_grid_object):
+    def __init__(self, ml_grid_object: pipe):
+        """Initializes the MUSE_class.
+
+        Args:
+            ml_grid_object (pipe): The main data pipeline object, which contains
+                data and global parameters.
+        """
 
         random_state_val = ml_grid_object.global_params.random_state_val
 
         n_jobs_model_val = ml_grid_object.global_params.n_jobs_model_val
 
-        self.algorithm_implementation = MUSE()
+        self.algorithm_implementation: MUSE = MUSE()
 
-        self.method_name = "MUSE"
+        self.method_name: str = "MUSE"
 
-        self.parameter_space = {
+        self.parameter_space: Dict[str, List[Any]] = {
             "anova": [
                 True,
                 False,

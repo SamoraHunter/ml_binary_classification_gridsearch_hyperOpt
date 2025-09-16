@@ -1,15 +1,26 @@
+from typing import Any, Dict, List
+
 from aeon.classification.distance_based import KNeighborsTimeSeriesClassifier
+from ml_grid.pipeline.data import pipe
 
 
 class KNeighborsTimeSeriesClassifier_class:
+    """A wrapper for the aeon KNeighborsTimeSeriesClassifier."""
 
-    def __init__(self, ml_grid_object):
+    def __init__(self, ml_grid_object: pipe):
+        """Initializes the KNeighborsTimeSeriesClassifier_class.
 
-        self.algorithm_implementation = KNeighborsTimeSeriesClassifier()
+        Args:
+            ml_grid_object (pipe): The main data pipeline object, which contains
+                data and global parameters.
+        """
+        self.algorithm_implementation: KNeighborsTimeSeriesClassifier = (
+            KNeighborsTimeSeriesClassifier()
+        )
 
-        self.method_name = "KNeighborsTimeSeriesClassifier"
+        self.method_name: str = "KNeighborsTimeSeriesClassifier"
 
-        self.parameter_space = {
+        self.parameter_space: Dict[str, List[Any]] = {
             "distance": [
                 "dtw",
                 "euclidean",
@@ -19,5 +30,3 @@ class KNeighborsTimeSeriesClassifier_class:
         }
 
         # nb consider probability scoring on binary class eval: CalibratedClassifierCV
-
-        return None

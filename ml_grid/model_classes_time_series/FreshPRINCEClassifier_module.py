@@ -1,21 +1,30 @@
+from typing import Any, Dict, List
+
 from aeon.classification.feature_based._fresh_prince import FreshPRINCEClassifier
+from ml_grid.pipeline.data import pipe
 
 
 class FreshPRINCEClassifier_class:
+    """A wrapper for the aeon FreshPRINCEClassifier time-series classifier."""
 
-    def __init__(self, ml_grid_object):
+    def __init__(self, ml_grid_object: pipe):
+        """Initializes the FreshPRINCEClassifier_class.
 
+        Args:
+            ml_grid_object (pipe): The main data pipeline object, which contains
+                data and global parameters.
+        """
         random_state_val = ml_grid_object.global_params.random_state_val
 
         verbose_param = ml_grid_object.verbose
 
         n_jobs_model_val = ml_grid_object.global_params.n_jobs_model_val
 
-        self.algorithm_implementation = FreshPRINCEClassifier()
+        self.algorithm_implementation: FreshPRINCEClassifier = FreshPRINCEClassifier()
 
-        self.method_name = "FreshPRINCEClassifier"
+        self.method_name: str = "FreshPRINCEClassifier"
 
-        self.parameter_space = {
+        self.parameter_space: Dict[str, List[Any]] = {
             "default_fc_parameters": [
                 "minimal",
                 "efficient",

@@ -1,6 +1,7 @@
 import time
 import traceback
 import warnings
+from typing import Any, Dict, List, Optional
 
 import keras
 import numpy as np
@@ -45,14 +46,31 @@ class grid_search_crossvalidate:
 
     def __init__(
         self,
-        algorithm_implementation,
-        parameter_space,
-        method_name,
-        ml_grid_object,
-        sub_sample_parameter_val=100,
-    ):  # kwargs**
-        #
+        algorithm_implementation: Any,
+        parameter_space: Union[Dict, List[Dict]],
+        method_name: str,
+        ml_grid_object: Any,
+        sub_sample_parameter_val: int = 100,
+    ):
+        """Initializes and runs a cross-validated hyperparameter search.
 
+        This class takes a given algorithm, its parameter space, and data from
+        the main pipeline object to perform either a grid search, randomized
+        search, or Bayesian search for the best hyperparameters. It then logs
+        the results.
+
+        Args:
+            algorithm_implementation (Any): The scikit-learn compatible estimator
+                instance.
+            parameter_space (Union[Dict, List[Dict]]): The dictionary or list of
+                dictionaries defining the hyperparameter search space.
+            method_name (str): The name of the algorithm method.
+            ml_grid_object (Any): The main pipeline object containing all data
+                (X_train, y_train, etc.) and parameters for the current
+                iteration.
+            sub_sample_parameter_val (int, optional): A value used to limit
+                the number of iterations in a randomized search. Defaults to 100.
+        """
         warnings.filterwarnings("ignore")
 
         warnings.filterwarnings("ignore", category=FutureWarning)
@@ -77,19 +95,15 @@ class grid_search_crossvalidate:
 
         grid_n_jobs = self.global_params.grid_n_jobs
 
-        if "keras" in method_name.lower(): # kerasClassifier_class
+        # Configure GPU usage and job limits for specific models
+        if "keras" in method_name.lower() or "xgb" in method_name.lower() or "catboost" in method_name.lower():
             grid_n_jobs = 1
-            gpu_devices = tf.config.experimental.list_physical_devices("GPU")
-            for device in gpu_devices:
-                tf.config.experimental.set_memory_growth(device, True)
-
-        if "XGBClassifier".lower() in str(algorithm_implementation).lower():
-            grid_n_jobs = -1
-
-        if "CatBoostClassifier".lower() in method_name.lower(): #CatBoostClassifier
-            grid_n_jobs = 1 # needs to write to directory
-
-        
+            try:
+                gpu_devices = tf.config.experimental.list_physical_devices("GPU")
+                for device in gpu_devices:
+                    tf.config.experimental.set_memory_growth(device, True)
+            except Exception as e:
+                print(f"Could not configure GPU for TensorFlow: {e}")
 
         self.metric_list = self.global_params.metric_list
 
@@ -247,28 +261,28 @@ class grid_search_crossvalidate:
             current_algorithm = search.run_search(self.X_train, self.y_train)
             
         except XGBoostError as e:
-            if 'cudaErrorMemoryAllocation' in str(e) or 'std::bad_alloc' in str(e):
+            if 'cuda' in str(e).lower() or 'memory' in str(e).lower():
                 print("GPU memory error detected, falling back to CPU...")
                  
                  # Change the tree_method in parameter_space dynamically
-                for param_dict in parameter_space:
-                    if 'tree_method' in param_dict:
-                        if(self.global_params.bayessearch):
-                            param_dict['tree_method'] = Categorical(['hist'])
-                        else:
-                            param_dict['tree_method'] = ["hist"]
+                if isinstance(parameter_space, list):
+                    for param_dict in parameter_space:
+                        if 'tree_method' in param_dict:
+                            param_dict['tree_method'] = Categorical(['hist']) if self.global_params.bayessearch else ["hist"]
+                elif isinstance(parameter_space, dict) and 'tree_method' in parameter_space:
+                     parameter_space['tree_method'] = Categorical(['hist']) if self.global_params.bayessearch else ["hist"]
                  
-                    search = HyperparameterSearch(
-                        algorithm=current_algorithm,
-                        parameter_space=parameter_space,
-                        method_name=method_name,
-                        global_params=self.global_parameters,
-                        sub_sample_pct=self.sub_sample_param_space_pct,  # Explore 50% of the parameter space
-                        max_iter=n_iter_v,         # Maximum iterations for randomized search
-                        ml_grid_object=ml_grid_object
-                    )
-                    # Try again with non gpu method. 
-                    current_algorithm = search.run_search(self.X_train, self.y_train)
+                search = HyperparameterSearch(
+                    algorithm=current_algorithm,
+                    parameter_space=parameter_space,
+                    method_name=method_name,
+                    global_params=self.global_parameters,
+                    sub_sample_pct=self.sub_sample_param_space_pct,
+                    max_iter=n_iter_v,
+                    ml_grid_object=ml_grid_object
+                )
+                # Try again with non-gpu method.
+                current_algorithm = search.run_search(self.X_train, self.y_train)
             else: 
                 print("unknown xgb error")
                 print(e)
@@ -333,7 +347,7 @@ class grid_search_crossvalidate:
             
             
         except XGBoostError as e:
-            if 'cudaErrorMemoryAllocation' in str(e) or 'std::bad_alloc' in str(e):
+            if 'cuda' in str(e).lower() or 'memory' in str(e).lower():
                 print("GPU memory error detected, falling back to CPU...")
                 current_algorithm.set_params(tree_method='hist') 
                 
@@ -429,19 +443,14 @@ class grid_search_crossvalidate:
 
 
 
-def dummy_auc():
-    """
-    Dummy function to return a constant AUC score of 0.5.
+def dummy_auc() -> float:
+    """Returns a constant AUC score of 0.5.
+
+    This function is intended as a placeholder or for use in scenarios where
+    a valid AUC score cannot be calculated but a value is required.
     
-    Parameters:
-    - y_true : array-like of shape (n_samples,)
-        True binary labels.
-    - y_pred : array-like of shape (n_samples,)
-        Target scores, can either be probability estimates or confidence values.
-        
     Returns:
-    - auc_score : float
-        Constant AUC score of 0.5.
+        float: A constant value of 0.5.
     """
     return 0.5
 
@@ -451,9 +460,8 @@ def dummy_auc():
 
 
 
-def scale_data(X_train):
-    """
-    Scale the data to [0, 1] range if it's not already scaled.
+def scale_data(X_train: pd.DataFrame) -> pd.DataFrame:
+    """Scales the data to a [0, 1] range if it's not already scaled.
     
     Args:
         X_train (pd.DataFrame): Training features.

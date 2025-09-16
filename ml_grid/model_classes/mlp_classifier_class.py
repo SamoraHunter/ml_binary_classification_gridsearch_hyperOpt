@@ -1,3 +1,6 @@
+from typing import Optional
+
+import pandas as pd
 from sklearn.neural_network import MLPClassifier
 from skopt.space import Real, Integer, Categorical
 from ml_grid.util import param_space
@@ -9,14 +12,21 @@ print("Imported MLPClassifier class")
 class mlp_classifier_class:
     """MLPClassifier with support for both Bayesian and non-Bayesian parameter spaces."""
 
-    def __init__(self, X=None, y=None, parameter_space_size=None):
-        """
-        Initialize the mlp_classifier_class.
+    def __init__(
+        self,
+        X: Optional[pd.DataFrame] = None,
+        y: Optional[pd.Series] = None,
+        parameter_space_size: Optional[str] = None,
+    ):
+        """Initializes the mlp_classifier_class.
 
         Args:
-            X (pd.DataFrame): Feature matrix for training (optional).
-            y (pd.Series): Target vector for training (optional).
-            parameter_space_size (int): Size of the parameter space for optimization.
+            X (Optional[pd.DataFrame]): Feature matrix for training.
+                Defaults to None.
+            y (Optional[pd.Series]): Target vector for training.
+                Defaults to None.
+            parameter_space_size (Optional[str]): Size of the parameter space for
+                optimization. Defaults to None.
         """
         self.X = X
         self.y = y

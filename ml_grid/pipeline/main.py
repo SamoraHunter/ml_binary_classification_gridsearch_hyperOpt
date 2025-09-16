@@ -1,16 +1,31 @@
 import traceback
+from typing import Any, Dict, List, Tuple
+
 import numpy as np
+from catboost import CatBoostError
 from ml_grid.pipeline import grid_search_cross_validate
-from ml_grid.util import grid_param_space
+from ml_grid.pipeline.data import pipe
+from ml_grid.util.bayes_utils import calculate_combinations
 from ml_grid.util.global_params import global_parameters
 from sklearn.model_selection import ParameterGrid
-from ml_grid.util.bayes_utils import calculate_combinations
-from catboost import CatBoostError
 
 class run:
+    """Orchestrates the hyperparameter search for a list of models."""
 
-    def __init__(self, ml_grid_object, local_param_dict):  # kwargs**
+    def __init__(self, ml_grid_object: pipe, local_param_dict: Dict[str, Any]):
+        """Initializes the run class.
 
+        This class takes the main data pipeline object and a dictionary of local
+        parameters to set up and prepare for executing a series of hyperparameter
+        searches across multiple machine learning models.
+
+        Args:
+            ml_grid_object (pipe): The main data pipeline object, which contains
+                the data (X_train, y_train, etc.) and a list of model classes
+                to be evaluated.
+            local_param_dict (Dict[str, Any]): A dictionary of parameters for the
+                current experimental run, such as `param_space_size`.
+        """
         self.global_params = global_parameters
 
         self.verbose = self.global_params.verbose
@@ -101,9 +116,20 @@ class run:
         if self.verbose >= 2:
             print(f"Passed main init, len(arg_list): {len(self.arg_list)}")
 
-    def execute(self):
+    def execute(self) -> Tuple[List[List[Any]], float]:
+        """Executes the grid search for each model in the list.
 
-        # needs implementing*
+        This method iterates through the list of configured models and their
+        parameter spaces, running a cross-validated grid search for each one.
+        It captures any errors that occur during the process and returns a list
+        of those errors along with the highest score achieved.
+
+        Returns:
+            Tuple[List[List[Any]], float]: A tuple containing:
+                - A list of model errors, where each error is a list containing
+                  the algorithm instance, the exception, and the traceback.
+                - The highest score achieved across all successful model runs.
+        """
 
         self.model_error_list = []
         
@@ -111,7 +137,7 @@ class run:
 
         if self.multiprocess:
 
-            def multi_run_wrapper(args):
+            def multi_run_wrapper(args: Tuple) -> Any:
                 print("not implemented ")
                 # return grid_search_cross_validate(*args)
 

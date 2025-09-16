@@ -8,7 +8,7 @@ which settings have the most significant impact on the target metric.
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 import warnings
 import ast
 
@@ -54,10 +54,21 @@ class GlobalImportancePlotter:
         plt.style.use('default')
         sns.set_palette("viridis")
 
-    def _prepare_data_for_importance_analysis(self, metric: str = 'auc'):
-        """
-        Prepares the data for modeling by selecting features, handling types,
+    def _prepare_data_for_importance_analysis(
+        self, metric: str = 'auc'
+    ) -> Tuple[pd.DataFrame, pd.Series, ColumnTransformer, List[str], List[str]]:
+        """Prepares the data for modeling by selecting features, handling types,
         and setting up a preprocessing pipeline.
+
+        Args:
+            metric (str, optional): The target metric to predict.
+                Defaults to 'auc'.
+
+        Returns:
+            Tuple[pd.DataFrame, pd.Series, ColumnTransformer, List[str], List[str]]:
+            A tuple containing the feature DataFrame (X), the target series (y),
+            the configured preprocessor, a list of numeric feature names, and a
+            list of categorical feature names.
         """
         all_predictors = (self.feature_categories + 
                           self.pipeline_categorical_params + 
@@ -118,10 +129,24 @@ class GlobalImportancePlotter:
         
         return X, y, preprocessor, numeric_features, categorical_features
 
-    def plot_global_importance(self, metric: str = 'auc', top_n: int = 30, figsize: Tuple[int, int] = (12, 10)):
-        """
-        Trains a RandomForest model to predict the metric from all experimental
+    def plot_global_importance(
+        self,
+        metric: str = 'auc',
+        top_n: int = 30,
+        figsize: Tuple[int, int] = (12, 10),
+    ) -> None:
+        """Trains a model to predict a metric from experimental parameters and plots importances.
+
+        This method trains a RandomForestRegressor on the various pipeline and
+        algorithm parameters to predict the outcome of a given performance metric.
         parameters and plots the resulting feature importances.
+
+        Args:
+            metric (str, optional): The target metric to predict. Defaults to 'auc'.
+            top_n (int, optional): The number of top important features to plot.
+                Defaults to 30.
+            figsize (Tuple[int, int], optional): The figure size for the plot.
+                Defaults to (12, 10).
         """
         print(f"Running Global Importance Analysis for metric: {metric.upper()}")
         try:

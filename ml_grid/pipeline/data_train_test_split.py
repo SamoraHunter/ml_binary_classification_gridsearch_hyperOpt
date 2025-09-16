@@ -1,45 +1,42 @@
+import random
+from typing import Any, Dict, Tuple, Union
+
+import numpy as np
+import pandas as pd
 from imblearn.over_sampling import RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
 from sklearn.model_selection import train_test_split
-import numpy as np
-import pandas as pd
-import random
 
 
-def get_data_split(X, y, local_param_dict):
+def get_data_split(
+    X: pd.DataFrame, y: pd.Series, local_param_dict: Dict[str, Any]
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, pd.DataFrame, pd.Series]:
+    """Splits data into train and test sets, with optional resampling.
+
+    This function splits the input data (X, y) into training and testing sets.
+    It can perform no resampling, undersampling, or oversampling based on the
+    'resample' key in `local_param_dict`. The data is first split into a
+    preliminary train/test set, and then the preliminary training set is
+    further split to create the final train/test sets for model evaluation,
+    while the original test set is preserved for final validation.
+
+    Args:
+        X (pd.DataFrame): The feature data.
+        y (pd.Series): The target variable.
+        local_param_dict (Dict[str, Any]): A dictionary of parameters,
+            including the 'resample' strategy ('undersample', 'oversample',
+            or None).
+
+    Returns:
+        Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, pd.DataFrame, pd.Series]:
+        A tuple containing:
+            - X_train: Features for training.
+            - X_test: Features for testing.
+            - y_train: Target variable for training.
+            - y_test: Target variable for testing.
+            - X_test_orig: Original features for validation.
+            - y_test_orig: Original target variable for validation.
     """
-    Split data into train, test, and validation sets
-    based on user inputs in local_param_dict
-
-    Parameters
-    ----------
-    X : array-like of shape (n_samples, n_features)
-        Features.
-    y : array-like of shape (n_samples,)
-        Target variable.
-    local_param_dict: dict
-        Dictionary of user-defined parameters for data splitting
-
-    Returns
-    -------
-    X_train : array-like of shape (n_samples_train, n_features)
-        Features for training.
-    X_test : array-like of shape (n_samples_test, n_features)
-        Features for testing.
-    y_train : array-like of shape (n_samples_train,)
-        Target variable for training.
-    y_test : array-like of shape (n_samples_test,)
-        Target variable for testing.
-    X_test_orig : array-like of shape (n_samples_test, n_features)
-        Original features for validation.
-    y_test_orig : array-like of shape (n_samples_test,)
-        Original target variable for validation.
-    """
-    # X = X
-    # y = y
-    # local_param_dict = local_param_dict
-    # X_train_orig, X_test_orig, y_train_orig, y_test_orig = None, None, None, None
-    
     random.seed(1234)
     np.random.seed(1234)
 
@@ -62,9 +59,6 @@ def get_data_split(X, y, local_param_dict):
 
     # Undersampling
     elif local_param_dict.get("resample") == "undersample":
-        # print("undersample..")
-        # print((y.shape))
-        # print(X.shape)
 
         # Store original column names and y name to reconstruct DataFrame after resampling
         original_columns = X.columns
@@ -115,24 +109,18 @@ def get_data_split(X, y, local_param_dict):
     return X_train, X_test, y_train, y_test, X_test_orig, y_test_orig
 
 
-# check names! Random resampling
+def is_valid_shape(input_data: Union[np.ndarray, pd.DataFrame]) -> bool:
+    """Checks if the input data is a 2-dimensional array or DataFrame.
 
-#         X_train_orig, X_test_orig, y_train_orig, y_test_orig = train_test_split(
-#         X, y, test_size=0.25, random_state=1
-#         )
+    This is used to validate data before resampling, as some resampling
+    techniques may not work with other data shapes.
 
-#         sampling_strategy = 0.8
-#         ros = RandomOverSampler(sampling_strategy=sampling_strategy)
-#         X_res, y_res = ros.fit_resample(X_train_orig, y_train_orig)
-#         print(y_res.value_counts())
-#         X = X_res.copy()
-#         y = y_res.copy()
+    Args:
+        input_data (Union[np.ndarray, pd.DataFrame]): The data to check.
 
-#         X_train, X_test, y_train, y_test = train_test_split(
-#         X, y, test_size=0.25, random_state=1)
-
-
-def is_valid_shape(input_data):
+    Returns:
+        bool: True if the data is 2-dimensional, False otherwise.
+    """
     # Check if input_data is a numpy array
     if isinstance(input_data, np.ndarray):
         # If it's a numpy array, directly check its number of dimensions
@@ -147,20 +135,3 @@ def is_valid_shape(input_data):
     else:
         # Input data is neither a numpy array nor a pandas DataFrame
         return False
-
-
-## Reproduce data split:
-
-
-# from ml_grid.pipeline.data_train_test_split import get_data_split
-
-# local_param_dict  = {'resample': str(df.iloc[0]['resample'])}
-
-# # replace nan value in local_param_dict with None
-
-# local_param_dict = {k: v if v!= 'nan' else None for k, v in local_param_dict.items()}
-
-# print(local_param_dict)
-
-
-# X_train, X_test, y_train, y_test, X_train_orig, y_test_orig = get_data_split(X, y, local_param_dict)

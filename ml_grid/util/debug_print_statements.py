@@ -1,78 +1,46 @@
-from numpy import absolute, mean, std
-from sklearn import metrics
-from sklearn.metrics import (
-    classification_report,
-    f1_score,
-    make_scorer,
-    matthews_corrcoef,
-    roc_auc_score,
-)
+from typing import Dict
+
+import numpy as np
 
 
 class debug_print_statements_class:
+    """A class for printing debug statements related to model scores."""
 
-    def __init__(self, scores):
+    def __init__(self, scores: Dict[str, np.ndarray]):
+        """Initializes the debug_print_statements_class.
 
+        Args:
+            scores (Dict[str, np.ndarray]): A dictionary of scores from a
+                scikit-learn cross-validation run. Expected keys include
+                'test_f1', 'test_roc_auc', 'test_accuracy', 'fit_time',
+                and 'score_time'.
+        """
         self.scores = scores
 
-    def debug_print_scores(self):
-        """Print mean and standard deviation of scores in a grid search
-        
-        Parameters
-        ----------
-        scores : dict
-            Dictionary containing the scores for each parameter combination
-        """
-        try:
-            print(
-                "Mean MAE: %.3f (%.3f)"
-                % (
-                    absolute(mean(self.scores["test_f1"])),
-                    std(self.scores["test_f1"]),
-                )
-            )
-        except Exception as e:
-            print("Error printing Mean MAE:", e)
-        
-        try:
-            print(
-                "Mean ROC AUC: %.3f (%.3f)"
-                % (
-                    absolute(mean(self.scores["test_roc_auc"])),
-                    std(self.scores["test_roc_auc"]),
-                )
-            )
-        except Exception as e:
-            print("Error printing Mean ROC AUC:", e)
-        
-        try:
-            print(
-                "Mean accuracy: %.3f (%.3f)"
-                % (absolute(mean(self.scores["test_accuracy"])), std(self.scores["test_accuracy"]))
-            )
-        except Exception as e:
-            print("Error printing Mean accuracy:", e)
-        
-        try:
-            print(
-                "Mean fit time: %.3f (%.3f)"
-                % (absolute(mean(self.scores["fit_time"])), std(self.scores["fit_time"]))
-            )
-        except Exception as e:
-            print("Error printing Mean fit time:", e)
-        
-        try:
-            print(
-                "Mean score time: %.3f (%.3f)"
-                % (absolute(mean(self.scores["score_time"])), std(self.scores["score_time"]))
-            )
-        except Exception as e:
-            print("Error printing Mean score time:", e)
-        
-        try:
-            print(
-                "---------------------------------------------------------------------------------------------------"
-            )
-        except Exception as e:
-            print("Error printing Separator:", e)
+    def debug_print_scores(self) -> None:
+        """Prints the mean and standard deviation of various scores.
 
+        This method iterates through a predefined set of score keys,
+        calculates the mean and standard deviation for each, and prints
+        the results to the console.
+        """
+        # The original code printed "Mean MAE" but used the "test_f1" score.
+        # Changed the label to "Mean F1" for clarity.
+        score_keys = {
+            "test_f1": "Mean F1",
+            "test_roc_auc": "Mean ROC AUC",
+            "test_accuracy": "Mean accuracy",
+            "fit_time": "Mean fit time",
+            "score_time": "Mean score time",
+        }
+
+        for key, label in score_keys.items():
+            try:
+                if key in self.scores:
+                    score_mean = np.absolute(np.mean(self.scores[key]))
+                    score_std = np.std(self.scores[key])
+                    print(f"{label}: {score_mean:.3f} ({score_std:.3f})")
+            except Exception as e:
+                print(f"Error printing {label}: {e}")
+
+        print("-" * 80)

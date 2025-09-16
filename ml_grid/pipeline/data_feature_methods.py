@@ -1,40 +1,38 @@
+from typing import List, Union
+
 import numpy as np
 import pandas as pd
 from PyImpetus import PPIMBC
-from sklearn.svm import SVC
 from sklearn.feature_selection import f_classif
+from sklearn.svm import SVC
+
 
 class feature_methods:
+    def __init__(self) -> None:
+        """Initializes the feature_methods class."""
+        pass
 
-    def __init__(self):
-        """set 100% for all, if not 100 then pass to function, always % of n input features. Calculate dynamically."""
+    def getNfeaturesANOVAF(
+        self, n: int, X_train: Union[pd.DataFrame, np.ndarray], y_train: pd.Series
+    ) -> List[str]:
+        """Gets the top n features based on the ANOVA F-value.
 
+        This method is for classification problems. The ANOVA F-value is
+        calculated for each feature in X_train, and the resulting F-values are
+        sorted in descending order. The top n features with the highest F-values
+        are returned.
 
+        Args:
+            n (int): The number of top features to return.
+            X_train (Union[pd.DataFrame, np.ndarray]): Training data.
+            y_train (pd.Series): Target variable.
 
-    def getNfeaturesANOVAF(self, n, X_train, y_train):
-        """
-        Get the top n features based on the ANOVA F-value
-        for classification problem.
-
-        The ANOVA F-value is calculated for each feature in X_train
-        and the resulting F-values are sorted in descending order.
-        The top n features with the highest F-values are returned.
-
-        Parameters
-        ----------
-        n : int
-            Number of top features to return.
-        X_train : array-like of shape (n_samples, n_features)
-            Training data. Can be a pandas DataFrame or a numpy array.
-        y_train : array-like of shape (n_samples,)
-            Target variable.
+        Raises:
+            ValueError: If X_train is not a pandas DataFrame or numpy array, or
+                if no features can be returned (e.g., all have NaN F-values).
 
         Returns
-        -------
-        finalColNames : list
-            List of column names of top n features.
-            If X_train is a pandas DataFrame, the column names
-            are used, otherwise the column indices are used.
+            List[str]: A list of column names for the top n features.
         """
 
         # Check if input is a pandas DataFrame or numpy array
@@ -42,7 +40,9 @@ class feature_methods:
             feature_names = X_train.columns  # Get column names
             X_train = X_train.values  # Convert to numpy array
         elif isinstance(X_train, np.ndarray):
-            feature_names = np.arange(X_train.shape[1])  # Use indices as column names
+            feature_names = np.arange(
+                X_train.shape[1]
+            )  # Use indices as column names
         else:
             raise ValueError("X_train must be a pandas DataFrame or numpy array")
 
@@ -72,7 +72,9 @@ class feature_methods:
             if sortedList:
                 return [sortedList[0][0]]
             else:
-                raise ValueError("getNfeaturesANOVAF returned no features. All features might have NaN F-values.")
+                raise ValueError(
+                    "getNfeaturesANOVAF returned no features. All features might have NaN F-values."
+                )
 
         return finalColNames
 
@@ -80,43 +82,31 @@ class feature_methods:
 
     def getNFeaturesMarkovBlanket(
         self,
-        n,
-        X_train,
-        y_train,
+        n: int,
+        X_train: pd.DataFrame,
+        y_train: pd.Series,
         num_simul: int = 30,
         cv: int = 5,
         svc_kernel: str = "rbf",
-    ):
+    ) -> List[str]:
+        """Gets the top n features from the Markov Blanket (MB) using PyImpetus.
 
-        """
-        Get the names of the top n features from the Markov Blanket (MB) using PyImpetus.
+        Args:
+            n (int): The number of top features to retrieve.
+            X_train (pd.DataFrame): The training input samples.
+            y_train (pd.Series): The target values.
+            num_simul (int): Number of simulations for stability selection in
+                PyImpetus. Defaults to 30.
+            cv (int): Number of cross-validation folds. Defaults to 5.
+            svc_kernel (str): The kernel to be used by the SVC model.
+                Defaults to "rbf".
 
-        Parameters:
-        - n (int): The number of top features to retrieve.
-        - X_train (array-like): The training input samples.
-        - y_train (array-like): The target values.
-        - num_simul (int): Number of simulations for stability selection in PyImpetus.
-        - cv (int): Number of cross-validation folds.
-        - svc_kernel (str): The kernel to be used by the SVC model.
+        Raises:
+            TypeError: If X_train is not a pandas DataFrame.
 
         Returns:
-        - list: A list containing the names of the top n features from the Markov Blanket.
-
-        Example:
-        ```
-        # Import necessary modules
-        from sklearn.datasets import make_classification
-        from sklearn.model_selection import train_test_split
-
-        # Generate synthetic data for binary classification
-        X, y = make_classification(n_samples=1500, n_features=20, n_informative=8, n_classes=2, random_state=42)
-
-        # Split the data into training and testing sets
-        X_train, _, y_train, _ = train_test_split(X, y, test_size=0.33, random_state=42)
-
-        # Get the top 5 features from the Markov Blanket
-        top_features = getNFeaturesMarkovBlanket(5, X_train, y_train)
-        ```
+            List[str]: A list containing the names of the top n features from
+            the Markov Blanket.
         """
         # Ensure input is a pandas DataFrame to access column names
         if not isinstance(X_train, pd.DataFrame):

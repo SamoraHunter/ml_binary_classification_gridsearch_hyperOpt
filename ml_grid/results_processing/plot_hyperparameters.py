@@ -16,9 +16,14 @@ from sklearn.metrics import r2_score
 from ml_grid.results_processing.core import get_clean_data
 
 class HyperparameterAnalysisPlotter:
+    """Analyzes and visualizes the impact of hyperparameters on model performance.
+
+    This class extracts hyperparameter settings from model string representations
+    in the results data, allowing for detailed analysis of how different
+    hyperparameters affect a given performance metric.
     """
-    Fixed version that properly extracts algorithm names and includes enhanced correlation analysis
-    """
+    # Define algorithms to ignore for hyperparameter parsing as they don't store them in a parsable format.
+    _ALGOS_TO_IGNORE = ['CatBoostClassifier', 'KNNWrapper', 'knn_wrapper_class']
 
     def __init__(self, data: pd.DataFrame):
         if 'algorithm_implementation' not in data.columns:
@@ -31,12 +36,9 @@ class HyperparameterAnalysisPlotter:
         self.clean_data['algorithm_name'] = self.clean_data['algorithm_implementation'].apply(
             lambda x: x.split('(')[0].strip() if isinstance(x, str) and '(' in x else None
         )
-        
-        # Define algorithms to ignore for hyperparameter parsing as they don't store them in a parsable format.
-        algos_to_ignore = ['CatBoostClassifier', 'KNNWrapper', 'knn_wrapper_class']
-        
+
         # Filter out ignored algorithms before parsing
-        self.clean_data = self.clean_data[~self.clean_data['algorithm_name'].isin(algos_to_ignore)]
+        self.clean_data = self.clean_data[~self.clean_data['algorithm_name'].isin(self._ALGOS_TO_IGNORE)]
         
         # Parse parameters
         self.clean_data['params_dict'] = self.clean_data['algorithm_implementation'].apply(
@@ -51,7 +53,19 @@ class HyperparameterAnalysisPlotter:
 
     @staticmethod
     def _parse_model_string_to_params(model_str: str) -> Optional[Dict[str, Any]]:
-        """Same as original but with better error handling"""
+        """Parses a scikit-learn model's string representation into a parameter dictionary.
+
+        This method uses Abstract Syntax Trees (AST) to safely parse the
+        string representation of a model (e.g., "RandomForestClassifier(n_estimators=100)")
+        and extract its hyperparameters into a dictionary.
+
+        Args:
+            model_str (str): The string representation of the model.
+
+        Returns:
+            Optional[Dict[str, Any]]: A dictionary of the model's hyperparameters,
+            or None if parsing fails.
+        """
         if not isinstance(model_str, str) or '(' not in model_str:
             return None
         try:
@@ -87,7 +101,11 @@ class HyperparameterAnalysisPlotter:
             return None
 
     def get_available_algorithms(self):
-        """Get list of available algorithms in the data"""
+        """Gets a list of available, parsable algorithms from the data.
+
+        Returns:
+            List[str]: A sorted list of unique algorithm names.
+        """
         return sorted(self.clean_data['algorithm_name'].unique())
 
     def plot_performance_by_hyperparameter(self,
@@ -95,20 +113,23 @@ class HyperparameterAnalysisPlotter:
                                            hyperparameters: List[str],
                                            metric: str = 'auc',
                                            figsize: Optional[Tuple[int, int]] = None):
-        """
-        Plots performance against a list of hyperparameters in a grid, providing a visual
-        analysis of how individual parameter values affect the model's metric score.
+        """Plots performance against a list of hyperparameters in a grid.
 
-        This function creates a grid of subplots, where each subplot visualizes the
-        relationship between a specific hyperparameter and the performance metric.
-        It automatically detects whether a hyperparameter is continuous (plotting a scatter
-        plot) or categorical/discrete (plotting a box plot).
+        This function provides a visual analysis of how individual parameter
+        values affect the model's metric score. It creates a grid of subplots,
+        where each subplot visualizes the relationship between a specific
+        hyperparameter and the performance metric, automatically detecting
+        whether to use a scatter plot (for continuous) or a box plot
+        (for categorical/discrete).
 
         Args:
-            algorithm_name: The name of the algorithm to analyze (e.g., 'RandomForestClassifier').
-            hyperparameters: A list of hyperparameter names to plot.
-            metric: The performance metric to use for the y-axis.
-            figsize: The overall figure size for the grid of plots. If None, a default is calculated.
+            algorithm_name (str): The name of the algorithm to analyze (e.g.,
+                'RandomForestClassifier').
+            hyperparameters (List[str]): A list of hyperparameter names to plot.
+            metric (str, optional): The performance metric for the y-axis.
+                Defaults to 'auc'.
+            figsize (Optional[Tuple[int, int]], optional): The overall figure
+                size. If None, a default is calculated. Defaults to None.
         """
         algo_data = self.clean_data[self.clean_data['algorithm_name'] == algorithm_name].copy()
         
@@ -154,8 +175,13 @@ class HyperparameterAnalysisPlotter:
         plt.show()
 
     def _plot_single_performance_vs_hyperparameter(self, ax: plt.Axes, algo_data: pd.DataFrame, hyperparameter: str, metric: str):
-        """
-        Helper to plot performance vs a single hyperparameter on a given axis.
+        """Helper to plot performance vs a single hyperparameter on a given axis.
+
+        Args:
+            ax (plt.Axes): The matplotlib axis to plot on.
+            algo_data (pd.DataFrame): The data for the specific algorithm.
+            hyperparameter (str): The name of the hyperparameter to plot.
+            metric (str): The name of the performance metric.
         """
         # Extract hyperparameter value for each run
         plot_data = algo_data.copy()
@@ -215,8 +241,6 @@ class HyperparameterAnalysisPlotter:
                 order = sorted(param_values_str.unique())
                 sns.boxplot(data=plot_data, x=hyperparameter + '_str', y=metric, order=order, ax=ax)
             
-            # `ha` (horizontalalignment) is not a valid keyword for tick_params.
-            # It must be set on the tick labels themselves.
             ax.tick_params(axis='x', rotation=45, labelsize=9)
             plt.setp(ax.get_xticklabels(), ha='right')
             ax.set_xlabel(hyperparameter, fontsize=10)
@@ -229,8 +253,17 @@ class HyperparameterAnalysisPlotter:
                                                     algorithm_name: str,
                                                     metric: str,
                                                     method: str = 'pearson') -> Optional[pd.DataFrame]:
-        """
-        Helper method to calculate correlations between continuous hyperparameters and a metric.
+        """Helper to calculate correlations between continuous hyperparameters and a metric.
+
+        Args:
+            algorithm_name (str): The name of the algorithm to analyze.
+            metric (str): The performance metric to correlate against.
+            method (str, optional): The correlation method ('pearson' or
+                'spearman'). Defaults to 'pearson'.
+
+        Returns:
+            Optional[pd.DataFrame]: A DataFrame with correlation results, or
+            None if no continuous hyperparameters are found.
         """
         algo_data = self.clean_data[self.clean_data['algorithm_name'] == algorithm_name].copy()
         if algo_data.empty:
@@ -282,8 +315,20 @@ class HyperparameterAnalysisPlotter:
                                        metric: str = 'auc',
                                        top_n_percent: int = 20,
                                        figsize: Optional[Tuple[int, int]] = None):
-        """
-        Fixed version using algorithm_name
+        """Plots hyperparameter distributions for top models vs. all models.
+
+        This method provides insight into which hyperparameter values are more
+        prevalent in high-performing models compared to the overall distribution
+        of values explored during the search.
+
+        Args:
+            algorithm_name (str): The name of the algorithm to analyze.
+            metric (str, optional): The metric used to define "top" models.
+                Defaults to 'auc'.
+            top_n_percent (int, optional): The percentage of top models to
+                compare against. Defaults to 20.
+            figsize (Optional[Tuple[int, int]], optional): The figure size for
+                the plot. Defaults to None.
         """
         algo_data = self.clean_data[self.clean_data['algorithm_name'] == algorithm_name].copy()
         
@@ -420,12 +465,21 @@ class HyperparameterAnalysisPlotter:
                                         method: str = 'pearson',
                                         figsize: Optional[Tuple[int, int]] = None,
                                         show_correlation_stats: bool = True):
-        """
-        Plot scatter plots showing correlation between continuous hyperparameters and performance metric.
-        Shows correlation coefficient and trend line for each continuous hyperparameter.
+        """Plots correlation between continuous hyperparameters and a performance metric.
+
+        This method creates scatter plots to visualize the relationship between
+        each continuous hyperparameter and the target metric, including a
+        regression line and correlation statistics.
 
         Args:
-            method: Correlation method, 'pearson' or 'spearman'.
+            algorithm_name (str): The name of the algorithm to analyze.
+            metric (str, optional): The performance metric. Defaults to 'auc'.
+            method (str, optional): The correlation method ('pearson' or 'spearman').
+                Defaults to 'pearson'.
+            figsize (Optional[Tuple[int, int]], optional): The figure size.
+                Defaults to None.
+            show_correlation_stats (bool, optional): Whether to print a summary
+                table of correlations. Defaults to True.
         """
         algo_data = self.clean_data[self.clean_data['algorithm_name'] == algorithm_name].copy()
         
@@ -558,11 +612,17 @@ class HyperparameterAnalysisPlotter:
                              method: str = 'pearson',
                              top_n: int = 5,
                              figsize: Tuple[int, int] = (15, 10)):
-        """
-        Plot only the top N hyperparameters by correlation strength with the metric.
+        """Plots only the top N most correlated hyperparameters with the metric.
 
         Args:
-            method: Correlation method, 'pearson' or 'spearman'.
+            algorithm_name (str): The name of the algorithm to analyze.
+            metric (str, optional): The performance metric. Defaults to 'auc'.
+            method (str, optional): The correlation method ('pearson' or 'spearman').
+                Defaults to 'pearson'.
+            top_n (int, optional): The number of top correlated hyperparameters
+                to plot. Defaults to 5.
+            figsize (Tuple[int, int], optional): The figure size.
+                Defaults to (15, 10).
         """
         algo_data = self.clean_data[self.clean_data['algorithm_name'] == algorithm_name].copy()
         

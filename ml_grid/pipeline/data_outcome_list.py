@@ -3,16 +3,18 @@ from ml_grid.util import outcome_list
 
 
 def handle_outcome_list(drop_list: List[str], outcome_variable: str) -> List[str]:
-    """
-    This function extends the drop_list with all possible outcome
-    variables, then removes the specified outcome_variable from the list
+    """Extends a drop list with all possible outcome variables, then removes the current one.
+
+    This ensures that only the specified outcome variable for the current run is
+    used as the target, and all other potential outcome variables are excluded
+    from the feature set.
 
     Args:
-        drop_list (List[str]): list of columns to drop
-        outcome_variable (str): name of outcome variable
+        drop_list (List[str]): The list of columns to be dropped.
+        outcome_variable (str): The name of the current outcome variable to keep.
 
     Returns:
-        List[str]: updated drop_list
+        List[str]: The updated list of columns to drop.
     """
 
     print("Extending all outcome list on drop list")

@@ -1,7 +1,6 @@
 import pathlib
 import time
 import traceback
-
 import numpy as np
 import pandas as pd
 from ml_grid.util.global_params import global_parameters
@@ -9,16 +8,23 @@ from sklearn import metrics
 from sklearn.metrics import *
 import pickle
 import os
-
 import warnings
+from typing import Any, Dict, List
 
 # from sklearn.utils.testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 
 
 class project_score_save_class:
+    """Handles the creation and updating of the project's score log file."""
 
-    def __init__(self, base_project_dir):
+    def __init__(self, base_project_dir: str):
+        """Initializes the score logger and creates the log file with headers.
+
+        Args:
+            base_project_dir (str): The root directory for the project where
+                the log file will be saved.
+        """
 
         warnings.filterwarnings("ignore")
 
@@ -35,7 +41,7 @@ class project_score_save_class:
         self.error_raise = self.global_params.error_raise
 
         # init final grid scores
-        column_list = [
+        self.column_list: List[str] = [
             "algorithm_implementation",
             "parameter_sample",
             "method_name",
@@ -84,19 +90,19 @@ class project_score_save_class:
             'failed'
         ]
 
-        metric_names = []
+        metric_names: List[str] = []
         for metric in self.metric_list:
             metric_names.append(f"{metric}_m")
             metric_names.append(f"{metric}_std")
 
-        column_list.extend(metric_names)
+        self.column_list.extend(metric_names)
 
         # column_list = column_list +['BL_' + str(x) for x in range(0, 64)]
 
-        df = pd.DataFrame(data=None, columns=column_list)
+        df = pd.DataFrame(data=None, columns=self.column_list)
 
         df.to_csv(
-            base_project_dir + "final_grid_score_log.csv",
+            os.path.join(base_project_dir, "final_grid_score_log.csv"),
             mode="w",
             header=True,
             index=False,
@@ -104,16 +110,32 @@ class project_score_save_class:
 
     def update_score_log(
         self,
-        ml_grid_object,
-        scores,
-        best_pred_orig,
-        current_algorithm,
-        method_name,
-        pg,
-        start,
-        n_iter_v,
-        failed,
+        ml_grid_object: Any,
+        scores: Dict[str, np.ndarray],
+        best_pred_orig: np.ndarray,
+        current_algorithm: Any,
+        method_name: str,
+        pg: int,
+        start: float,
+        n_iter_v: int,
+        failed: bool,
     ):
+        """Updates the score log with the results of a single experiment run.
+
+        Args:
+            ml_grid_object (Any): The main pipeline object containing all data
+                and parameters for the current iteration.
+            scores (Dict[str, np.ndarray]): A dictionary of scores from
+                cross-validation.
+            best_pred_orig (np.ndarray): Predictions from the best estimator on
+                the original test set.
+            current_algorithm (Any): The best estimator instance from the search.
+            method_name (str): The name of the algorithm method.
+            pg (int): The size of the parameter grid.
+            start (float): The start time of the run (from `time.time()`).
+            n_iter_v (int): The number of iterations performed in the search.
+            failed (bool): A flag indicating if the run failed.
+        """
 
         self.global_parameters = global_parameters
 
@@ -141,65 +163,8 @@ class project_score_save_class:
         try:
             print("Writing grid permutation to log")
             # write line to best grid scores---------------------
-            column_list = [
-                "algorithm_implementation",
-                "parameter_sample",
-                "method_name",
-                "nb_size",
-                "f_list",
-                "auc",
-                "mcc",
-                "f1",
-                "precision",
-                "recall",
-                "accuracy",
-                "resample",
-                "scale",
-                "n_features",
-                "param_space_size",
-                "n_unique_out",
-                "outcome_var_n",
-                "percent_missing",
-                "corr",
-                "age",
-                "sex",
-                "bmi",
-                "ethnicity",
-                "bloods",
-                "diagnostic_order",
-                "drug_order",
-                "annotation_n",
-                "meta_sp_annotation_n",
-                "meta_sp_annotation_mrc_n",
-                "annotation_mrc_n",
-                "core_02",
-                "bed",
-                "vte_status",
-                "hosp_site",
-                "core_resus",
-                "news",
-                "date_time_stamp",
-                "X_train_size",
-                "X_test_orig_size",
-                "X_test_size",
-                "run_time",
-                "n_fits",
-                "t_fits",
-                "i",
-                "outcome_variable",
-                'failed'
-            ]
 
-            metric_names = []
-            for metric in self.metric_list:
-                metric_names.append(f"{metric}_m")
-                metric_names.append(f"{metric}_std")
-
-            column_list.extend(metric_names)
-
-            # column_list = column_list +['BL_' + str(x) for x in range(0, 64)]
-
-            line = pd.DataFrame(data=None, columns=column_list)
+            line = pd.DataFrame(data=None, columns=self.column_list)
 
             # best_pred_orig = grid.best_estimator_.predict(X_test_orig)
             try:
@@ -220,12 +185,12 @@ class project_score_save_class:
             for key in ml_grid_object.local_param_dict:
                 # print(key)
                 if key != "data":
-                    if key in column_list:
+                    if key in self.column_list:
                         line[key] = [ml_grid_object.local_param_dict.get(key)]
                 else:
                     for key_1 in ml_grid_object.local_param_dict.get("data"):
                         # print(key_1)
-                        if key_1 in column_list:
+                        if key_1 in self.column_list:
                             line[key_1] = [
                                 ml_grid_object.local_param_dict.get("data").get(key_1)
                             ]
@@ -314,8 +279,8 @@ class project_score_save_class:
             # line['g_val'] = [g_val]
             # line['g'] = [g]
 
-            line[column_list].to_csv(
-                ml_grid_object.base_project_dir + "final_grid_score_log.csv",
+            line[self.column_list].to_csv(
+                os.path.join(ml_grid_object.base_project_dir, "final_grid_score_log.csv"),
                 mode="a",
                 header=False,
                 index=True,

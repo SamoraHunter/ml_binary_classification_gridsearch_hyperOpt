@@ -29,20 +29,21 @@ from ml_grid.results_processing.core import get_clean_data
 
 
 class FeatureAnalysisPlotter:
-    """
-    Class for creating feature analysis and importance visualizations.
-    """
+    """A class for creating feature analysis and importance visualizations."""
 
     def __init__(self, data: pd.DataFrame):
-        """
-        Initialize the feature analysis plotter.
+        """Initializes the feature analysis plotter.
 
         Args:
-            data: Results DataFrame, must contain 'decoded_features' column.
+            data (pd.DataFrame): Results DataFrame, which must contain a
+                'decoded_features' column.
+
+        Raises:
+            ValueError: If the 'decoded_features' column is not found in the data.
         """
         if 'decoded_features' not in data.columns:
             raise ValueError("Data must contain a 'decoded_features' column. Ensure ResultsAggregator was run with a feature names CSV.")
-        
+
         self.data = data
         self.clean_data = get_clean_data(data)
         
@@ -56,14 +57,17 @@ class FeatureAnalysisPlotter:
                                      stratify_by_outcome: bool = False,
                                      outcomes_to_plot: Optional[List[str]] = None,
                                      figsize: Optional[Tuple[int, int]] = None):
-        """
-        Plots the frequency of each feature's usage in successful runs.
+        """Plots the frequency of each feature's usage in successful runs.
 
         Args:
-            top_n: Number of most frequent features to plot.
-            stratify_by_outcome: If True, create separate plots for each outcome.
-            outcomes_to_plot: Specific outcomes to plot (if stratified).
-            figsize: Figure size for the plot. If None, a default is calculated.
+            top_n (int, optional): The number of most frequent features to plot.
+                Defaults to 20.
+            stratify_by_outcome (bool, optional): If True, creates separate plots
+                for each outcome. Defaults to False.
+            outcomes_to_plot (Optional[List[str]], optional): A list of specific
+                outcomes to plot (if stratified). Defaults to None.
+            figsize (Optional[Tuple[int, int]], optional): The figure size for
+                the plot. If None, a default is calculated. Defaults to None.
         """
         if not stratify_by_outcome:
             fig_size = figsize or (10, 8)
@@ -74,7 +78,7 @@ class FeatureAnalysisPlotter:
             self._plot_stratified_feature_frequency(top_n, outcomes_to_plot, figsize)
 
     def _plot_single_feature_frequency(self, top_n: int, figsize: Tuple[int, int]):
-        """Helper for plotting overall feature frequency."""
+        """A helper method for plotting overall feature frequency."""
         plt.figure(figsize=figsize)
         
         feature_counts = self.feature_df['feature'].value_counts().nlargest(top_n)
@@ -88,7 +92,7 @@ class FeatureAnalysisPlotter:
         plt.show()
 
     def _plot_stratified_feature_frequency(self, top_n: int, outcomes_to_plot: Optional[List[str]], figsize: Optional[Tuple[int, int]]):
-        """Helper for plotting stratified feature frequency."""
+        """A helper method for plotting stratified feature frequency."""
         outcomes = outcomes_to_plot or sorted(self.clean_data['outcome_variable'].unique())
         if len(outcomes) > MAX_OUTCOMES_FOR_STRATIFIED_PLOT and outcomes_to_plot is None:
             warnings.warn(
@@ -140,19 +144,24 @@ class FeatureAnalysisPlotter:
                                         min_usage: int = 5,
                                         top_n_features_to_consider: int = MAX_FEATURES_FOR_ANALYSIS,
                                         figsize_per_outcome: Tuple[int, int] = (10, 8)):
-        """
-        Plots the impact of features on a given performance metric for each outcome.
+        """Plots the impact of features on a performance metric for each outcome.
 
         Impact is calculated as:
         (Mean metric of runs WITH the feature) - (Mean metric of runs WITHOUT the feature)
 
         Args:
-            metric: The performance metric to evaluate (e.g., 'auc', 'f1').
-            outcomes: List of outcome variables to plot. If None, all are plotted.
-            top_n: Number of top positive and negative impacting features to show.
-            min_usage: Minimum number of times a feature must be used to be included.
-            top_n_features_to_consider: Max number of most frequent features to analyze for impact.
-            figsize_per_outcome: The figure size for each individual outcome plot.
+            metric (str, optional): The performance metric to evaluate.
+                Defaults to 'auc'.
+            outcomes (Optional[List[str]], optional): A list of outcome variables
+                to plot. If None, all are plotted. Defaults to None.
+            top_n (int, optional): The number of top positive and negative
+                impacting features to show. Defaults to 20.
+            min_usage (int, optional): The minimum number of times a feature must
+                be used to be included. Defaults to 5.
+            top_n_features_to_consider (int, optional): The max number of most
+                frequent features to analyze for impact. Defaults to 500.
+            figsize_per_outcome (Tuple[int, int], optional): The figure size for
+                each individual outcome plot. Defaults to (10, 8).
         """
         if 'outcome_variable' not in self.clean_data.columns:
             raise ValueError("outcome_variable column not found for this analysis.")
@@ -263,19 +272,24 @@ class FeatureAnalysisPlotter:
                                         min_usage: int = 5,
                                         top_n_features_to_consider: int = MAX_FEATURES_FOR_ANALYSIS,
                                         figsize_per_outcome: Tuple[int, int] = (10, 8)):
-        """
-        Plots the point-biserial correlation between feature presence and a performance metric.
+        """Plots the correlation between feature presence and a performance metric.
 
         This shows which features, when present, are most correlated with higher or lower
         performance for a given outcome.
 
         Args:
-            metric: The performance metric to correlate with (e.g., 'auc', 'f1').
-            outcomes: List of outcome variables to plot. If None, all are plotted.
-            top_n: Number of top positive and negative correlated features to show.
-            min_usage: Minimum number of times a feature must be used to be included.
-            top_n_features_to_consider: Max number of most frequent features to analyze for correlation.
-            figsize_per_outcome: The figure size for each individual outcome plot.
+            metric (str, optional): The performance metric to correlate with.
+                Defaults to 'auc'.
+            outcomes (Optional[List[str]], optional): A list of outcome variables
+                to plot. If None, all are plotted. Defaults to None.
+            top_n (int, optional): The number of top positive and negative
+                correlated features to show. Defaults to 20.
+            min_usage (int, optional): The minimum number of times a feature must
+                be used to be included. Defaults to 5.
+            top_n_features_to_consider (int, optional): The max number of most
+                frequent features to analyze for correlation. Defaults to 500.
+            figsize_per_outcome (Tuple[int, int], optional): The figure size for
+                each individual outcome plot. Defaults to (10, 8).
         """
         if 'outcome_variable' not in self.clean_data.columns:
             raise ValueError("outcome_variable column not found for this analysis.")
@@ -377,17 +391,21 @@ class FeatureAnalysisPlotter:
                                        stratify_by_outcome: bool = False,
                                        max_features_for_upset: int = MAX_FEATURES_FOR_UPSET,
                                        figsize: Tuple[int, int] = (12, 7)):
-        """
-        Plots the intersections of feature sets used in successful models using an UpSet plot.
+        """Plots the intersections of feature sets using an UpSet plot.
 
         This helps visualize which combinations of features are most frequently used together.
 
         Args:
-            top_n_sets: The number of most frequent feature set intersections to plot.
-            min_subset_size: The minimum number of models a feature set must appear in to be plotted.
-            stratify_by_outcome: If True, create a separate plot for each outcome variable.
-            max_features_for_upset: Max number of most frequent features to include in the UpSet plot matrix.
-            figsize: The figure size for the plot.
+            top_n_sets (int, optional): The number of most frequent feature set
+                intersections to plot. Defaults to 10.
+            min_subset_size (int, optional): The minimum number of models a feature
+                set must appear in to be plotted. Defaults to 5.
+            stratify_by_outcome (bool, optional): If True, creates a separate plot
+                for each outcome variable. Defaults to False.
+            max_features_for_upset (int, optional): The max number of most frequent
+                features to include in the UpSet plot matrix. Defaults to 40.
+            figsize (Tuple[int, int], optional): The figure size for the plot.
+                Defaults to (12, 7).
         """
         if UpSet is None:
             warnings.warn("Cannot generate UpSet plot because `upsetplot` is not installed. "
@@ -416,7 +434,7 @@ class FeatureAnalysisPlotter:
                     self._plot_single_upset(outcome_data, outcome, top_n_sets, min_subset_size, max_features_for_upset, figsize)
 
     def _plot_single_upset(self, data: pd.DataFrame, title: str, top_n_sets: int, min_subset_size: int, max_features_for_upset: int, figsize: Tuple[int, int]):
-        """Helper to generate a single UpSet plot for given data."""
+        """A helper method to generate a single UpSet plot for given data."""
         # Filter out rows with empty or invalid feature lists
         feature_sets = data['decoded_features'].dropna().apply(lambda x: x if isinstance(x, list) and x else None).dropna()
 

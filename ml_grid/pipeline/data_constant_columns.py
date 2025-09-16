@@ -1,24 +1,24 @@
 import pandas as pd
 import numpy as np
-from typing import List, Optional
+from typing import List, Optional, Tuple, Union
 
-def remove_constant_columns(X: pd.DataFrame, drop_list: Optional[List[str]] = None, verbose: int = 1) -> List[str]:
-    """
-    Identifies columns in X where all values are the same (constant) and returns their names.
 
-    Parameters
-    ----------
-    X : pd.DataFrame
-        DataFrame to check for constant columns.
-    drop_list : List[str], optional
-        List of columns already marked for dropping. Default is None.
-    verbose : int, optional
-        Controls the verbosity of logging. Default is 1.
+def remove_constant_columns(
+    X: pd.DataFrame, drop_list: Optional[List[str]] = None, verbose: int = 1
+) -> List[str]:
+    """Identifies columns in a DataFrame where all values are the same.
 
-    Returns
-    -------
-    List[str]
-        Updated list of columns to drop, including constant columns.
+    Args:
+        X (pd.DataFrame): DataFrame to check for constant columns.
+        drop_list (Optional[List[str]], optional): A list of columns already
+            marked for dropping. Defaults to None.
+        verbose (int, optional): Controls the verbosity of logging. Defaults to 1.
+
+    Returns:
+        List[str]: Updated list of columns to drop, including constant columns.
+
+    Raises:
+        AssertionError: If X is None.
     """
     try:
         if verbose > 1:
@@ -50,7 +50,37 @@ def remove_constant_columns(X: pd.DataFrame, drop_list: Optional[List[str]] = No
 
     return drop_list
 
-def remove_constant_columns_with_debug(X_train, X_test, X_test_orig, verbosity=2):
+
+def remove_constant_columns_with_debug(
+    X_train: Union[pd.DataFrame, np.ndarray],
+    X_test: Union[pd.DataFrame, np.ndarray],
+    X_test_orig: Union[pd.DataFrame, np.ndarray],
+    verbosity: int = 2,
+) -> Tuple[
+    Union[pd.DataFrame, np.ndarray],
+    Union[pd.DataFrame, np.ndarray],
+    Union[pd.DataFrame, np.ndarray],
+]:
+    """Removes constant columns from training and testing datasets.
+
+    This function identifies columns that have zero variance in either the
+    training or testing set and removes them from all provided datasets
+    (X_train, X_test, X_test_orig). It supports both pandas DataFrames and
+    NumPy arrays, including 3D arrays for time series data.
+
+    Args:
+        X_train (Union[pd.DataFrame, np.ndarray]): Training feature data.
+        X_test (Union[pd.DataFrame, np.ndarray]): Testing feature data.
+        X_test_orig (Union[pd.DataFrame, np.ndarray]): Original (unsplit)
+            testing feature data.
+        verbosity (int, optional): Controls the verbosity of debug messages.
+            Defaults to 2.
+
+    Returns:
+        Tuple[Union[pd.DataFrame, np.ndarray], ...]: A tuple containing the
+        modified X_train, X_test, and X_test_orig datasets with constant
+        columns removed.
+    """
     if verbosity > 0:
         # Debug message: Initial shapes of X_train, X_test, X_test_orig
         print(f"Initial X_train shape: {X_train.shape}")

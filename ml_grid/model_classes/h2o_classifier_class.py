@@ -1,3 +1,6 @@
+from typing import Optional
+
+import pandas as pd
 from ml_grid.model_classes.H2OAutoMLClassifier import H2OAutoMLClassifier
 from ml_grid.util import param_space
 from ml_grid.util.global_params import global_parameters
@@ -9,14 +12,21 @@ print("Imported h2o_classifier_class")
 class h2o_classifier_class:
     """H2OAutoMLClassifier with support for both Bayesian and non-Bayesian parameter spaces."""
 
-    def __init__(self, X=None, y=None, parameter_space_size=None):
-        """
-        Initialize the H2OAutoMLClassifier_class.
+    def __init__(
+        self,
+        X: Optional[pd.DataFrame] = None,
+        y: Optional[pd.Series] = None,
+        parameter_space_size: Optional[str] = None,
+    ):
+        """Initializes the h2o_classifier_class.
 
         Args:
-            X (_type_): Feature matrix for training (optional).
-            y (_type_): Target vector for training (optional).
-            parameter_space_size (_type_): Size of the parameter space for optimization.
+            X (Optional[pd.DataFrame]): Feature matrix for training.
+                Defaults to None.
+            y (Optional[pd.Series]): Target vector for training.
+                Defaults to None.
+            parameter_space_size (Optional[str]): Size of the parameter space for
+                optimization. Defaults to None.
         """
         global_params = global_parameters
         print("init h2o_classifier_class")

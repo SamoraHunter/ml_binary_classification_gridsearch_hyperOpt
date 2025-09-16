@@ -1,13 +1,23 @@
+from typing import Any, Dict, List
+
 from aeon.classification.deep_learning import (
     IndividualInceptionClassifier,
 )
 
+from ml_grid.pipeline.data import pipe
 from ml_grid.util.param_space import ParamSpace
 
 
 class IndividualInceptionClassifier_class:
+    """A wrapper for the aeon IndividualInceptionClassifier time-series classifier."""
 
-    def __init__(self, ml_grid_object):
+    def __init__(self, ml_grid_object: pipe):
+        """Initializes the IndividualInceptionClassifier_class.
+
+        Args:
+            ml_grid_object (pipe): The main data pipeline object, which contains
+                data and global parameters.
+        """
 
         random_state_val = ml_grid_object.global_params.random_state_val
 
@@ -19,11 +29,13 @@ class IndividualInceptionClassifier_class:
 
         log_epoch = param_space.param_dict.get("log_epoch")
 
-        self.algorithm_implementation = IndividualInceptionClassifier()
+        self.algorithm_implementation: IndividualInceptionClassifier = (
+            IndividualInceptionClassifier()
+        )
 
-        self.method_name = "IndividualInceptionClassifier"
+        self.method_name: str = "IndividualInceptionClassifier"
 
-        self.parameter_space = {
+        self.parameter_space: Dict[str, List[Any]] = {
             "depth": [6, 8, 10],
             "nb_filters": [32, 64, 128],
             "nb_conv_per_layer": [3, 4, 5],

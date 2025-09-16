@@ -4,23 +4,23 @@ Module for creating tabular summaries from ML results data.
 """
 
 import pandas as pd
-from typing import Optional
+from typing import Optional, List
 from sklearn.preprocessing import MultiLabelBinarizer
 import warnings
 
 from .core import get_clean_data
 
 class ResultsSummarizer:
-    """
-    Provides methods to summarize and transform results data into concise DataFrames.
-    """
+    """Provides methods to summarize and transform results data into concise DataFrames."""
 
     def __init__(self, data: pd.DataFrame):
-        """
-        Initialize the summarizer.
+        """Initializes the summarizer.
 
         Args:
-            data: Aggregated results DataFrame.
+            data (pd.DataFrame): Aggregated results DataFrame.
+
+        Raises:
+            ValueError: If the input data is not a non-empty pandas DataFrame.
         """
         if not isinstance(data, pd.DataFrame) or data.empty:
             raise ValueError("Input data must be a non-empty pandas DataFrame.")
@@ -28,15 +28,20 @@ class ResultsSummarizer:
         self.clean_data = get_clean_data(data)
 
     def get_best_model_per_outcome(self, metric: str = 'auc') -> pd.DataFrame:
-        """
-        Finds the best performing model for each outcome and transforms the feature
-        list into boolean columns indicating feature usage.
+        """Finds the best model for each outcome and expands the feature list.
+
+        This method identifies the single best-performing model run for each
+        outcome variable based on the specified metric. It then transforms the
+        'decoded_features' list into a set of boolean columns, where each new
+        column represents a feature and its value indicates whether that feature
+        was used in the best model run.
 
         Args:
-            metric: The performance metric to use for determining the "best" model.
+            metric (str, optional): The performance metric to use for determining
+                the "best" model. Defaults to 'auc'.
 
         Returns:
-            A DataFrame containing the best model run for each outcome, with
+            pd.DataFrame: A DataFrame containing the best model run for each outcome, with
             additional boolean columns for each feature.
         """
         if 'outcome_variable' not in self.clean_data.columns:

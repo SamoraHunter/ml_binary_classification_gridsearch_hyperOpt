@@ -1,5 +1,8 @@
-"""Define NeuralNetworkClassifier class"""
+"""Defines the NeuralNetworkClassifier model class."""
 
+from typing import Optional
+
+import pandas as pd
 from ml_grid.util import param_space
 
 # from ml_grid.model_classes.nni_sklearn_wrapper import *
@@ -9,14 +12,24 @@ print("Imported NeuralNetworkClassifier class")
 
 
 class NeuralNetworkClassifier_class:
-    """NeuralNetworkClassifier."""
+    """NeuralNetworkClassifier with a predefined parameter space."""
 
-    def __init__(self, X=None, y=None, parameter_space_size=None, global_parameters=None):
-        """_summary_
+    def __init__(
+        self,
+        X: Optional[pd.DataFrame] = None,
+        y: Optional[pd.Series] = None,
+        parameter_space_size: Optional[str] = None,
+    ):
+        """Initializes the NeuralNetworkClassifier_class.
 
         Args:
-            X_train (_type_): _description_
-            y_train (_type_): _description_
+            X (Optional[pd.DataFrame]): Feature matrix for training.
+                Defaults to None.
+            y (Optional[pd.Series]): Target vector for training.
+                Defaults to None.
+            parameter_space_size (Optional[str]): Size of the parameter space for
+                optimization. This is not used in the current implementation
+                as the parameter space is hardcoded. Defaults to None.
         """
         self.X = X
         self.y = y

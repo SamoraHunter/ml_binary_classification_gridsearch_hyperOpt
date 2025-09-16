@@ -5,7 +5,17 @@ import numpy as np
 import polars as pl
 
 class read:
-    def __init__(self, input_filename, use_polars=False):
+    """Reads a CSV file into a pandas DataFrame, with an option to use Polars for faster reading."""
+
+    def __init__(self, input_filename: str, use_polars: bool = False):
+        """Initializes the read class and loads the data.
+
+        Args:
+            input_filename (str): The path to the input CSV file.
+            use_polars (bool, optional): If True, attempts to read the CSV using
+                the Polars library and converts it to a pandas DataFrame.
+                Falls back to pandas if Polars fails. Defaults to False.
+        """
         filename = input_filename
         print(f"Init main >read on {filename}")
         if use_polars:
@@ -13,7 +23,6 @@ class read:
                 self.raw_input_data = pl.read_csv(filename, ignore_errors=True)
                 self.raw_input_data = self.raw_input_data.to_pandas()
             except Exception as e:
-                print(f"Error reading with Polars: {e}")
                 print(f"Error reading with Polars: {e}")
                 print("Trying to read with Pandas...")
                 try:
@@ -34,21 +43,28 @@ class read_sample:
     def __init__(
         self, input_filename: str, test_sample_n: int, column_sample_n: int
     ) -> None:
-        """
-        Initialize the class with the input filename, test sample number, and column sample number.
-        
-        This class is designed to read in a sample from the input data,
-        where the number of rows and columns to read in can be specified.
-        
-        The rows are read in randomly,
-        and the columns are read in randomly IF the number of columns to read in is less than the total number of columns in the file.
-        
-        The class will raise an error if the outcome variable does not have both classes after sampling.
-        
-        :param input_filename: str, the filename of the input data
-        :param test_sample_n: int, the number of rows to read from the input data
-        :param column_sample_n: int, the number of columns to read from the input data
-        :return: None
+        """Initializes the read_sample class and loads a data sample.
+
+        This class reads a random sample of rows and/or columns from a CSV file.
+        It ensures that certain `necessary_columns` are always included if they
+        exist in the source file.
+
+        Note:
+            The column sampling logic (`max_additional_columns`) appears to be
+            based on the number of rows to sample (`test_sample_n`) rather than
+            the number of columns (`column_sample_n`), which may be unintended.
+            The functionality has been preserved as is.
+
+        Args:
+            input_filename (str): The path to the input CSV file.
+            test_sample_n (int): The number of rows to randomly sample. If 0,
+                all rows are read.
+            column_sample_n (int): The number of columns to randomly sample,
+                in addition to the `necessary_columns`.
+
+        Raises:
+            ValueError: If the 'outcome_var_1' column does not contain at least
+                two unique classes after sampling.
         """
         self.filename = input_filename
 

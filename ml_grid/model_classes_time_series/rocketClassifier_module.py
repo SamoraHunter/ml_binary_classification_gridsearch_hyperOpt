@@ -1,19 +1,29 @@
+from typing import Any, Dict, List
+
 from aeon.classification.convolution_based._rocket_classifier import RocketClassifier
+from ml_grid.pipeline.data import pipe
 
 
 class RocketClassifier_class:
+    """A wrapper for the aeon RocketClassifier time-series classifier."""
 
-    def __init__(self, ml_grid_object):
+    def __init__(self, ml_grid_object: pipe):
+        """Initializes the RocketClassifier_class.
+
+        Args:
+            ml_grid_object (pipe): The main data pipeline object, which contains
+                data and global parameters.
+        """
 
         random_state_val = ml_grid_object.global_params.random_state_val
 
         n_jobs_model_val = ml_grid_object.global_params.n_jobs_model_val
 
-        self.algorithm_implementation = RocketClassifier()
+        self.algorithm_implementation: RocketClassifier = RocketClassifier()
 
-        self.method_name = "RocketClassifier"
+        self.method_name: str = "RocketClassifier"
 
-        self.parameter_space = {
+        self.parameter_space: Dict[str, List[Any]] = {
             "num_kernels": [
                 5000,
                 10000,

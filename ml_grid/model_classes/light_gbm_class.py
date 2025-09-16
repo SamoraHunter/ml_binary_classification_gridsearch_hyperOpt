@@ -1,3 +1,6 @@
+from typing import Optional
+
+import pandas as pd
 import lightgbm as lgb
 from ml_grid.util import param_space
 
@@ -8,8 +11,22 @@ from ml_grid.util.global_params import global_parameters
 
 
 class LightGBMClassifierWrapper:
+    """LightGBMClassifier with support for both Bayesian and non-Bayesian parameter spaces."""
 
-    def __init__(self, X=None, y=None, parameter_space_size=None):
+    def __init__(
+        self,
+        X: Optional[pd.DataFrame] = None,
+        y: Optional[pd.Series] = None,
+        parameter_space_size: Optional[str] = None,
+    ):
+        """Initializes the LightGBMClassifierWrapper.
+
+        Args:
+            X (Optional[pd.DataFrame]): Feature matrix for training. Defaults to None.
+            y (Optional[pd.Series]): Target vector for training. Defaults to None.
+            parameter_space_size (Optional[str]): Size of the parameter space for
+                optimization. Defaults to None.
+        """
         self.X = X
         self.y = y
 

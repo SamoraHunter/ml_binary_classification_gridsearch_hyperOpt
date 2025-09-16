@@ -1,10 +1,19 @@
+from typing import Any, Dict, List
+
 from aeon.classification.hybrid._hivecote_v2 import HIVECOTEV2
+from ml_grid.pipeline.data import pipe
 
 
 class HIVECOTEV2_class:
+    """A wrapper for the aeon HIVECOTEV2 time-series classifier."""
 
-    def __init__(self, ml_grid_object):
+    def __init__(self, ml_grid_object: pipe):
+        """Initializes the HIVECOTEV2_class.
 
+        Args:
+            ml_grid_object (pipe): The main data pipeline object, which contains
+                data and global parameters.
+        """
         time_limit_param = ml_grid_object.global_params.time_limit_param
 
         random_state_val = ml_grid_object.global_params.random_state_val
@@ -13,11 +22,11 @@ class HIVECOTEV2_class:
 
         n_jobs_model_val = ml_grid_object.global_params.n_jobs_model_val
 
-        self.algorithm_implementation = HIVECOTEV2()
+        self.algorithm_implementation: HIVECOTEV2 = HIVECOTEV2()
 
-        self.method_name = "HIVECOTEV2"
+        self.method_name: str = "HIVECOTEV2"
 
-        self.parameter_space = {
+        self.parameter_space: Dict[str, List[Any]] = {
             "stc_params": [
                 None
             ],  # Parameters for the ShapeletTransformClassifier module. If None, uses the default parameters with a 2-hour transform contract.

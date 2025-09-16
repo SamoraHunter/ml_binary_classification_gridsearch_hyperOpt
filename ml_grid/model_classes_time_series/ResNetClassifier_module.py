@@ -1,13 +1,21 @@
+from typing import Any, Dict, List
+
 import keras
-
 from aeon.classification.deep_learning import ResNetClassifier
-
+from ml_grid.pipeline.data import pipe
 from ml_grid.util.param_space import ParamSpace
 
 
 class ResNetClassifier_class:
+    """A wrapper for the aeon ResNetClassifier time-series classifier."""
 
-    def __init__(self, ml_grid_object):
+    def __init__(self, ml_grid_object: pipe):
+        """Initializes the ResNetClassifier_class.
+
+        Args:
+            ml_grid_object (pipe): The main data pipeline object, which contains
+                data and global parameters.
+        """
 
         random_state_val = ml_grid_object.global_params.random_state_val
 
@@ -21,11 +29,11 @@ class ResNetClassifier_class:
 
         log_epoch = param_space.param_dict.get("log_epoch")
 
-        self.algorithm_implementation = ResNetClassifier()
+        self.algorithm_implementation: ResNetClassifier = ResNetClassifier()
 
-        self.method_name = "ResNetClassifier"
+        self.method_name: str = "ResNetClassifier"
 
-        self.parameter_space = {
+        self.parameter_space: Dict[str, List[Any]] = {
             "n_residual_blocks": [
                 2,
                 3,

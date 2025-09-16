@@ -1,10 +1,10 @@
 import re
+import random
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
-import sklearn.feature_selection
 from IPython.display import display
 from sklearn.exceptions import ConvergenceWarning
-from tabulate import tabulate
 
 from ml_grid.pipeline import read_in
 from ml_grid.pipeline.column_names import get_pertubation_columns
@@ -16,48 +16,68 @@ from ml_grid.pipeline.data_outcome_list import handle_outcome_list
 from ml_grid.pipeline.data_percent_missing import handle_percent_missing
 from ml_grid.pipeline.data_plot_split import plot_pie_chart_with_counts
 from ml_grid.pipeline.data_scale import data_scale_methods
-from ml_grid.pipeline.data_train_test_split import *
+from ml_grid.pipeline.data_train_test_split import get_data_split, is_valid_shape
 from ml_grid.pipeline.logs_project_folder import log_folder
 from ml_grid.pipeline.model_class_list import get_model_class_list
 from ml_grid.util.global_params import global_parameters
 
-ConvergenceWarning("ignore")
-
-from warnings import filterwarnings
-
-filterwarnings("ignore")
-
-import warnings
-
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=ConvergenceWarning)
-    warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=ConvergenceWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 class pipe:
-    """
-    function should take settings iteration...
-    _Function takes input csv of type KCH cogstack, outputs _
+    """Represents a single data processing pipeline permutation.
 
-    Function returns ml_grid_[data]_object, this is a permutation from the feature space
-
-    This object can be used to pass to classifier methods
+    This class reads data, applies a series of cleaning and feature selection
+    steps based on a dictionary of parameters, and prepares the data for model
+    training and evaluation. The resulting object holds the processed data and
+    can be passed to classifier methods.
     """
 
     def __init__(
         self,
-        file_name,
-        drop_term_list,
-        local_param_dict,
-        base_project_dir,
-        param_space_index,
-        additional_naming=None,
-        test_sample_n=0,
-        column_sample_n=0,
-        time_series_mode=False,
-        model_class_dict = None,
-        outcome_var_override = None
-    ):  # kwargs**
+        file_name: str,
+        drop_term_list: List[str],
+        local_param_dict: Dict[str, Any],
+        base_project_dir: str,
+        param_space_index: int,
+        additional_naming: Optional[str] = None,
+        test_sample_n: int = 0,
+        column_sample_n: int = 0,
+        time_series_mode: bool = False,
+        model_class_dict: Optional[Dict[str, bool]] = None,
+        outcome_var_override: Optional[str] = None,
+    ):
+        """Initializes the data pipeline object.
+
+        This method reads data, applies various cleaning and feature engineering
+        steps based on the provided parameters, and splits the data into
+        training and testing sets.
+
+        Args:
+            file_name (str): The path to the input CSV file.
+            drop_term_list (List[str]): A list of substrings to identify columns
+                to drop.
+            local_param_dict (Dict[str, Any]): A dictionary of parameters for this
+                specific pipeline run.
+            base_project_dir (str): The root directory for the project.
+            param_space_index (int): The index of the current parameter space
+                permutation.
+            additional_naming (Optional[str], optional): Additional string to
+                append to log folder names. Defaults to None.
+            test_sample_n (int, optional): The number of rows to sample from the
+                dataset for testing. Defaults to 0 (no sampling).
+            column_sample_n (int, optional): The number of columns to sample.
+                Defaults to 0 (no sampling).
+            time_series_mode (bool, optional): Flag to enable time-series specific
+                data processing. Defaults to False.
+            model_class_dict (Optional[Dict[str, bool]], optional): A dictionary
+                specifying which model classes to include. Defaults to None.
+            outcome_var_override (Optional[str], optional): A specific outcome
+                variable name to use, overriding the one from `local_param_dict`.
+                Defaults to None.
+        """
 
         self.base_project_dir = base_project_dir
 
@@ -84,36 +104,10 @@ class pipe:
             base_project_dir=base_project_dir,
         )
 
-        read_in_sample = True
-
-        if read_in_sample and test_sample_n > 0 or column_sample_n > 0:
+        if test_sample_n > 0 or column_sample_n > 0:
             self.df = read_in.read_sample(file_name, test_sample_n, column_sample_n).raw_input_data
         else:
             self.df = read_in.read(file_name, use_polars=True).raw_input_data
-
-        if test_sample_n > 0 and read_in_sample == False:
-            print("sampling 200 for debug/trial purposes...")
-            self.df = self.df.sample(test_sample_n)
-
-        if column_sample_n > 0 and read_in_sample == False:
-            # Check if 'age' and 'male' columns are in the original DataFrame
-            if 'age' in self.df.columns and 'male' in self.df.columns and 'outcome_var_1' in self.df.columns:
-                original_columns = ['age', 'male', 'outcome_var_1']
-            else:
-                original_columns = []
-            
-            print("Sampling", column_sample_n, "columns for additional debug/trial purposes...")
-            
-            # Sample the columns
-            sampled_columns = self.df.sample(n=column_sample_n, axis=1).columns
-            
-            # Ensure original columns are retained
-            new_columns = list(set(sampled_columns) | set(original_columns))
-            
-            # Reassign DataFrame with sampled columns
-            self.df = self.df[new_columns].copy()
-            
-            print("Result df shape", self.df.shape)
 
         self.all_df_columns = list(self.df.columns)
 
@@ -124,7 +118,7 @@ class pipe:
             local_param_dict=local_param_dict,
             drop_term_list=drop_term_list,
         )
-        if(outcome_var_override == None):
+        if outcome_var_override is None:
             self.outcome_variable = f'outcome_var_{local_param_dict.get("outcome_var_n")}'
         
         else:

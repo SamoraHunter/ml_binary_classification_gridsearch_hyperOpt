@@ -12,17 +12,17 @@ from typing import List, Tuple, Optional
 from ml_grid.results_processing.core import get_clean_data
 
 class PipelineParameterPlotter:
-    """
-    Class for visualizing the impact of pipeline parameters on model performance.
-    Handles both categorical and continuous parameters.
-    """
+    """Visualizes the impact of pipeline parameters on model performance."""
 
     def __init__(self, data: pd.DataFrame):
-        """
-        Initialize the plotter.
+        """Initializes the PipelineParameterPlotter.
 
         Args:
-            data: Results DataFrame, must contain columns for pipeline parameters and performance metrics.
+            data (pd.DataFrame): Results DataFrame, must contain columns for
+                pipeline parameters and performance metrics.
+
+        Raises:
+            ValueError: If no pipeline parameter columns are found in the data.
         """
         self.data = data
         self.clean_data = get_clean_data(data)
@@ -51,13 +51,19 @@ class PipelineParameterPlotter:
         plt.style.use('default')
         sns.set_palette("viridis")
 
-    def plot_categorical_parameters(self, metric: str = 'auc', figsize: Optional[Tuple[int, int]] = None):
-        """
-        Creates box plots for categorical pipeline parameters.
+    def plot_categorical_parameters(
+        self, metric: str = 'auc', figsize: Optional[Tuple[int, int]] = None
+    ) -> None:
+        """Creates box plots for categorical pipeline parameters.
 
         Args:
-            metric: The performance metric to plot (e.g., 'auc').
-            figsize: Figure size for the plot.
+            metric (str, optional): The performance metric to plot.
+                Defaults to 'auc'.
+            figsize (Optional[Tuple[int, int]], optional): Figure size for the
+                plot. Defaults to None.
+
+        Raises:
+            ValueError: If the specified metric is not found in the data.
         """
         if not self.available_categorical:
             print("Info: No categorical pipeline parameters found to plot.")
@@ -101,13 +107,19 @@ class PipelineParameterPlotter:
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         plt.show()
 
-    def plot_continuous_parameters(self, metric: str = 'auc', figsize: Optional[Tuple[int, int]] = None):
-        """
-        Creates scatter plots for continuous pipeline parameters.
+    def plot_continuous_parameters(
+        self, metric: str = 'auc', figsize: Optional[Tuple[int, int]] = None
+    ) -> None:
+        """Creates scatter plots for continuous pipeline parameters.
 
         Args:
-            metric: The performance metric to plot (e.g., 'auc').
-            figsize: Figure size for the plot.
+            metric (str, optional): The performance metric to plot.
+                Defaults to 'auc'.
+            figsize (Optional[Tuple[int, int]], optional): Figure size for the
+                plot. Defaults to None.
+
+        Raises:
+            ValueError: If the specified metric is not found in the data.
         """
         if not self.available_continuous:
             print("Info: No continuous pipeline parameters found to plot.")

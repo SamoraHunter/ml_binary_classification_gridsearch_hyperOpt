@@ -12,39 +12,42 @@ from typing import Tuple, Optional
 from ml_grid.results_processing.core import get_clean_data
 
 class InteractionPlotter:
-    """
-    Class for visualizing the interaction effects between different experimental
-    parameters (e.g., pipeline settings, feature categories) on model performance.
+    """Visualizes interaction effects between experimental parameters.
+
+    This class helps to understand how pairs of parameters (e.g., pipeline
+    settings, feature categories) jointly affect model performance.
     """
 
     def __init__(self, data: pd.DataFrame):
-        """
-        Initialize the plotter.
+        """Initializes the InteractionPlotter.
 
         Args:
-            data: Results DataFrame, must contain columns for parameters and performance metrics.
+            data (pd.DataFrame): Results DataFrame, must contain columns for
+                parameters and performance metrics.
         """
         self.data = data
         self.clean_data = get_clean_data(data)
         plt.style.use('default')
 
-    def plot_categorical_interaction(self,
-                                     param1: str,
-                                     param2: str,
-                                     metric: str = 'auc',
-                                     figsize: Tuple[int, int] = (10, 8)):
-        """
-        Visualizes the interaction effect of two categorical parameters on performance
-        using a heatmap.
+    def plot_categorical_interaction(
+        self,
+        param1: str,
+        param2: str,
+        metric: str = 'auc',
+        figsize: Tuple[int, int] = (10, 8),
+    ) -> None:
+        """Visualizes the interaction of two categorical parameters via a heatmap.
 
         Args:
-            param1: The name of the first categorical parameter column.
-            param2: The name of the second categorical parameter column.
-            metric: The performance metric to plot.
-            figsize: Figure size for the plot.
+            param1 (str): The name of the first categorical parameter column.
+            param2 (str): The name of the second categorical parameter column.
+            metric (str, optional): The performance metric to plot.
+                Defaults to 'auc'.
+            figsize (Tuple[int, int], optional): Figure size for the plot.
+                Defaults to (10, 8).
         """
         if param1 not in self.clean_data.columns or param2 not in self.clean_data.columns:
-            print(f"Warning: One or both parameters ('{param1}', '{param2}') not found. Skipping interaction plot.")
+            print(f"Warning: One or both parameters ('{param1}', '{param2}') not found. Skipping.")
             return
         if metric not in self.clean_data.columns:
             raise ValueError(f"Metric '{metric}' not found in data.")
@@ -58,10 +61,7 @@ class InteractionPlotter:
 
         try:
             pivot_table = plot_data.pivot_table(
-                values=metric,
-                index=param1,
-                columns=param2,
-                aggfunc='mean'
+                values=metric, index=param1, columns=param2, aggfunc='mean'
             )
         except Exception as e:
             print(f"Could not create pivot table for '{param1}' and '{param2}'. Reason: {e}")
@@ -69,30 +69,37 @@ class InteractionPlotter:
 
         plt.figure(figsize=figsize)
         sns.heatmap(pivot_table, annot=True, fmt=".3f", cmap="viridis", linewidths=.5)
-        plt.title(f'Interaction of {param1.replace("_", " ").title()} and {param2.replace("_", " ").title()} on {metric.upper()}',
-                  fontsize=14, fontweight='bold')
+        plt.title(
+            f'Interaction of {param1.replace("_", " ").title()} and {param2.replace("_", " ").title()} on {metric.upper()}',
+            fontsize=14,
+            fontweight='bold',
+        )
         plt.xlabel(param2.replace("_", " ").title(), fontsize=12)
         plt.ylabel(param1.replace("_", " ").title(), fontsize=12)
         plt.tight_layout()
         plt.show()
 
-    def plot_continuous_interaction(self,
-                                    param1: str,
-                                    param2: str,
-                                    metric: str = 'auc',
-                                    figsize: Tuple[int, int] = (10, 8)):
-        """
-        Visualizes the interaction of two continuous parameters on performance.
+    def plot_continuous_interaction(
+        self,
+        param1: str,
+        param2: str,
+        metric: str = 'auc',
+        figsize: Tuple[int, int] = (10, 8),
+    ) -> None:
+        """Visualizes the interaction of two continuous parameters.
+
         Uses a scatter plot where point color represents the metric value.
 
         Args:
-            param1: The name of the first continuous parameter column.
-            param2: The name of the second continuous parameter column.
-            metric: The performance metric to use for color.
-            figsize: Figure size for the plot.
+            param1 (str): The name of the first continuous parameter column.
+            param2 (str): The name of the second continuous parameter column.
+            metric (str, optional): The performance metric to use for color.
+                Defaults to 'auc'.
+            figsize (Tuple[int, int], optional): Figure size for the plot.
+                Defaults to (10, 8).
         """
         if param1 not in self.clean_data.columns or param2 not in self.clean_data.columns:
-            print(f"Warning: One or both parameters ('{param1}', '{param2}') not found. Skipping interaction plot.")
+            print(f"Warning: One or both parameters ('{param1}', '{param2}') not found. Skipping.")
             return
         if metric not in self.clean_data.columns:
             raise ValueError(f"Metric '{metric}' not found in data.")
@@ -112,4 +119,3 @@ class InteractionPlotter:
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
         plt.show()
-

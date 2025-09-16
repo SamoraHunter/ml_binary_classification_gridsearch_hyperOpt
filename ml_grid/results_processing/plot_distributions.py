@@ -17,36 +17,42 @@ MAX_OUTCOMES_FOR_STRATIFIED_PLOT = 20
 MAX_OUTCOMES_FOR_HEATMAP = 25
 
 class DistributionPlotter:
-    """Class for plotting metric distributions with outcome stratification support."""
+    """A class for plotting metric distributions with outcome stratification support."""
     
-    def __init__(self, data: pd.DataFrame, style: str = 'seaborn-v0_8'):
-        """
-        Initialize the distribution plotter.
-        
+    def __init__(self, data: pd.DataFrame, style: str = 'default'):
+        """Initializes the DistributionPlotter.
+
         Args:
-            data: Results DataFrame
-            style: Matplotlib style to use
+            data (pd.DataFrame): A DataFrame containing the experiment results.
+            style (str, optional): The matplotlib style to use for plots.
+                Defaults to 'default'.
         """
         self.data = data
         self.clean_data = get_clean_data(data)
-        plt.style.use('default')  # Use default style as backup
+        plt.style.use(style)
         
         # Set color palette
         self.colors = plt.cm.Set3(np.linspace(0, 1, 12))
         sns.set_palette("husl")
     
-    def plot_metric_distributions(self, metrics: List[str] = None, 
+    def plot_metric_distributions(self, metrics: Optional[List[str]] = None, 
                                 figsize: Tuple[int, int] = (15, 10),
                                 stratify_by_outcome: bool = False,
-                                outcomes_to_plot: List[str] = None):
-        """
-        Plot distributions of key metrics.
-        
+                                outcomes_to_plot: Optional[List[str]] = None):
+        """Plots distributions of key performance metrics.
+
         Args:
-            metrics: List of metrics to plot
-            figsize: Figure size
-            stratify_by_outcome: If True, create separate plots for each outcome
-            outcomes_to_plot: Specific outcomes to plot (None for all)
+            metrics (Optional[List[str]], optional): A list of metric columns
+                to plot. If None, uses a default list. Defaults to None.
+            figsize (Tuple[int, int], optional): The figure size.
+                Defaults to (15, 10).
+            stratify_by_outcome (bool, optional): If True, creates separate
+                plots for each outcome. Defaults to False.
+            outcomes_to_plot (Optional[List[str]], optional): A list of specific
+                outcomes to plot. If None, all are used. Defaults to None.
+
+        Raises:
+            ValueError: If no specified metrics are found in the data.
         """
         if metrics is None:
             metrics = ['auc', 'mcc', 'f1', 'precision', 'recall', 'accuracy']
@@ -62,14 +68,12 @@ class DistributionPlotter:
             self._plot_stratified_distributions(available_metrics, figsize, outcomes_to_plot)
     
     def _plot_single_distribution(self, metrics: List[str], figsize: Tuple[int, int]):
-        """Plot distributions for all data combined."""
+        """Helper to plot distributions for all data combined."""
         n_metrics = len(metrics)
         fig, axes = plt.subplots(2, (n_metrics + 1) // 2, figsize=figsize)
         
         if n_metrics == 1:
             axes = [axes]
-        elif n_metrics <= 2:
-            axes = axes.flatten()
         else:
             axes = axes.flatten()
         
@@ -106,8 +110,8 @@ class DistributionPlotter:
         plt.show()
     
     def _plot_stratified_distributions(self, metrics: List[str], figsize: Tuple[int, int], 
-                                     outcomes_to_plot: List[str] = None):
-        """Plot distributions stratified by outcome variable."""
+                                     outcomes_to_plot: Optional[List[str]] = None):
+        """Helper to plot distributions stratified by outcome variable."""
         if 'outcome_variable' not in self.clean_data.columns:
             raise ValueError("outcome_variable column not found for stratification")
         
@@ -174,17 +178,24 @@ class DistributionPlotter:
         plt.show()
     
     def plot_comparative_distributions(self, metric: str = 'auc', 
-                                     outcomes_to_compare: List[str] = None,
+                                     outcomes_to_compare: Optional[List[str]] = None,
                                      plot_type: str = 'overlay',
                                      figsize: Tuple[int, int] = (12, 6)):
-        """
-        Create comparative distribution plots across outcomes.
-        
+        """Creates comparative distribution plots across different outcomes.
+
         Args:
-            metric: Metric to compare
-            outcomes_to_compare: Specific outcomes to compare (None for all)
-            plot_type: 'overlay', 'subplot', or 'violin'
-            figsize: Figure size
+            metric (str, optional): The metric to compare. Defaults to 'auc'.
+            outcomes_to_compare (Optional[List[str]], optional): A list of
+                specific outcomes to compare. If None, all are used.
+                Defaults to None.
+            plot_type (str, optional): The type of plot to generate: 'overlay',
+                'subplot', or 'violin'. Defaults to 'overlay'.
+            figsize (Tuple[int, int], optional): The figure size.
+                Defaults to (12, 6).
+
+        Raises:
+            ValueError: If 'outcome_variable' or the specified metric is not
+                found, or if an invalid `plot_type` is provided.
         """
         if 'outcome_variable' not in self.clean_data.columns:
             raise ValueError("outcome_variable column not found")
@@ -213,7 +224,7 @@ class DistributionPlotter:
             raise ValueError("plot_type must be 'overlay', 'subplot', or 'violin'")
     
     def _plot_overlay_distributions(self, metric: str, outcomes: List[str], figsize: Tuple[int, int]):
-        """Create overlaid distribution plot."""
+        """Helper to create an overlaid distribution plot."""
         plt.figure(figsize=figsize)
         
         colors = plt.cm.tab10(np.linspace(0, 1, len(outcomes)))
@@ -235,7 +246,7 @@ class DistributionPlotter:
         plt.show()
     
     def _plot_subplot_distributions(self, metric: str, outcomes: List[str], figsize: Tuple[int, int]):
-        """Create subplot distributions."""
+        """Helper to create subplot distributions."""
         n_outcomes = len(outcomes)
         cols = min(3, n_outcomes)
         rows = (n_outcomes + cols - 1) // cols
@@ -279,7 +290,7 @@ class DistributionPlotter:
         plt.show()
     
     def _plot_violin_distributions(self, metric: str, outcomes: List[str], figsize: Tuple[int, int]):
-        """Create violin plot for distribution comparison."""
+        """Helper to create a violin plot for distribution comparison."""
         # Prepare data for violin plot
         plot_data = []
         
@@ -306,16 +317,21 @@ class DistributionPlotter:
         plt.show()
     
     def plot_distribution_summary_table(self, metrics: List[str] = None, 
-                                       outcomes_to_include: List[str] = None) -> pd.DataFrame:
-        """
-        Create a summary table of distribution statistics by outcome.
-        
+                                       outcomes_to_include: Optional[List[str]] = None) -> pd.DataFrame:
+        """Creates a summary table of distribution statistics by outcome.
+
         Args:
-            metrics: Metrics to include in summary
-            outcomes_to_include: Specific outcomes to include
-        
+            metrics (Optional[List[str]], optional): A list of metrics to
+                include in the summary. If None, uses a default list.
+                Defaults to None.
+            outcomes_to_include (Optional[List[str]], optional): A list of
+                specific outcomes to include. If None, all are used.
+                Defaults to None.
+
         Returns:
-            Summary DataFrame
+            pd.DataFrame: A DataFrame containing the summary statistics.
+        Raises:
+            ValueError: If 'outcome_variable' column is not found.
         """
         if metrics is None:
             metrics = ['auc', 'mcc', 'f1', 'precision', 'recall', 'accuracy']
@@ -366,13 +382,18 @@ class DistributionPlotter:
     def plot_distribution_heatmap(self, metrics: List[str] = None, 
                                  stat: str = 'mean',
                                  figsize: Tuple[int, int] = (10, 6)):
-        """
-        Create a heatmap of distribution statistics across outcomes and metrics.
-        
+        """Creates a heatmap of distribution statistics across outcomes and metrics.
+
         Args:
-            metrics: Metrics to include
-            stat: Statistic to display ('mean', 'std', 'median', etc.)
-            figsize: Figure size
+            metrics (Optional[List[str]], optional): A list of metrics to
+                include. If None, uses a default list. Defaults to None.
+            stat (str, optional): The statistic to display ('mean', 'std',
+                'median', 'min', 'max'). Defaults to 'mean'.
+            figsize (Tuple[int, int], optional): The figure size.
+                Defaults to (10, 6).
+
+        Raises:
+            ValueError: If 'outcome_variable' column is not found.
         """
         if metrics is None:
             metrics = ['auc', 'mcc', 'f1', 'precision', 'recall', 'accuracy']
@@ -434,15 +455,18 @@ class DistributionPlotter:
 
 
 def plot_metric_correlation_by_outcome(data: pd.DataFrame, 
-                                     outcomes_to_plot: List[str] = None,
+                                     outcomes_to_plot: Optional[List[str]] = None,
                                      figsize: Tuple[int, int] = (15, 10)):
-    """
-    Plot correlation matrices of metrics stratified by outcome variable.
-    
+    """Plots correlation matrices of metrics, stratified by outcome variable.
+
     Args:
-        data: Results DataFrame
-        outcomes_to_plot: Specific outcomes to plot
-        figsize: Figure size
+        data (pd.DataFrame): The results DataFrame.
+        outcomes_to_plot (Optional[List[str]], optional): A list of specific
+            outcomes to plot. If None, all are used. Defaults to None.
+        figsize (Tuple[int, int], optional): The figure size.
+            Defaults to (15, 10).
+    Raises:
+        ValueError: If 'outcome_variable' column is not found.
     """
     clean_data = get_clean_data(data)
     
