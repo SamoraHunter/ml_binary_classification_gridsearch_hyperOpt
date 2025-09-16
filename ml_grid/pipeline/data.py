@@ -172,9 +172,9 @@ class pipe:
             X=self.df, drop_list=self.drop_list, verbose=self.verbose)
 
         self.final_column_list = [
-            self.X
-            for self.X in self.pertubation_columns
-            if (self.X not in self.drop_list and self.X in self.df.columns)
+            col
+            for col in self.pertubation_columns
+            if (col not in self.drop_list and col in self.df.columns)
         ]
         # Add safety mechanism to retain minimum features
         min_required_features = 5  # Set your minimum threshold
@@ -194,17 +194,20 @@ class pipe:
             
             # Update final columns and drop list
             self.final_column_list = safety_columns
-            self.drop_list = [col for col in self.drop_list 
-                            if col not in self.final_column_list]
+            # Also update the main drop list to prevent re-pruning
+            self.drop_list = [col for col in self.drop_list if col not in self.final_column_list]
             
             print(f"Retaining minimum features: {self.final_column_list}")
+            
+            # Re-filter final_column_list to be absolutely sure
+            self.final_column_list = [col for col in self.pertubation_columns if col not in self.drop_list and col in self.df.columns]
+
 
             # Add two random features if list still empty
             if not self.final_column_list:
                 print("Warning no feature columns retained, selecting two at random")
-                final_column_list = []
-                final_column_list.append(random.choice(self.orignal_feature_names))
-                final_column_list.append(random.choice(self.orignal_feature_names))
+                self.final_column_list.append(random.choice(self.orignal_feature_names))
+                self.final_column_list.append(random.choice(self.orignal_feature_names))
 
         # Ensure we still have at least 1 feature
         if not self.final_column_list:
@@ -324,9 +327,9 @@ class pipe:
             )
             try:
 
+                fim = feature_importance_methods()
                 self.X_train, self.X_test, self.X_test_orig = (
-                    feature_importance_methods.handle_feature_importance_methods(
-                        self,
+                    fim.handle_feature_importance_methods(
                         target_n_features_eval,
                         X_train=self.X_train,
                         X_test=self.X_test,
