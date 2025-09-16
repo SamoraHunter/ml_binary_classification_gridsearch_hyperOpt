@@ -5,7 +5,7 @@ settings that are accessible throughout the application. It also includes a
 custom scoring function for ROC AUC that handles cases with a single class.
 """
 
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Union
 
 import numpy as np
 from sklearn.metrics import make_scorer
