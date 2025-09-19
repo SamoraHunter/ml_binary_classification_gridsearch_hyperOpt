@@ -63,7 +63,8 @@ intersphinx_tls_verify = False
 
 # General TLS verification setting for Sphinx
 # This helps bypass SSL issues in proxied environments for any web request Sphinx makes.
-tls_verify = False
+# Pass certificate: export REQUESTS_CA_BUNDLE=/etc/ssl/certs/
+tls_verify = True
 
 
 # -- Mock Imports ------------------------------------------------------------
@@ -71,16 +72,23 @@ tls_verify = False
 # some external dependencies are not met at build time and break the
 # documentation building process.
 autodoc_mock_imports = [
-    "aeon",
-    "tensorflow",
-    "keras",
-    "scikeras",
-    "tsfresh",
-    "tensorflow_probability",
-    "keras_self_attention",
-    "pmdarima",
-    "prophet",
-    "gluonts",
+    "aeon",                   # For time series classifiers
+    "catboost",               # ML library
+    "gluonts",                # Time series library
+    "h2o",                    # ML library
+    "keras",                  # Deep learning framework
+    "keras_self_attention",   # Keras extension
+    "lightgbm",               # ML library
+    "numba",                  # A key dependency for aeon
+    "pmdarima",               # For ARIMA models
+    "prophet",                # Time series library
+    "scikeras",               # Scikit-learn wrapper for Keras
+    "sktime",                 # In case of legacy time series imports
+    "tensorflow",             # Deep learning framework
+    "tensorflow_probability", # TF extension
+    "torch",                  # Deep learning framework
+    "tsfresh",                # Time series feature extraction
+    "xgboost",                # ML library
 ]
 
 # -- Options for HTML output -------------------------------------------------
