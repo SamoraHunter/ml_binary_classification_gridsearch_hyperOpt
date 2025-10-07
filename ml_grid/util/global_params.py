@@ -78,6 +78,25 @@ class GlobalParameters:
     """Whether to save trained models to disk. Defaults to True."""
     metric_list: Dict[str, Union[str, Callable]]
     """A dictionary of scoring metrics to evaluate models during cross-validation. Keys are metric names and values are scikit-learn scorer strings or callable objects."""
+    use_embedding: bool
+    """Whether to use embedding for feature transformation. Defaults to False."""
+    embedding_method: str
+    """The embedding method to use (e.g., 'pca', 'svd'). Defaults to None."""
+    embedding_dim: int
+    """The dimensionality of the embedding space. Defaults to None."""
+    scale_features_before_embedding: bool
+    """Whether to scale features before applying embedding. Defaults to False."""
+    use_embedding: bool
+    """Whether to use embedding for feature transformation. Defaults to False."""
+    embedding_method: str
+    """The embedding method to use ("svd", "pca", "nmf", "lda", "random_gaussian", "random_sparse", "select_kbest_f", "select_kbest_mi"). Defaults to None."""
+    embedding_dim: int
+    """The dimensionality of the embedding space. Defaults to None."""
+    scale_features_before_embedding: bool
+    """Whether to scale features before applying embedding. Defaults to False."""
+    cache_embeddings: bool
+    """Whether to cache computed embeddings for reuse. Defaults to False."""
+
 
     def __new__(cls, *args: Any, **kwargs: Any) -> "GlobalParameters":
         """Creates a new instance if one does not already exist (Singleton pattern)."""
@@ -104,7 +123,7 @@ class GlobalParameters:
         self.knn_n_jobs = knn_n_jobs
         self.verbose = 0
         self.rename_cols = True
-        self.error_raise = False
+        self.error_raise = True
         self.random_grid_search = False
         self.bayessearch = True
         self.sub_sample_param_space_pct = 0.0005  # 0.05==360
@@ -114,6 +133,11 @@ class GlobalParameters:
         self.n_jobs_model_val = -1
         self.max_param_space_iter_value = 10
         self.store_models = True
+        self.use_embedding = False
+        self.embedding_method = None # "svd", "pca", "nmf", "lda", "random_gaussian", "random_sparse", "select_kbest_f", "select_kbest_mi"
+        self.embedding_dim = None
+        self.scale_features_before_embedding = False
+        self.cache_embeddings = False
 
         custom_scorer = make_scorer(custom_roc_auc_score)
         self.metric_list = {

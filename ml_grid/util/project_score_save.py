@@ -29,7 +29,9 @@ def _get_score_log_columns(metric_list: List[str]) -> List[str]:
         "resample", "scale", "n_features", "param_space_size", "n_unique_out",
         "outcome_var_n", "percent_missing", "corr", "age", "sex", "bmi",
         "ethnicity", "bloods", "diagnostic_order", "drug_order", "annotation_n",
-        "meta_sp_annotation_n", "meta_sp_annotation_mrc_n", "annotation_mrc_n",
+        "meta_sp_annotation_n", "meta_sp_annotation_mrc_n", "annotation_mrc_n", 
+        "use_embedding", "embedding_method", "embedding_dim", 
+        "scale_features_before_embedding", "cache_embeddings",
         "core_02", "bed", "vte_status", "hosp_site", "core_resus", "news",
         "date_time_stamp", "X_train_size", "X_test_orig_size", "X_test_size",
         "run_time", "n_fits", "t_fits", "i", "outcome_variable", 'failed'

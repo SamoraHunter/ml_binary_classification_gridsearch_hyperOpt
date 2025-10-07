@@ -47,6 +47,11 @@ class Grid:
             "percent_missing": [99, 95, 80],  # n/100 ex 95 for 95% # 99.99, 99.5, 9
             "corr": [0.98, 0.85, 0.5, 0.25],
             "feature_selection_method":['anova', 'markov_blanket'],
+            "use_embedding": [True, False],
+            "embedding_method": ["pca", "svd"],
+            "embedding_dim": [32, 64, 128],
+            "scale_features_before_embedding": [True],
+            "cache_embeddings": [False],
             "data": [
                 {
                     "age": [True, False],

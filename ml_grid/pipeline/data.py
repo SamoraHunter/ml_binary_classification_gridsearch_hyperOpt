@@ -1,5 +1,6 @@
 import re
 import random
+import numpy as np
 from typing import Any, Dict, List, Optional
 import warnings
 
@@ -12,6 +13,7 @@ from ml_grid.pipeline.column_names import get_pertubation_columns
 from ml_grid.pipeline.data_clean_up import clean_up_class
 from ml_grid.pipeline.data_constant_columns import remove_constant_columns, remove_constant_columns_with_debug
 from ml_grid.pipeline.data_correlation_matrix import handle_correlation_matrix
+from ml_grid.pipeline.embeddings import create_embedding_pipeline, apply_embedding
 from ml_grid.pipeline.data_feature_importance_methods import feature_importance_methods
 from ml_grid.pipeline.data_outcome_list import handle_outcome_list
 from ml_grid.pipeline.data_percent_missing import handle_percent_missing
@@ -248,42 +250,45 @@ class pipe:
             for col in self.pertubation_columns
             if (col not in self.drop_list and col in self.df.columns)
         ]
-        # Add safety mechanism to retain minimum features
-        min_required_features = 5  # Set your minimum threshold
-        core_protected_columns = ['age', 'male', 'client_idcode']  # Columns to protect
 
+        # Safety net: If all features are pruned, retain a minimum set
         if not self.final_column_list:
-            print("WARNING: All features pruned! Activating safety retention...")
+            print("Warning: All features were pruned. Activating safety retention mechanism.")
             
-            # Try to keep protected columns first
-            safety_columns = [col for col in core_protected_columns 
-                            if col in self.df.columns and col in self.pertubation_columns]
+            # Define core columns to try and protect
+            core_protected_columns = ['age', 'male', 'client_idcode']
+            min_features = 2
             
-            # If no protected columns, use first available columns
-            if not safety_columns:
-                safety_columns = [col for col in self.pertubation_columns 
-                                if col in self.df.columns][:min_required_features]
+            # 1. Try to retain core protected columns
+            retained_cols = [
+                col for col in core_protected_columns 
+                if col in self.pertubation_columns and col in self.df.columns
+            ]
             
-            # Update final columns and drop list
-            self.final_column_list = safety_columns
-            # Also update the main drop list to prevent re-pruning
-            self.drop_list = [col for col in self.drop_list if col not in self.final_column_list]
-            
-            print(f"Retaining minimum features: {self.final_column_list}")
-            
-            # Re-filter final_column_list to be absolutely sure
-            self.final_column_list = [col for col in self.pertubation_columns if col not in self.drop_list and col in self.df.columns]
+            # 2. If no core columns, try to retain any of the original perturbed columns
+            if not retained_cols:
+                retained_cols = [
+                    col for col in self.pertubation_columns if col in self.df.columns
+                ][:min_features]
 
+            # 3. As a last resort, pick random columns from the original features
+            if not retained_cols:
+                print("Last resort: Selecting random features.")
+                available_features = [
+                    col for col in self.orignal_feature_names 
+                    if col != self.outcome_variable and col in self.df.columns
+                ]
+                if len(available_features) >= min_features:
+                    retained_cols = random.sample(available_features, min_features)
+                elif available_features:
+                    retained_cols = available_features
+            
+            self.final_column_list = retained_cols
+            print(f"Retained minimum features: {self.final_column_list}")
 
-            # Add two random features if list still empty
-            if not self.final_column_list:
-                print("Warning no feature columns retained, selecting two at random")
-                self.final_column_list.append(random.choice(self.orignal_feature_names))
-                self.final_column_list.append(random.choice(self.orignal_feature_names))
-
-        # Ensure we still have at least 1 feature
+        # Final check to ensure we have at least one feature
         if not self.final_column_list:
-            raise ValueError("CRITICAL: Unable to retain any features despite safety measures")
+            raise ValueError("CRITICAL: Unable to retain any features despite safety measures. Halting pipeline.")
 
         if not self.final_column_list:
             raise ValueError("All features pruned. No columns remaining in final_column_list.")
@@ -362,7 +367,7 @@ class pipe:
                 print(self.X.shape)
 
             self.X, self.y = convert_Xy_to_time_series(self.X, self.y, max_seq_length)
-            if self.verbose >= 1:
+            if not self.final_column_list:
                 print(self.X.shape)
 
         (
@@ -381,18 +386,29 @@ class pipe:
             self.X_test_orig,
             verbosity=self.verbose
         )
+        if self.verbose >= 1:
+            print(f"Shape of X_train after removing constant columns post-split: {self.X_train.shape}")
+
+        
+        # Add a safeguard to ensure features remain after removing constant columns
+        if self.X_train.shape[1] == 0:
+            raise ValueError("All feature columns were removed after data splitting because they were constant in the training set. Consider adjusting feature selection or data cleaning parameters.")
+
 
         target_n_features = self.local_param_dict.get("feature_n")
 
-        if target_n_features != 100:
-
+        if target_n_features is not None and target_n_features < 100:
             target_n_features_eval = int(
                 (target_n_features / 100) * self.X_train.shape[1]
             )
-
             # Ensure at least one feature is selected. The previous logic here
             # was incorrect and disabled feature selection entirely.
             target_n_features_eval = max(1, target_n_features_eval)
+
+        if target_n_features is not None and target_n_features < 100 and self.X_train.shape[1] > 1 and not self.local_param_dict.get("use_embedding", False) and target_n_features_eval < self.X_train.shape[1]:
+
+            if self.verbose >= 1:
+                print(f"Shape of X_train before feature importance selection: {self.X_train.shape}")
 
             print(
                 f"Pre target_n_features {target_n_features}% reduction {target_n_features_eval}/{self.X_train.shape[1]}"
@@ -410,11 +426,76 @@ class pipe:
                         ml_grid_object=self
                     )
                 )
+                if self.verbose >= 1:
+                    print(f"Shape of X_train after feature importance selection: {self.X_train.shape}")
+
                 if self.X_train.shape[1] == 0:
                     raise ValueError("Feature importance selection removed all features.")
 
+                # Safeguard: Ensure X_train is not empty after feature selection
+                if self.X_train.shape[1] == 0:
+                    raise ValueError("All features were removed by the feature importance selection method. X_train is empty.")
+
             except Exception as e:
                 print("failed target_n_features", e)
+
+        # Apply embeddings if configured (after feature selection)
+        if self.local_param_dict.get("use_embedding", False):
+            if self.verbose >= 1:
+                print("Applying embeddings...")
+            
+            embedding_method = self.local_param_dict.get("embedding_method", "pca")
+            embedding_dim = self.local_param_dict.get("embedding_dim", 64)
+            scale_before_embedding = self.local_param_dict.get("scale_features_before_embedding", True)
+
+            if self.verbose >= 2:
+                print(f"  Embedding Method: {embedding_method}")
+                print(f"  Original features: {self.X_train.shape[1]}")
+                print(f"  Target embedding dimensions: {embedding_dim}")
+                print(f"  Scale before embedding: {scale_before_embedding}")
+
+            if self.X_train.shape[1] > 1 and embedding_dim >= self.X_train.shape[1]:
+                embedding_dim = self.X_train.shape[1] - 1
+                if self.verbose >= 1:
+                    print(f"  Warning: embedding_dim >= n_features. Adjusting to {embedding_dim}")
+
+            embedding_pipeline = create_embedding_pipeline(
+                method=embedding_method,
+                n_components=embedding_dim,
+                scale=scale_before_embedding,
+            )
+            
+            # Fit on train and transform all splits
+            # Check if the method is supervised to pass y_train
+            from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+            from sklearn.feature_selection import SelectKBest
+            from ml_grid.pipeline.embeddings import get_explained_variance
+
+            embed_step = embedding_pipeline.named_steps['embed']
+            if isinstance(embed_step, (LinearDiscriminantAnalysis, SelectKBest)):
+                if self.verbose >= 2:
+                    print("  Supervised embedding method detected, passing y_train.")
+                self.X_train = pd.DataFrame(embedding_pipeline.fit_transform(self.X_train, self.y_train), index=self.X_train.index, columns=[f"embed_{i}" for i in range(embedding_dim)])
+            else:
+                self.X_train = pd.DataFrame(embedding_pipeline.fit_transform(self.X_train), index=self.X_train.index, columns=[f"embed_{i}" for i in range(embedding_dim)])
+            
+            self.X_test = pd.DataFrame(embedding_pipeline.transform(self.X_test), index=self.X_test.index, columns=[f"embed_{i}" for i in range(embedding_dim)])
+            self.X_test_orig = pd.DataFrame(embedding_pipeline.transform(self.X_test_orig), index=self.X_test_orig.index, columns=[f"embed_{i}" for i in range(embedding_dim)])
+            
+            # The main self.X should also be updated for consistency, using the training data's embedding
+            self.X = self.X_train.copy()
+
+            if self.verbose >= 1:
+                print(f"Shape of X_train after embedding: {self.X_train.shape}")
+
+            if self.verbose >= 1:
+                print(f"Data transformed to {self.X_train.shape[1]} embedding dimensions.")
+                explained_variance = get_explained_variance(embedding_pipeline)
+                if explained_variance is not None:
+                    print(f"  Total explained variance by {embedding_dim} components: {explained_variance.sum():.2%}")
+
+
+
 
         if self.verbose >= 2:
             print(
@@ -462,4 +543,7 @@ class pipe:
             self.model_class_list = get_model_class_list(self)
 
         if isinstance(self.X_train, pd.DataFrame) and self.X_train.empty:
-            raise ValueError("-- end data pipeline-- Input data X_train is an empty DataFrame -- end data pipeline--")
+            raise ValueError(
+                "-- end data pipeline-- Input data X_train is an empty DataFrame. "
+                "This is likely due to aggressive feature selection or data cleaning."
+            )
