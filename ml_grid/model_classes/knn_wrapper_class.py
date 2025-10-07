@@ -47,11 +47,17 @@ class KNNWrapper:
         self.p = p
         self.metric = metric
         self.metric_params = metric_params
-        self.device = (
-            device if device else ("gpu" if torch.cuda.is_available() else "cpu")
-        )
-        if self.device == "cpu":
-            print("warning using cpu KNNWrapper")
+
+        # Auto-detect device
+        gpu_available = torch.cuda.is_available()
+        if device == "gpu" and not gpu_available:
+            print("Warning: GPU requested for KNNWrapper, but torch.cuda.is_available() is False. Falling back to CPU.")
+            self.device = "cpu"
+        elif device:
+            self.device = device
+        else:
+            self.device = "gpu" if gpu_available else "cpu"
+
         self.model: Optional[KNeighborsClassifier] = None
 
     def fit(

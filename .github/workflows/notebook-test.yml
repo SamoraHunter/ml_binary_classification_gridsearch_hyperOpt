@@ -84,3 +84,6 @@ jobs:
           cd $GITHUB_WORKSPACE
           source "$VENV_PATH/bin/activate"
           pytest --nbmake --nbmake-timeout=1200 notebooks/unit_test_synthetic.ipynb
+          
+          echo "Running Python unit tests..."
+          pytest tests/

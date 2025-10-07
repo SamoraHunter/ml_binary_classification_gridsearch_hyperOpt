@@ -40,11 +40,12 @@ class SVC_class:
                 if self.X is None:
                     raise ValueError("Input data X is None - data not loaded properly")
                     
+                # If the dataframe is empty, there's nothing to scale.
+                # The pipeline will likely fail later, but we avoid a scaling error here.
                 if isinstance(self.X, pd.DataFrame) and self.X.empty:
-                    #raise ValueError("Input data X is an empty DataFrame")
-                    print("warn: SVC data scaling, X data is empty")
+                    raise ValueError("SVC_class received an empty DataFrame. Halting execution.")
 
-                if( self.X.empty == False):
+                elif not self.X.empty:
                     if not hasattr(self, 'scaler'):
                         self.scaler = StandardScaler()  # or whichever scaler you're using
                         

@@ -345,6 +345,12 @@ def get_pertubation_columns(
     if local_param_dict.get("data").get("appointments") == True:
         pertubation_columns.extend(appointments_list)
 
+    # Add any other columns explicitly set to True in the data dict
+    explicitly_selected_cols = {col for col, selected in local_param_dict.get("data", {}).items() if selected}
+    for col in explicitly_selected_cols:
+        if col not in pertubation_columns and col in all_df_columns:
+            pertubation_columns.append(col)
+
     print(f"local_param_dict data perturbation: \n {local_param_dict.get('data')}")
 
     if verbose >= 2:

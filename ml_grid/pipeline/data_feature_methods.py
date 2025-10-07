@@ -46,6 +46,9 @@ class feature_methods:
         else:
             raise ValueError("X_train must be a pandas DataFrame or numpy array")
 
+        # Ensure at least one feature is requested
+        n = max(1, n)
+
         # Calculate F-values for all features at once
         f_values, _ = f_classif(X_train, y_train)
 
@@ -153,7 +156,6 @@ class feature_methods:
             # Re-evaluate the first selected feature to ensure it's a valid name
             first_feature = selected_features[0]
             feature_names = [original_columns[first_feature] if isinstance(first_feature, int) else first_feature]
-        
         return feature_names
 
     
