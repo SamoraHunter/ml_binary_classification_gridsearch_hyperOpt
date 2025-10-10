@@ -1,3 +1,4 @@
+import sys
 from typing import Any, Dict, List, Tuple
 
 import pandas as pd
@@ -69,7 +70,7 @@ def handle_correlation_matrix(
     ]
 
     # Iterate through each column chunk
-    for chunk in tqdm(column_chunks, desc="Calculating Correlations"):
+    for chunk in tqdm(column_chunks, desc="Calculating Correlations", file=sys.stdout):
         # Calculate the correlation coefficients for the current chunk
         try:
             correlations = df_numeric[chunk].corr()

@@ -62,25 +62,68 @@ class ResultsAggregator:
             )
 
     def get_available_runs(self) -> List[str]:
-        """Gets a list of available timestamped run folders.
+        """Gets a list of available run folders by recursively searching for log files.
+
+        This method is robust to nested directory structures. It finds all
+        `final_grid_score_log.csv` files and returns their parent directory
+        names as the list of available runs.
+        
+        Special case: If a log file exists directly in the root folder, 
+        the root folder's name will be used as the run identifier.
 
         Returns:
             List[str]: A sorted list of valid run folder names.
 
         Raises:
-            ValueError: If the root folder does not exist.
+            ValueError: If the root folder does not exist or is not a directory.
         """
-        if not self.root_folder.exists():
-            raise ValueError(f"Root folder {self.root_folder} does not exist")
+        if not self.root_folder.is_dir():
+            raise ValueError(f"Root folder {self.root_folder} is not a valid directory")
 
-        timestamp_folders = []
-        for item in self.root_folder.iterdir():
-            if item.is_dir():
-                log_file = item / "final_grid_score_log.csv"
-                if log_file.exists():
-                    timestamp_folders.append(item.name)
+        # Check if log file exists directly in root
+        root_log_file = self.root_folder / "final_grid_score_log.csv"
+        run_folders = set()
+        
+        if root_log_file.exists():
+            # Use a special identifier for root-level CSV
+            run_folders.add(f"__ROOT__{self.root_folder.name}")
+        
+        # Recursively find all log files in subfolders
+        for log_file in self.root_folder.rglob("final_grid_score_log.csv"):
+            # Skip the root-level file (already handled)
+            if log_file == root_log_file:
+                continue
+            # Add the immediate parent folder name
+            run_folders.add(log_file.parent.name)
+        
+        return sorted(list(run_folders))
 
-        return sorted(timestamp_folders)
+    def _resolve_run_path(self, run_name: str) -> Path:
+        """Resolves a run name to its full path.
+        
+        Args:
+            run_name: The run folder name or special root identifier
+            
+        Returns:
+            Path to the run folder
+            
+        Raises:
+            FileNotFoundError: If the run cannot be found
+        """
+        # Check if this is the special root identifier
+        if run_name.startswith("__ROOT__"):
+            root_log = self.root_folder / "final_grid_score_log.csv"
+            if root_log.exists():
+                return self.root_folder
+            raise FileNotFoundError(f"Root log file not found: {root_log}")
+        
+        # Search for the folder name within the root directory
+        try:
+            return next(self.root_folder.rglob(f"**/{run_name}"))
+        except StopIteration:
+            raise FileNotFoundError(
+                f"Run folder '{run_name}' not found anywhere under {self.root_folder}"
+            )
 
     def load_single_run(self, timestamp_folder: str) -> pd.DataFrame:
         """Loads results from a specific timestamped run folder.
@@ -94,8 +137,10 @@ class ResultsAggregator:
         Raises:
             FileNotFoundError: If the log file does not exist in the folder.
         """
-        log_path = self.root_folder / timestamp_folder / "final_grid_score_log.csv"
-
+        # Resolve the run name to its full path. This handles nesting and the special root case.
+        run_folder_path = self._resolve_run_path(timestamp_folder)
+        
+        log_path = run_folder_path / "final_grid_score_log.csv"
         if not log_path.exists():
             raise FileNotFoundError(f"Log file not found: {log_path}")
 
@@ -138,7 +183,12 @@ class ResultsAggregator:
 
         for run in run_names:
             try:
+                # Resolve the run name to its actual path. This handles
+                # the special '__ROOT__' case and nested folders. The path is what we need.
+                run_folder_path = self._resolve_run_path(run)
                 df = self.load_single_run(run)
+                # Add the relative path to the run for better context
+                df['run_path'] = str(run_folder_path.relative_to(self.root_folder))
                 all_dataframes.append(df)
                 print(f"Loaded run: {run} ({len(df)} records)")
             except Exception as e:

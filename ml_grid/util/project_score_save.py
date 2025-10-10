@@ -1,4 +1,4 @@
-import pathlib
+from pathlib import Path
 import time
 import traceback
 import numpy as np
@@ -9,7 +9,7 @@ from sklearn.metrics import *
 import pickle
 import os
 import warnings
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 # from sklearn.utils.testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
@@ -76,12 +76,10 @@ class project_score_save_class:
 
         df = pd.DataFrame(data=None, columns=self.column_list)
 
-        df.to_csv(
-            os.path.join(base_project_dir, "final_grid_score_log.csv"),
-            mode="w",
-            header=True,
-            index=False,
-        )
+        log_path = Path(base_project_dir) / "final_grid_score_log.csv"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+
+        df.to_csv(log_path, mode="w", header=True, index=False)
 
     @staticmethod
     def update_score_log(
@@ -255,19 +253,16 @@ class project_score_save_class:
             # line['g_val'] = [g_val]
             # line['g'] = [g]
 
-            line[column_list].to_csv(
-                os.path.join(ml_grid_object.base_project_dir, "final_grid_score_log.csv"),
-                mode="a",
-                header=False,
-                index=True,
-            )
+            log_path = Path(ml_grid_object.base_project_dir) / "final_grid_score_log.csv"
+            line[column_list].to_csv(log_path, mode="a", header=False, index=True)
+
             if store_models:
                 if "keras" not in method_name.lower():
                     #print("SAVING MODEL!")
-                    models_dir = pathlib.Path(os.path.join(ml_grid_object.base_project_dir, "models"))
+                    models_dir = Path(ml_grid_object.base_project_dir) / "models"
                     models_dir.mkdir(parents=True, exist_ok=True)
 
-                    model_path = os.path.join(ml_grid_object.base_project_dir, "models", f"{str(param_space_index)}.pkl")
+                    model_path = models_dir / f"{str(param_space_index)}.pkl"
                     try:
                         # save pickled model
                         with open(model_path, 'wb') as f:

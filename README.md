@@ -158,13 +158,26 @@ After installation, activate the virtual environment to run your code or noteboo
 The main entry point for running experiments is typically a script or notebook that defines the parameter space and iterates through it. Here is a conceptual example of how to run a single pipeline iteration:
 
 ```python
+import os
+from pathlib import Path
 from ml_grid.pipeline.data import pipe
 from ml_grid.util.param_space import parameter_space
 from ml_grid.util.global_params import global_parameters
+from ml_grid.util.create_experiment_directory import create_experiment_directory
 
 # Define global settings
 global_parameters.verbose = 2
 global_parameters.error_raise = False
+
+# Define project root and experiment directories robustly
+# Assumes the script/notebook is in a subdirectory like 'notebooks'
+project_root = Path().resolve().parent
+
+# Define a base directory for all experiments within the project root
+experiments_base_dir = project_root / "experiments"
+
+# Create a unique, timestamped directory for this specific experiment run
+experiment_dir = create_experiment_directory(base_dir=experiments_base_dir, additional_naming="MyExperiment")
 
 # Load the parameter space
 param_space_df = parameter_space().get_parameter_space()
@@ -174,10 +187,11 @@ local_param_dict = param_space_df.iloc[0].to_dict()
 
 # Instantiate and run the pipeline
 ml_grid_object = pipe(
-    file_name='path/to/your/data.csv',
+    file_name=str(project_root / "data" / "your_data.csv"),
     drop_term_list=['id', 'unwanted_col'],
     local_param_dict=local_param_dict,
-    base_project_dir='path/to/your/project/',
+    base_project_dir=str(project_root),
+    experiment_dir=experiment_dir,
     param_space_index=0
 )
 

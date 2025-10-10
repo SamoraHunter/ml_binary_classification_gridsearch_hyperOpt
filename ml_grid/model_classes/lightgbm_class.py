@@ -21,9 +21,9 @@ class LightGBMClassifier(BaseEstimator, ClassifierMixin):
         num_leaves: int = 31,
         learning_rate: float = 0.05,
         n_estimators: int = 100,
-        objective: str = "multiclass",
-        num_class: int = 1,
-        metric: str = "multi_logloss",
+        objective: str = "binary",
+        num_class: Optional[int] = None,
+        metric: str = "logloss",
         feature_fraction: float = 0.9,
         early_stopping_rounds: Optional[int] = None,
         verbosity: int = -1,
@@ -36,8 +36,9 @@ class LightGBMClassifier(BaseEstimator, ClassifierMixin):
             learning_rate (float): Boosting learning rate.
             n_estimators (int): Number of boosting rounds.
             objective (str): The learning objective.
-            num_class (int): The number of classes for multiclass classification.
-            metric (str): The metric to be used for evaluation.
+            num_class (Optional[int]): The number of classes for multiclass
+                classification. Not needed for binary. Defaults to None.
+            metric (str): The metric to be used for evaluation. Defaults to 'logloss'.
             feature_fraction (float): Fraction of features to be considered for each
                 tree.
             early_stopping_rounds (Optional[int]): Activates early stopping.
