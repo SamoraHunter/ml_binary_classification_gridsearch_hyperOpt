@@ -28,16 +28,19 @@ class TestConvertXyToTimeSeries(unittest.TestCase):
         # Assuming max_seq_length is defined
         self.max_seq_length = 10
 
+        # Get the actual number of unique clients in the training set
+        self.num_unique_clients_train = self.X_train['client_idcode'].nunique()
+
         # Converting train data into time series format
         self.X_train_ts, self.y_train_ts = convert_Xy_to_time_series(
             self.X_train, self.y_train, self.max_seq_length
         )
 
     def test_X_train_ts_shape(self):
-        self.assertEqual(self.X_train_ts.shape, (100, 10, 10))
+        self.assertEqual(self.X_train_ts.shape, (self.num_unique_clients_train, 10, 10))
 
     def test_y_train_ts_shape(self):
-        self.assertEqual(self.y_train_ts.shape, (100,))
+        self.assertEqual(self.y_train_ts.shape, (self.num_unique_clients_train,))
 
     def test_returns_tuple(self):
         result = convert_Xy_to_time_series(
