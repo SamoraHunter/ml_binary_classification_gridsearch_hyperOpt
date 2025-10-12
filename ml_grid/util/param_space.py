@@ -54,7 +54,7 @@ class ParamSpace:
                     "lin_zero_one": np.linspace(0.0, 1.0, nstep) / 10,
                 }
 
-            if size == "xsmall":
+            elif size == "xsmall" or size == "small":
 
                 nstep = 2
                 self.param_dict = {
@@ -69,7 +69,7 @@ class ParamSpace:
                     "lin_zero_one": np.linspace(0.0, 1.0, nstep) / 10,
                 }
 
-            if size == "xwide":
+            elif size == "xwide":
 
                 nstep = 2
                 self.param_dict = {
@@ -113,7 +113,7 @@ class ParamSpace:
                     "log_zero_one": Real(0.1, 1.0, prior="log-uniform"),  # Correct usage of Real
                     "lin_zero_one": Real(0.0, 0.1, prior="uniform"),  # Correct usage of Real
                 }
-            elif size == "xsmall":
+            elif size == "xsmall" or size == "small":
                 nstep = 2
                 self.param_dict = {
                     "log_epoch": Integer(
