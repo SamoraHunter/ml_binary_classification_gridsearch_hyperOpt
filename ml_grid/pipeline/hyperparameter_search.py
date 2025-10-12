@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, ParameterGrid
+from pandas.testing import assert_index_equal
 from sklearn.exceptions import ConvergenceWarning
 from skopt import BayesSearchCV
 from sklearn.base import is_classifier, BaseEstimator
@@ -56,6 +57,7 @@ class HyperparameterSearch:
         sub_sample_pct: int = 100,
         max_iter: int = 100,
         ml_grid_object: Any = None,
+        cv: Any = None,
     ):
         """Initializes the HyperparameterSearch class.
 
@@ -70,6 +72,8 @@ class HyperparameterSearch:
                 Bayesian search. Defaults to 100.
             ml_grid_object (Any, optional): The main pipeline object containing data and
                 other parameters. Defaults to None.
+            cv (Any, optional): Cross-validation splitting strategy. Can be None, int,
+                or a CV splitter. Defaults to None (no cross-validation).
         """
         self.algorithm = algorithm
         self.parameter_space = parameter_space
@@ -78,6 +82,7 @@ class HyperparameterSearch:
         self.sub_sample_pct = sub_sample_pct
         self.max_iter = max_iter
         self.ml_grid_object = ml_grid_object
+        self.cv = cv
 
         if self.ml_grid_object is None:
             raise ValueError("ml_grid_object is required.")
@@ -105,6 +110,7 @@ class HyperparameterSearch:
         # Configure warnings
         warnings.filterwarnings("ignore", category=ConvergenceWarning)
         warnings.filterwarnings("ignore", category=UserWarning)
+        warnings.filterwarnings("ignore", category=RuntimeWarning)  # Suppress divide by zero warnings from NaiveBayes
 
         # Configure GPUs if applicable
         if (
@@ -130,8 +136,8 @@ class HyperparameterSearch:
         on global parameters and runs the search on the provided training data.
 
         Args:
-            X_train (pd.DataFrame): Training features.
-            y_train (pd.Series): Training labels.
+            X_train (pd.DataFrame): Training features with reset index.
+            y_train (pd.Series): Training labels with reset index.
 
         Returns:
             BaseEstimator: The best estimator found during the search.
@@ -139,21 +145,63 @@ class HyperparameterSearch:
         random_search = self.global_params.random_grid_search
         grid_n_jobs = self.global_params.grid_n_jobs
         bayessearch = self.global_params.bayessearch
+        verbose = getattr(self.global_params, 'verbose', 0)  # Get verbosity level, default to 0
 
-        # Limit n_jobs for GPU-heavy methods to avoid memory issues
+        # Limit n_jobs for GPU-heavy models or Bayesian search to avoid memory/parallelization issues
         gpu_heavy_models = (KNNWrapper, kerasClassifier_class)
-        if bayessearch and isinstance(self.algorithm, gpu_heavy_models):
+        if bayessearch or isinstance(self.algorithm, gpu_heavy_models):
+            if verbose > 0:
+                self.ml_grid_object.logger.info(
+                    "Using n_jobs=1 to avoid pandas indexing issues in parallel processing"
+                )
             grid_n_jobs = 1
 
+        # Validate parameters - skip for Bayesian search as it uses different parameter format
         if not bayessearch:
-            # Validate parameters
+            # Grid and Random search use standard sklearn parameter format (lists/arrays)
             parameters = validate_parameters_helper(
                 algorithm_implementation=self.algorithm,
                 parameters=self.parameter_space,
                 ml_grid_object=self.ml_grid_object
             )
         else:
+            # Bayesian search uses skopt space objects (Integer, Real, Categorical)
+            # These cannot go through standard validation
             parameters = self.parameter_space
+
+        # Reset index to ensure clean integer indexing for CV splits
+        # Keep as pandas to retain feature names
+        if hasattr(X_train, 'reset_index'):
+            X_train_reset = X_train.reset_index(drop=True)
+            if verbose > 1:
+                self.ml_grid_object.logger.debug(
+                    f"Reset X_train index. Shape: {X_train_reset.shape}"
+                )
+        else:
+            X_train_reset = X_train
+            
+        if hasattr(y_train, 'reset_index'):
+            y_train_reset = y_train.reset_index(drop=True)
+            if verbose > 1:
+                self.ml_grid_object.logger.debug(
+                    f"Reset y_train index. Shape: {y_train_reset.shape}"
+                )
+        else:
+            y_train_reset = y_train
+        
+        # Verify data integrity
+        if len(X_train_reset) != len(y_train_reset):
+            raise ValueError(
+                f"Length mismatch: X={len(X_train_reset)}, y={len(y_train_reset)}"
+            )
+        
+        if verbose > 1:
+            self.ml_grid_object.logger.debug(
+                f"X_train type: {type(X_train_reset)}, shape: {X_train_reset.shape}"
+            )
+            self.ml_grid_object.logger.debug(
+                f"y_train type: {type(y_train_reset)}, shape: {y_train_reset.shape}"
+            )
 
         if bayessearch:
             # Bayesian Optimization
@@ -161,9 +209,9 @@ class HyperparameterSearch:
                 estimator=self.algorithm,
                 search_spaces=parameters,
                 n_iter=self.max_iter,
-                cv=[(slice(None), slice(None))],
+                cv=self.cv,
                 n_jobs=grid_n_jobs,
-                verbose=1,
+                verbose=verbose,
                 error_score="raise",
             )
 
@@ -176,23 +224,30 @@ class HyperparameterSearch:
             grid = RandomizedSearchCV(
                 self.algorithm,
                 parameters,
-                verbose=1,
-                cv=[(slice(None), slice(None))],
+                verbose=verbose,
+                cv=self.cv,
                 n_jobs=grid_n_jobs,
                 n_iter=n_iter,
                 error_score="raise",
             )
         else:
+            # Grid Search
             grid = GridSearchCV(
                 self.algorithm,
                 parameters,
-                verbose=1,
-                cv=[(slice(None), slice(None))],
+                verbose=verbose,
+                cv=self.cv,
                 n_jobs=grid_n_jobs,
-                error_score=np.nan,
+                error_score="raise",
             )
 
-        grid.fit(X_train, y_train)
+        if verbose > 0:
+            self.ml_grid_object.logger.info(
+                f"Starting hyperparameter search with {len(X_train_reset)} samples"
+            )
+        
+        # Fit the grid search with pandas DataFrames/Series (retains feature names)
+        grid.fit(X_train_reset, y_train_reset)
 
         best_model = grid.best_estimator_
         return best_model
