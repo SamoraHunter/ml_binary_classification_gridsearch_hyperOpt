@@ -208,6 +208,11 @@ class run:
                     self.highest_score = max(self.highest_score, res)
                     print(f"highest score: {highest_score}")
 
+                except ValueError as e:
+                    if "All feature columns were removed" in str(e):
+                        print(f"Skipping run due to data issue: {e}")
+                        continue # Skip to the next iteration
+
                 except CatBoostError as e:
                     print(f"CatBoostError: {e}")
                     print(f"continuing despite catboost error...")
