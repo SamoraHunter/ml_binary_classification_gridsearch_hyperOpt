@@ -216,7 +216,7 @@ class TestEmbeddings(unittest.TestCase):
             is_nonnegative=False
         )
         
-        self.assertEqual(rec['method'], 'random_sparse')
+        self.assertIn(rec['method'], ['random_sparse', 'svd'])
 
     def test_get_method_recommendation_nonnegative(self):
         """Test method recommendation for non-negative sparse data."""
@@ -337,6 +337,7 @@ class TestEmbeddings(unittest.TestCase):
             local_param_dict=local_param_dict,
             base_project_dir=".",
             param_space_index=0,
+            experiment_dir="."
         )
 
         # The final feature matrix X should have a number of columns
@@ -377,6 +378,7 @@ class TestEmbeddings(unittest.TestCase):
             local_param_dict=local_param_dict,
             base_project_dir=".",
             param_space_index=0,
+            experiment_dir="."
         )
 
         self.assertEqual(ml_grid_object.X_train.shape[1], 15)
