@@ -41,7 +41,7 @@ class adaboost_class:
         if global_params.bayessearch:
             # Define the parameter space for Bayesian optimization
             self.parameter_space = {
-                "algorithm": Categorical(["SAMME.R", "SAMME"]),
+                "algorithm": Categorical([ "SAMME"]),
                 "learning_rate": Real(0.01, 1, prior="log-uniform"),
                 "n_estimators": Integer(10, 500),
             }
