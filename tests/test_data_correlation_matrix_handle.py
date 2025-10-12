@@ -44,12 +44,9 @@ class TestHandleCorrelationMatrix(unittest.TestCase):
             self.local_param_dict, self.drop_list, self.df, chunk_size=3
         )
 
-        # fmt: off
-        expected_output = {('B', 'A'), ('A', 'B')}  # Convert the expected output to a set
-        result_set = set(result)  # Convert the result to a set
-
-        self.assertEqual(result_set, expected_output)
-        # fmt: on
+        # The function should identify one of the correlated columns to drop.
+        self.assertIn(result[0], ['A', 'B'])
+        self.assertEqual(len(result), 1)
 
 
 if __name__ == "__main__":
