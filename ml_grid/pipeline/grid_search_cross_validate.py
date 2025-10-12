@@ -12,6 +12,7 @@ from numpy import absolute, mean, std
 from scikeras.wrappers import KerasClassifier
 from sklearn import metrics
 from IPython.display import display
+from pandas.testing import assert_index_equal
 from xgboost.core import XGBoostError
 
 # from sklearn.utils.testing import ignore_warnings
@@ -71,13 +72,10 @@ class grid_search_crossvalidate:
             sub_sample_parameter_val (int, optional): A value used to limit
                 the number of iterations in a randomized search. Defaults to 100.
         """
-        warnings.filterwarnings("ignore")
-
-        warnings.filterwarnings("ignore", category=FutureWarning)
-
-        warnings.filterwarnings("ignore", category=ConvergenceWarning)
-
+        # Set each warning filter individually for robustness
         warnings.filterwarnings("ignore", category=UserWarning)
+        warnings.filterwarnings("ignore", category=ConvergenceWarning)
+        warnings.filterwarnings("ignore", category=FutureWarning)
 
         self.global_params = global_parameters
 
@@ -143,6 +141,11 @@ class grid_search_crossvalidate:
         start = time.time()
 
         current_algorithm = algorithm_implementation
+
+        # Silence verbose models like CatBoost to keep logs clean
+        if "catboost" in method_name.lower() and hasattr(current_algorithm, 'set_params'):
+            ml_grid_object.logger.info("Silencing CatBoost verbose output.")
+            current_algorithm.set_params(verbose=0)
         
         if self.verbose >= 1:
             print(f"algorithm_implementation: {algorithm_implementation}")
@@ -257,8 +260,29 @@ class grid_search_crossvalidate:
             print("Running hyperparameter search")
         
         try:    
+            # Verify initial index alignment
+            try:
+                assert_index_equal(self.X_train.index, self.y_train.index)
+                ml_grid_object.logger.debug("Index alignment PASSED before search.run_search")
+            except AssertionError:
+                ml_grid_object.logger.error("Index alignment FAILED before search.run_search")
+                raise
+
+            # Ensure y_train is a Series for consistency
+            if not isinstance(self.y_train, pd.Series):
+                ml_grid_object.logger.error(f"y_train is not a pandas Series, but {type(self.y_train)}. Converting to Series.")
+                self.y_train = pd.Series(self.y_train, index=self.X_train.index)
+
+            # CRITICAL FIX: Reset indices to ensure integer-based indexing for sklearn
+            # This prevents "String indexing is not supported with 'axis=0'" errors
+            X_train_reset = self.X_train.reset_index(drop=True)
+            y_train_reset = self.y_train.reset_index(drop=True)
             
-            current_algorithm = search.run_search(self.X_train, self.y_train)
+            ml_grid_object.logger.debug(f"X_train index after reset: {X_train_reset.index[:5]}")
+            ml_grid_object.logger.debug(f"y_train index after reset: {y_train_reset.index[:5]}")
+
+            # Pass reset data to search
+            current_algorithm = search.run_search(X_train_reset, y_train_reset)
             
         except XGBoostError as e:
             if 'cuda' in str(e).lower() or 'memory' in str(e).lower():
@@ -281,22 +305,36 @@ class grid_search_crossvalidate:
                     max_iter=n_iter_v,
                     ml_grid_object=ml_grid_object
                 )
-                # Try again with non-gpu method.
-                current_algorithm = search.run_search(self.X_train, self.y_train)
+                # Try again with CPU method and reset indices
+                X_train_reset = self.X_train.reset_index(drop=True)
+                y_train_reset = self.y_train.reset_index(drop=True)
+                current_algorithm = search.run_search(X_train_reset, y_train_reset)
             else: 
                 print("unknown xgb error")
                 print(e)
+                raise
             
         except Exception as e:
-            print(e)
-            print("Failed to run search in gridsearch cross validate")
-            
+            if "String indexing is not supported with 'axis=0'" in str(e):
+                raise TypeError(
+                    "Pandas indexing error: 'String indexing is not supported with 'axis=0''. "
+                    "This typically happens when a pandas Series with a non-standard index is passed to a scikit-learn function. "
+                    "Ensure that target variables (y_train) are converted to numpy arrays using `.values` before fitting or cross-validation."
+                ) from e
+            else:
+                ml_grid_object.logger.error(f"Failed to run search in gridsearch cross validate: {e}", exc_info=True)
+                # Re-raise the original exception to allow for higher-level handling if needed
+                raise e
 
 
         if self.global_parameters.verbose >= 3:
             print("Fitting final model")
         #current_algorithm = grid.best_estimator_
-        current_algorithm.fit(self.X_train, self.y_train)
+        # Use numpy arrays for fitting the final model and for cross-validation.
+        X_train_final_np = self.X_train.values
+        y_train_values = self.y_train.values
+
+        current_algorithm.fit(X_train_final_np, y_train_values)
 
         metric_list = self.metric_list
 
@@ -336,8 +374,8 @@ class grid_search_crossvalidate:
             # Perform the cross-validation
             scores = cross_validate(
                 current_algorithm,
-                self.X_train,
-                self.y_train,
+                X_train_final_np,
+                y_train_values, # This is already a numpy array
                 scoring=self.metric_list,
                 cv=self.cv,
                 n_jobs=grid_n_jobs,  # Full CV on final best model
@@ -354,8 +392,8 @@ class grid_search_crossvalidate:
                 try:
                     scores = cross_validate(
                         current_algorithm,
-                        self.X_train,
-                        self.y_train,
+                        X_train_final_np,
+                        y_train_values,
                         scoring=self.metric_list,
                         cv=self.cv,
                         n_jobs=grid_n_jobs,  # Full CV on final best model
