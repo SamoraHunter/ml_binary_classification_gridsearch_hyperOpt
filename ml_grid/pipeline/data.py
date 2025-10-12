@@ -1,5 +1,8 @@
 import re
 import random
+import os
+import logging
+from ml_grid.pipeline.data_train_test_split import get_data_split
 import numpy as np
 from typing import Any, Dict, List, Optional
 import warnings
@@ -18,14 +21,18 @@ from ml_grid.pipeline.data_feature_importance_methods import feature_importance_
 from ml_grid.pipeline.data_outcome_list import handle_outcome_list
 from ml_grid.pipeline.data_percent_missing import handle_percent_missing
 from ml_grid.pipeline.data_plot_split import plot_pie_chart_with_counts
+from pandas.testing import assert_index_equal
 from ml_grid.pipeline.data_scale import data_scale_methods
-from ml_grid.pipeline.data_train_test_split import get_data_split, is_valid_shape
-from ml_grid.pipeline.logs_project_folder import log_folder
 from ml_grid.util.global_params import global_parameters
+from ml_grid.util.logger_setup import setup_logger
 
 warnings.filterwarnings("ignore", category=ConvergenceWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
+
+class NoFeaturesError(Exception):
+    """Custom exception raised when no features are left after processing."""
+    pass
 
 
 class pipe:
@@ -36,9 +43,6 @@ class pipe:
     training and evaluation. The resulting object holds the processed data and
     can be passed to classifier methods.
     """
-
-    base_project_dir: str
-    """The root directory for the project, used for saving logs and models."""
 
     additional_naming: Optional[str]
     """An optional string to append to log folder names for better identification."""
@@ -109,12 +113,30 @@ class pipe:
     model_class_list: List[Any]
     """A list of instantiated model class objects to be evaluated in this run."""
 
+    feature_transformation_log: pd.DataFrame
+    """A DataFrame that logs the changes to the feature set at each pipeline step."""
+
+    def _log_feature_transformation(self, step_name: str, before_count: int, after_count: int, description: str):
+        """Helper function to log feature transformation steps."""
+        if self.verbose >= 1:
+            self._feature_log_list.append({'step': step_name, 'features_before': before_count, 'features_after': after_count, 'features_changed': before_count - after_count, 'description': description})
+    
+    def _assert_index_alignment(self, df1: pd.DataFrame, df2: pd.Series, step_name: str):
+        """Helper function to assert that DataFrame and Series indices are equal."""
+        try:
+            assert_index_equal(df1.index, df2.index)
+            self.logger.debug(f"Index alignment PASSED at: {step_name}")
+        except AssertionError:
+            self.logger.error(f"Index alignment FAILED at: {step_name}")
+            raise
+
     def __init__(
         self,
         file_name: str,
         drop_term_list: List[str],
-        local_param_dict: Dict[str, Any],
+        experiment_dir: str,
         base_project_dir: str,
+        local_param_dict: Dict[str, Any],
         param_space_index: int,
         additional_naming: Optional[str] = None,
         test_sample_n: int = 0,
@@ -135,8 +157,10 @@ class pipe:
                 to drop.
             local_param_dict (Dict[str, Any]): A dictionary of parameters for this
                 specific pipeline run.
-            base_project_dir (str): The root directory for the project.
-            param_space_index (int): The index of the current parameter space
+            base_project_dir (str): The root directory for the project where
+                logs and models will be saved.
+            experiment_dir (str): The path to the parent directory for this group
+                of experimental runs.
                 permutation.
             additional_naming (Optional[str], optional): Additional string to
                 append to log folder names. Defaults to None.
@@ -153,9 +177,9 @@ class pipe:
                 Defaults to None.
         """
 
-        self.base_project_dir = base_project_dir
-
         self.additional_naming = additional_naming
+
+        self.base_project_dir = base_project_dir
 
         self.local_param_dict = local_param_dict
 
@@ -169,14 +193,22 @@ class pipe:
 
         self.model_class_dict = model_class_dict
 
-        if self.verbose >= 1:
-            print(f"Starting... {self.local_param_dict}")
-
-        self.logging_paths_obj = log_folder(
-            local_param_dict=local_param_dict,
-            additional_naming=additional_naming,
-            base_project_dir=base_project_dir,
+        # Setup logger right after creating the log folder path
+        # Do not redirect stdout if running with hyperopt, as it has its own stdout management.
+        redirect_stdout = not self.global_params.bayessearch
+        self.logger = setup_logger(
+            experiment_dir=experiment_dir,
+            param_space_index=self.param_space_index,
+            verbose=self.verbose,
+            redirect_stdout=redirect_stdout
         )
+        self.logger.info(f"Logger setup complete.")
+        
+        # Initialize feature transformation log
+        self._feature_log_list = []
+
+        self.logger.info(f"Starting pipeline run for param space index {self.param_space_index}")
+        self.logger.info(f"Parameters: {self.local_param_dict}")
 
         if test_sample_n > 0 or column_sample_n > 0:
             self.df = read_in.read_sample(file_name, test_sample_n, column_sample_n).raw_input_data
@@ -186,6 +218,7 @@ class pipe:
         self.all_df_columns = list(self.df.columns)
 
         self.orignal_feature_names = self.all_df_columns.copy()
+        self._log_feature_transformation("Initial Load", len(self.all_df_columns), len(self.all_df_columns), "Initial data loaded.")
 
         self.pertubation_columns, self.drop_list = get_pertubation_columns(
             all_df_columns=self.all_df_columns,
@@ -193,30 +226,34 @@ class pipe:
             drop_term_list=drop_term_list,
         )
         if outcome_var_override is None:
+            # Determine outcome variable
             self.outcome_variable = f'outcome_var_{local_param_dict.get("outcome_var_n")}'
         
         else:
-            print("outcome_var_override:", outcome_var_override)
-            print("setting outcome var to:", outcome_var_override)
+            self.logger.info(f"outcome_var_override provided: {outcome_var_override}")
+            self.logger.info(f"Setting outcome var to: {outcome_var_override}")
             self.outcome_variable = outcome_var_override
             
             # get list of variables with substring "outcome_var"
             outcome_vars = [col for col in self.df.columns if "outcome_var" in col]
-            print("outcome_vars:", len(outcome_vars))
+            self.logger.debug(f"Found {len(outcome_vars)} total outcome variables.")
             
             #remove outcome_var_override from list
             
             outcome_vars.remove(outcome_var_override)
             
             # add additional outcome variables to drop list
-            
+            self.logger.debug(f"Adding {len(outcome_vars)} other outcome variables to drop list.")
             self.drop_list.extend(outcome_vars)
             
-            
-            
+        self._log_feature_transformation(
+            "Feature Selection (Toggles)",
+            len(self.all_df_columns),
+            len(self.pertubation_columns),
+            "Selected columns based on feature toggles in config."
+        )
         
-
-        print(
+        self.logger.info(
             f"Using {len(self.pertubation_columns)}/{len(self.all_df_columns)} columns for {self.outcome_variable} outcome"
         )
 
@@ -224,36 +261,33 @@ class pipe:
         list_1 = self.pertubation_columns.copy()
 
         difference_list = list(set(list_2) - set(list_1))
-        print(f"Omitting {len(difference_list)} :...")
-        print(f"{difference_list[0:5]}...")
+        self.logger.info(f"Omitting {len(difference_list)} columns based on feature toggles.")
+        self.logger.debug(f"Sample of omitted columns: {difference_list[0:5]}...")
 
-        self.drop_list = handle_correlation_matrix(
-            local_param_dict=local_param_dict, drop_list=self.drop_list, df=self.df
-        )
+        # Start with the columns selected by the feature toggles.
+        current_features = self.pertubation_columns.copy()
 
-        self.drop_list = handle_percent_missing(
-            local_param_dict=local_param_dict,
-            all_df_columns=self.all_df_columns,
-            drop_list=self.drop_list,
-            file_name=file_name,
-        )
 
+        features_before = len(current_features)
+        initial_drop_list = self.drop_list.copy()
         self.drop_list = handle_outcome_list(
             drop_list=self.drop_list, outcome_variable=self.outcome_variable
         )
+        newly_dropped = list(set(self.drop_list) - set(initial_drop_list))
+        current_features = [col for col in current_features if col not in newly_dropped]
+        self._log_feature_transformation("Drop Other Outcomes", features_before, len(current_features), "Removed other potential outcome variables from feature set.")
         
-        self.drop_list = remove_constant_columns(
-            X=self.df, drop_list=self.drop_list, verbose=self.verbose)
-
-        self.final_column_list = [
-            col
-            for col in self.pertubation_columns
-            if (col not in self.drop_list and col in self.df.columns)
+        
+        # Combine all columns to be kept
+        current_features = [
+            col for col in self.pertubation_columns 
+            if col not in self.drop_list and col != self.outcome_variable
         ]
+        
+        self.final_column_list = current_features
 
-        # Safety net: If all features are pruned, retain a minimum set
         if not self.final_column_list:
-            print("Warning: All features were pruned. Activating safety retention mechanism.")
+            self.logger.warning("All features were pruned. Activating safety retention mechanism.")
             
             # Define core columns to try and protect
             core_protected_columns = ['age', 'male', 'client_idcode']
@@ -273,7 +307,7 @@ class pipe:
 
             # 3. As a last resort, pick random columns from the original features
             if not retained_cols:
-                print("Last resort: Selecting random features.")
+                self.logger.warning("Last resort: Selecting random features.")
                 available_features = [
                     col for col in self.orignal_feature_names 
                     if col != self.outcome_variable and col in self.df.columns
@@ -284,7 +318,13 @@ class pipe:
                     retained_cols = available_features
             
             self.final_column_list = retained_cols
-            print(f"Retained minimum features: {self.final_column_list}")
+            self.logger.info(f"Retained minimum features: {self.final_column_list}")
+            self._log_feature_transformation(
+                "Safety Net",
+                0,
+                len(self.final_column_list),
+                "All features were pruned; safety net retained a minimal set."
+            )
 
         # Final check to ensure we have at least one feature
         if not self.final_column_list:
@@ -297,30 +337,24 @@ class pipe:
             # Re add client_idcode
             self.final_column_list.insert(0, "client_idcode")
 
-        self.X = self.df[self.final_column_list].copy()
+        self.X = self.df[self.final_column_list]
 
-        self.X = clean_up_class().handle_duplicated_columns(self.X)
+        self._assert_index_alignment(self.X, self.df[self.outcome_variable], "Initial X creation")
 
-        clean_up_class().screen_non_float_types(self.X)
+        self.y = self.df[self.outcome_variable]
+        
+        self._assert_index_alignment(self.X, self.y, "Initial y creation")
 
-        self.y = self.df[self.outcome_variable].copy()
+        # --- CRITICAL FIX for indexing errors ---
+        # Reset index here to ensure all downstream functions (splitting, CV)
+        # receive data with a clean, standard 0-based integer index.
+        self.X.reset_index(drop=True, inplace=True)
+        self.y.reset_index(drop=True, inplace=True)
+        self._assert_index_alignment(self.X, self.y, "After initial reset_index")
 
-        clean_up_class().handle_column_names(self.X)
-
-        scale = self.local_param_dict.get("scale")
-
-        if scale:
-            try:
-                self.X = data_scale_methods().standard_scale_method(self.X)
-            except Exception as e:
-                print(e)
-                print("Exception scaling data, continuing...")
-                print(self.X.shape)
-                print(self.X.head())
-        if self.verbose >= 1:
-            print(
-                f"len final droplist: {len(self.drop_list)} \ {len(list(self.df.columns))}"
-            )
+        self.logger.info(
+                f"len final droplist: {len(self.drop_list)} / {len(list(self.df.columns))}"
+        )
             # print('\n'.join(map(str, self.drop_list[0:5])))
 
         print("------------------------")
@@ -345,22 +379,21 @@ class pipe:
                     max_client_idcode_sequence_length,
                 )
             except (ImportError, ModuleNotFoundError):
-                print("\n--- WARNING: Time-series libraries not found. ---")
-                print(
+                self.logger.error("\n--- WARNING: Time-series libraries not found. ---")
+                self.logger.error(
                     "To run in time-series mode, please install the required dependencies:"
                 )
-                print(
+                self.logger.error(
                     "1. Activate the correct virtual environment: source ml_grid_ts_env/bin/activate"
                 )
-                print("2. If not installed, run: ./install_ts.sh (or install_ts.bat on Windows)")
-                print("-----------------------------------------------------\n")
+                self.logger.error("2. If not installed, run: ./install_ts.sh (or install_ts.bat on Windows)")
                 raise
 
-            if self.verbose >= 1:
-                print("pre func")
-                display(self.X)
+            self.logger.debug("Preparing for time-series conversion.")
+            # display(self.X) # display() will still work in notebooks
 
             max_seq_length = max_client_idcode_sequence_length(self.df)
+            self.logger.info(f"Max sequence length for time-series: {max_seq_length}")
 
             if self.verbose >= 1:
                 print("time_series_mode", "convert_df_to_time_series")
@@ -379,20 +412,107 @@ class pipe:
             self.y_test_orig,
         ) = get_data_split(X=self.X, y=self.y, local_param_dict=self.local_param_dict)
         
+        self._assert_index_alignment(self.X_train, self.y_train, "After get_data_split")
+
+        # --- CRITICAL FIX: Reset all indices immediately after splitting ---
+        # This ensures all downstream processing (constant removal, feature selection, embedding)
+        # operates on data with clean, aligned, 0-based integer indices.
+        self.X_train.reset_index(drop=True, inplace=True)
+        self.y_train.reset_index(drop=True, inplace=True)
+        self.X_test.reset_index(drop=True, inplace=True)
+        self.y_test.reset_index(drop=True, inplace=True)
+        self.X_test_orig.reset_index(drop=True, inplace=True)
+        self.y_test_orig.reset_index(drop=True, inplace=True)
+        self._assert_index_alignment(self.X_train, self.y_train, "After master reset_index")
+        
+        # Clean column names *before* dropping operations to ensure stable column order.
+        clean_up_class().screen_non_float_types(self.X_train)
+        clean_up_class().handle_column_names(self.X_train)
+        clean_up_class().handle_column_names(self.X_test)
+        clean_up_class().handle_column_names(self.X_test_orig)
+        self._assert_index_alignment(self.X_train, self.y_train, "After cleanup and column renaming")
+
+        # --- POST-SPLIT CLEANING ---
+        # Apply cleaning steps that depend on data content *after* splitting to prevent data leakage.
+        
+        # 2. Handle columns with high percentage of missing values based on X_train
+        features_before = self.X_train.shape[1]
+        # We need to re-implement the logic here as handle_percent_missing was not designed for this.
+        # A simpler approach is to calculate missing % on X_train and drop.
+        percent_missing_threshold = self.local_param_dict.get('percent_missing', 100)
+        if percent_missing_threshold < 100:
+            missing_perc = self.X_train.isnull().sum() / len(self.X_train) * 100
+            missing_drop_list = missing_perc[missing_perc > percent_missing_threshold].index.tolist()
+            
+            self.X_train.drop(columns=missing_drop_list, inplace=True, errors='ignore')
+            self.X_test.drop(columns=missing_drop_list, inplace=True, errors='ignore')
+            self.X_test_orig.drop(columns=missing_drop_list, inplace=True, errors='ignore')
+            self._log_feature_transformation(
+                "Drop Missing (Post-Split)", 
+                features_before, 
+                self.X_train.shape[1], 
+                f"Dropped columns with > {percent_missing_threshold}% missing values based on X_train."
+            )
+
+        # 1. Handle columns that are constant *within* the training set
+        features_before = self.X_train.shape[1]
         # Handle columns made constant by splitting
-        self.X_train, self.X_test, self.X_test_orig = remove_constant_columns_with_debug(
+        self.X_train, self.X_test, self.X_test_orig = remove_constant_columns_with_debug( # FIX: Reassign the returned DataFrames
             self.X_train,
             self.X_test,
             self.X_test_orig,
-            verbosity=self.verbose
+            verbosity=self.verbose,
         )
-        if self.verbose >= 1:
-            print(f"Shape of X_train after removing constant columns post-split: {self.X_train.shape}")
+        self._log_feature_transformation("Drop Post-Split Constants", features_before, self.X_train.shape[1], "Removed columns that became constant after train/test split.")
+
+        # 2. Handle highly correlated features based on X_train (AFTER constant removal)
+        features_before = self.X_train.shape[1]
+        corr_drop_list = handle_correlation_matrix(
+            local_param_dict=local_param_dict, drop_list=[], df=self.X_train
+        )
+        self.X_train.drop(columns=corr_drop_list, inplace=True, errors='ignore')
+        # Ensure test sets have the same columns as X_train after correlation removal
+        self.X_test.drop(columns=corr_drop_list, inplace=True, errors='ignore')
+        self.X_test_orig.drop(columns=corr_drop_list, inplace=True, errors='ignore')
+        self._log_feature_transformation("Drop Correlated (Post-Split)", features_before, self.X_train.shape[1], f"Dropped columns with correlation > {local_param_dict.get('corr')} based on X_train.")
+
+        self.final_column_list = self.X_train.columns.tolist()
+
+        # Handle duplicated columns (after other removals)
+        features_before = self.X_train.shape[1]
+        original_cols = self.X_train.columns.tolist()
+        self.X_train = clean_up_class().handle_duplicated_columns(self.X_train)
+        dropped_cols = list(set(original_cols) - set(self.X_train.columns))
+        self.X_test.drop(columns=dropped_cols, inplace=True, errors='ignore')
+        self.X_test_orig.drop(columns=dropped_cols, inplace=True, errors='ignore')
+        self._log_feature_transformation("Drop Duplicated Columns", features_before, self.X_train.shape[1], "Removed duplicated columns based on X_train.")
+
+
+        # 4. Apply Scaling (post-split)
+        features_before = self.X_train.shape[1]
+        scale = self.local_param_dict.get("scale")
+        if scale:
+            try:
+                scaler = data_scale_methods().get_scaler() # Assuming this returns a scaler instance
+                self.X_train = pd.DataFrame(scaler.fit_transform(self.X_train), columns=self.X_train.columns, index=self.X_train.index)
+                self.X_test = pd.DataFrame(scaler.transform(self.X_test), columns=self.X_test.columns, index=self.X_test.index)
+                self.X_test_orig = pd.DataFrame(scaler.transform(self.X_test_orig), columns=self.X_test_orig.columns, index=self.X_test_orig.index)
+            except Exception as e:
+                self.logger.error(f"Exception scaling data post-split: {e}", exc_info=True)
+                self.logger.warning("Continuing without scaling.")
+        self._log_feature_transformation("Standard Scaling", features_before, self.X_train.shape[1], "Applied StandardScaler to numeric features based on X_train.")
+        self._assert_index_alignment(self.X_train, self.y_train, "After scaling")
+
+
+        self._assert_index_alignment(self.X_train, self.y_train, "After remove_constant_columns")
+        
+        self.logger.info(
+            f"Shape of X_train after removing constant columns post-split: {self.X_train.shape}")
 
         
         # Add a safeguard to ensure features remain after removing constant columns
         if self.X_train.shape[1] == 0:
-            raise ValueError("All feature columns were removed after data splitting because they were constant in the training set. Consider adjusting feature selection or data cleaning parameters.")
+            raise NoFeaturesError("All feature columns were removed after data splitting because they were constant in the training set. Consider adjusting feature selection or data cleaning parameters.")
 
 
         target_n_features = self.local_param_dict.get("feature_n")
@@ -405,29 +525,32 @@ class pipe:
             # was incorrect and disabled feature selection entirely.
             target_n_features_eval = max(1, target_n_features_eval)
 
-        if target_n_features is not None and target_n_features < 100 and self.X_train.shape[1] > 1 and not self.local_param_dict.get("use_embedding", False) and target_n_features_eval < self.X_train.shape[1]:
+        if target_n_features is not None and target_n_features < 100 and self.X_train.shape[1] > 1 and not self.local_param_dict.get("use_embedding", False):
+            features_before = self.X_train.shape[1]
 
-            if self.verbose >= 1:
-                print(f"Shape of X_train before feature importance selection: {self.X_train.shape}")
+            self.logger.info(f"Shape of X_train before feature importance selection: {self.X_train.shape}")
 
-            print(
+            self.logger.info(
                 f"Pre target_n_features {target_n_features}% reduction {target_n_features_eval}/{self.X_train.shape[1]}"
             )
             try:
 
                 fim = feature_importance_methods()
-                self.X_train, self.X_test, self.X_test_orig = (
-                    fim.handle_feature_importance_methods(
+                (
+                    self.X_train, self.y_train, self.X_test, self.y_test, self.X_test_orig
+                ) = fim.handle_feature_importance_methods(
                         target_n_features_eval,
                         X_train=self.X_train,
                         X_test=self.X_test,
+                        y_test=self.y_test,
                         y_train=self.y_train,
                         X_test_orig=self.X_test_orig,
                         ml_grid_object=self
                     )
-                )
-                if self.verbose >= 1:
-                    print(f"Shape of X_train after feature importance selection: {self.X_train.shape}")
+                self._log_feature_transformation("Feature Importance", features_before, self.X_train.shape[1], f"Selected top {target_n_features}% features using {fim.feature_method}.")
+                self._assert_index_alignment(self.X_train, self.y_train, "After feature selection and y_train reset")
+
+                self.logger.info(f"Shape of X_train after feature importance selection: {self.X_train.shape}")
 
                 if self.X_train.shape[1] == 0:
                     raise ValueError("Feature importance selection removed all features.")
@@ -437,68 +560,83 @@ class pipe:
                     raise ValueError("All features were removed by the feature importance selection method. X_train is empty.")
 
             except Exception as e:
-                print("failed target_n_features", e)
+                self.logger.error(f"Feature importance selection failed: {e}", exc_info=True)
+        self._assert_index_alignment(self.X_train, self.y_train, "After feature selection block")
 
         # Apply embeddings if configured (after feature selection)
         if self.local_param_dict.get("use_embedding", False):
-            if self.verbose >= 1:
-                print("Applying embeddings...")
+            features_before = self.X_train.shape[1]
+            self.logger.info("Applying embeddings...")
             
-            embedding_method = self.local_param_dict.get("embedding_method", "pca")
-            embedding_dim = self.local_param_dict.get("embedding_dim", 64)
-            scale_before_embedding = self.local_param_dict.get("scale_features_before_embedding", True)
-
-            if self.verbose >= 2:
-                print(f"  Embedding Method: {embedding_method}")
-                print(f"  Original features: {self.X_train.shape[1]}")
-                print(f"  Target embedding dimensions: {embedding_dim}")
-                print(f"  Scale before embedding: {scale_before_embedding}")
-
-            if self.X_train.shape[1] > 1 and embedding_dim >= self.X_train.shape[1]:
-                embedding_dim = self.X_train.shape[1] - 1
-                if self.verbose >= 1:
-                    print(f"  Warning: embedding_dim >= n_features. Adjusting to {embedding_dim}")
-
-            embedding_pipeline = create_embedding_pipeline(
-                method=embedding_method,
-                n_components=embedding_dim,
-                scale=scale_before_embedding,
-            )
-            
-            # Fit on train and transform all splits
-            # Check if the method is supervised to pass y_train
-            from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-            from sklearn.feature_selection import SelectKBest
-            from ml_grid.pipeline.embeddings import get_explained_variance
-
-            embed_step = embedding_pipeline.named_steps['embed']
-            if isinstance(embed_step, (LinearDiscriminantAnalysis, SelectKBest)):
-                if self.verbose >= 2:
-                    print("  Supervised embedding method detected, passing y_train.")
-                self.X_train = pd.DataFrame(embedding_pipeline.fit_transform(self.X_train, self.y_train), index=self.X_train.index, columns=[f"embed_{i}" for i in range(embedding_dim)])
+            # Safeguard: Some embedding methods require at least 2 features.
+            if self.X_train.shape[1] < 2:
+                self.logger.warning(f"Skipping embedding: Only {self.X_train.shape[1]} feature(s) available, but embedding requires at least 2.")
+                # The pipeline will continue without applying embeddings.
             else:
-                self.X_train = pd.DataFrame(embedding_pipeline.fit_transform(self.X_train), index=self.X_train.index, columns=[f"embed_{i}" for i in range(embedding_dim)])
-            
-            self.X_test = pd.DataFrame(embedding_pipeline.transform(self.X_test), index=self.X_test.index, columns=[f"embed_{i}" for i in range(embedding_dim)])
-            self.X_test_orig = pd.DataFrame(embedding_pipeline.transform(self.X_test_orig), index=self.X_test_orig.index, columns=[f"embed_{i}" for i in range(embedding_dim)])
-            
-            # The main self.X should also be updated for consistency, using the training data's embedding
-            self.X = self.X_train.copy()
 
-            if self.verbose >= 1:
-                print(f"Shape of X_train after embedding: {self.X_train.shape}")
+                embedding_method = self.local_param_dict.get("embedding_method", "pca")
+                embedding_dim = self.local_param_dict.get("embedding_dim", 64)
+                scale_before_embedding = self.local_param_dict.get("scale_features_before_embedding", True)
 
-            if self.verbose >= 1:
-                print(f"Data transformed to {self.X_train.shape[1]} embedding dimensions.")
+                self.logger.info(f"  Embedding Method: {embedding_method}")
+                self.logger.info(f"  Original features: {self.X_train.shape[1]}")
+                self.logger.info(f"  Target embedding dimensions: {embedding_dim}")
+                self.logger.info(f"  Scale before embedding: {scale_before_embedding}")
+
+                # Safeguard: n_components must be less than n_features.
+                if embedding_dim >= self.X_train.shape[1]:
+                    # Adjust embedding_dim to be the number of available features.
+                    embedding_dim = self.X_train.shape[1]
+                    self.logger.warning(f"  embedding_dim >= n_features. Adjusting to {embedding_dim}.")
+
+                embedding_pipeline = create_embedding_pipeline(
+                    method=embedding_method,
+                    n_components=embedding_dim,
+                    scale=scale_before_embedding,
+                )
+                
+                # Fit on train and transform all splits
+                # Check if the method is supervised to pass y_train
+                from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+                from sklearn.feature_selection import SelectKBest
+                from ml_grid.pipeline.embeddings import get_explained_variance
+
+                embed_step = embedding_pipeline.named_steps['embed']
+                if isinstance(embed_step, (LinearDiscriminantAnalysis, SelectKBest)):
+                    self.logger.debug("  Supervised embedding method detected, passing y_train.")
+                    self.X_train = pd.DataFrame(embedding_pipeline.fit_transform(self.X_train, self.y_train.values), index=self.X_train.index, columns=[f"embed_{i}" for i in range(embedding_dim)])
+                else:
+                    self.X_train = pd.DataFrame(embedding_pipeline.fit_transform(self.X_train), index=self.X_train.index, columns=[f"embed_{i}" for i in range(embedding_dim)])
+                
+                self.X_test = pd.DataFrame(embedding_pipeline.transform(self.X_test), index=self.X_test.index, columns=[f"embed_{i}" for i in range(embedding_dim)])
+                self.X_test_orig = pd.DataFrame(embedding_pipeline.transform(self.X_test_orig), index=self.X_test_orig.index, columns=[f"embed_{i}" for i in range(embedding_dim)])
+
+                # The main self.X should also be updated for consistency, using the training data's embedding
+
+                # CRITICAL: Re-run constant column removal after embedding, as the process
+                # itself can create constant columns (e.g., PCA components with zero variance).
+                features_before_post_embed_const = self.X_train.shape[1]
+                self.X_train, self.X_test, self.X_test_orig = remove_constant_columns_with_debug(
+                    self.X_train, self.X_test, self.X_test_orig, verbosity=self.verbose
+                )
+                self._log_feature_transformation("Drop Post-Embedding Constants", features_before_post_embed_const, self.X_train.shape[1], "Removed constant columns created by the embedding process.")
+
+
+                self._log_feature_transformation("Embedding", features_before, self.X_train.shape[1], f"Applied {embedding_method} to reduce features to {embedding_dim} dimensions.")
+                self.X = self.X_train.copy()
+                self._assert_index_alignment(self.X_train, self.y_train, "After embedding")
+
+                self.logger.info(f"Shape of X_train after embedding: {self.X_train.shape}")
+                self.logger.info(f"Data transformed to {self.X_train.shape[1]} embedding dimensions.")
                 explained_variance = get_explained_variance(embedding_pipeline)
                 if explained_variance is not None:
-                    print(f"  Total explained variance by {embedding_dim} components: {explained_variance.sum():.2%}")
+                    self.logger.info(f"  Total explained variance by {embedding_dim} components: {explained_variance.sum():.2%}")
 
 
 
 
         if self.verbose >= 2:
-            print(
+            self.logger.debug(
                 f"Data Split Information:\n"
                 f"Number of rows in self.X_train: {len(self.X_train)}, Columns: {self.X_train.shape[1]}\n"
                 f"Number of rows in self.X_test: {len(self.X_test)}, Columns: {self.X_test.shape[1]}\n"
@@ -513,28 +651,25 @@ class pipe:
             plot_pie_chart_with_counts(self.X_train, self.X_test, self.X_test_orig)
 
         if time_series_mode:
-            if self.verbose >= 2:
-                print("data>>", "get_model_class_list_ts")
+            self.logger.debug("Getting time-series model class list")
             try:
                 from ml_grid.pipeline.model_class_list_ts import (
                     get_model_class_list_ts,
                 )
             except (ImportError, ModuleNotFoundError):
-                print("\n--- WARNING: Time-series libraries not found. ---")
-                print(
+                self.logger.error("\n--- WARNING: Time-series libraries not found. ---")
+                self.logger.error(
                     "To run in time-series mode, please install the required dependencies:"
                 )
-                print(
+                self.logger.error(
                     "1. Activate the correct virtual environment: source ml_grid_ts_env/bin/activate"
                 )
-                print("2. If not installed, run: ./install_ts.sh (or install_ts.bat on Windows)")
-                print("-----------------------------------------------------\n")
+                self.logger.error("2. If not installed, run: ./install_ts.sh (or install_ts.bat on Windows)")
                 raise
             self.model_class_list = get_model_class_list_ts(self)
 
         else:
-            if self.verbose >= 2:
-                print("data>>", "get_model_class_list")
+            self.logger.debug("Getting standard model class list")
             if model_class_dict is not None:
                 self.model_class_dict = model_class_dict
             
@@ -547,3 +682,26 @@ class pipe:
                 "-- end data pipeline-- Input data X_train is an empty DataFrame. "
                 "This is likely due to aggressive feature selection or data cleaning."
             )
+            
+        # Final definitive assertion before exiting the data pipeline.
+        # This ensures that the X_train and y_train that will be passed to the
+        # model training steps are perfectly aligned.
+        try:
+            assert_index_equal(self.X_train.index, self.y_train.index)
+            self.logger.info("Final data alignment check PASSED. X_train and y_train indices are identical.")
+        except AssertionError:
+            self.logger.error("CRITICAL: Final data alignment check FAILED. X_train and y_train indices are NOT identical.")
+            raise
+        
+        # Ensure y_train is a pandas Series for consistency before exiting.
+        if not isinstance(self.y_train, pd.Series):
+            self.y_train = pd.Series(self.y_train, index=self.X_train.index)
+        
+        # Finalize the feature transformation log
+        self.feature_transformation_log = pd.DataFrame(self._feature_log_list)
+        if self.verbose >= 1:
+            print("\n--- Feature Transformation Log ---")
+            display(self.feature_transformation_log)
+            print("--------------------------------\n")
+        
+        self.logger.info("Data pipeline processing complete.")
