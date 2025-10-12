@@ -132,7 +132,7 @@ class GlobalParameters:
         self.random_state_val = 1234
         self.n_jobs_model_val = -1
         self.max_param_space_iter_value = 10
-        self.store_models = True
+        self.store_models = False
         self.use_embedding = False
         self.embedding_method = None # "svd", "pca", "nmf", "lda", "random_gaussian", "random_sparse", "select_kbest_f", "select_kbest_mi"
         self.embedding_dim = None
