@@ -3,6 +3,7 @@ from typing import List, Union
 import numpy as np
 import pandas as pd
 from PyImpetus import PPIMBC
+from sklearn.model_selection import StratifiedKFold
 from sklearn.feature_selection import f_classif
 from sklearn.svm import SVC
 
@@ -88,6 +89,7 @@ class feature_methods:
         n: int,
         X_train: pd.DataFrame,
         y_train: pd.Series,
+        classifier=None,
         num_simul: int = 30,
         cv: int = 5,
         svc_kernel: str = "rbf",
@@ -98,6 +100,8 @@ class feature_methods:
             n (int): The number of top features to retrieve.
             X_train (pd.DataFrame): The training input samples.
             y_train (pd.Series): The target values.
+            classifier: The classifier to use for feature selection. If None,
+                defaults to SVC.
             num_simul (int): Number of simulations for stability selection in
                 PyImpetus. Defaults to 30.
             cv (int): Number of cross-validation folds. Defaults to 5.
@@ -118,18 +122,21 @@ class feature_methods:
             )
         original_columns = X_train.columns
 
-        # Ensure y_train is a pandas Series, as expected by PyImpetus internally
-        if not isinstance(y_train, pd.Series):
-            y_train = pd.Series(y_train)
-        
+        # Use StratifiedKFold to ensure class distribution is maintained in each fold,
+        # preventing errors when a fold contains only one class.
+        stratified_kfold = StratifiedKFold(n_splits=cv, shuffle=True, random_state=27)
+
+        # Use the provided classifier, or default to SVC if none is given.
+        model_to_use = classifier if classifier is not None else SVC(random_state=27, class_weight="balanced", kernel=svc_kernel)
+
         # Initialize the PyImpetus object with desired parameters
-        model = PPIMBC(model=SVC(random_state=27, class_weight="balanced", kernel=svc_kernel),
+        model = PPIMBC(model=model_to_use,
                     p_val_thresh=0.05, 
                     num_simul=num_simul,
                     simul_size=0.2, 
                     simul_type=0, 
-                    sig_test_type="non-parametric", 
-                    cv=cv,
+                    sig_test_type="non-parametric",
+                    cv=stratified_kfold,
                     random_state=27, 
                     n_jobs=-1, 
                     verbose=2)
