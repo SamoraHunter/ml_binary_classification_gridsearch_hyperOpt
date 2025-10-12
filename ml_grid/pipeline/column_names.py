@@ -288,10 +288,10 @@ def get_pertubation_columns(
 
     pertubation_columns = []
 
-    if local_param_dict.get("data").get("age") == True:
+    if local_param_dict.get("data").get("age") and "age" in all_df_columns:
         pertubation_columns.append("age")
 
-    if local_param_dict.get("data").get("sex") == True:
+    if local_param_dict.get("data").get("sex") and "male" in all_df_columns:
         pertubation_columns.append("male")
 
     if local_param_dict.get("data").get("bmi") == True:
@@ -355,5 +355,8 @@ def get_pertubation_columns(
 
     if verbose >= 2:
         plot_dict_values(local_param_dict.get("data"))
+
+    # Remove duplicates by converting to a set and back to a list
+    pertubation_columns = list(dict.fromkeys(pertubation_columns))
 
     return pertubation_columns, drop_list
