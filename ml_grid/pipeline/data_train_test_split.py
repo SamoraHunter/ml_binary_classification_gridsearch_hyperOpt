@@ -46,49 +46,29 @@ def get_data_split(
         print("overriding resample with None")
 
     # No resampling
-    if local_param_dict.get("resample") is None:
-        # Split into training and testing sets
-        X_train_orig, X_test_orig, y_train_orig, y_test_orig = train_test_split(
-            X, y, test_size=0.25, random_state=1
-        )
+    # First, split into a preliminary training set and a final hold-out test set.
+    # This original test set will NOT be resampled.
+    X_train_orig, X_test_orig, y_train_orig, y_test_orig = train_test_split(
+        X, y, test_size=0.25, random_state=1, stratify=y
+    )
 
-        # Split training set into final training and validation sets
-        X_train, X_test, y_train, y_test = train_test_split(
-            X_train_orig, y_train_orig, test_size=0.25, random_state=1
-        )
-
-    # Undersampling
-    elif local_param_dict.get("resample") == "undersample":
-
+    # Now, handle resampling ONLY on the preliminary training set (X_train_orig)
+    if local_param_dict.get("resample") == "undersample":
         # Store original column names and y name to reconstruct DataFrame after resampling
         original_columns = X.columns
         y_name = y.name
 
         # Undersample data
         rus = RandomUnderSampler(random_state=1)
-        X_res, y_res = rus.fit_resample(X, y)
-        X = pd.DataFrame(X_res, columns=original_columns)
-        y = pd.Series(y_res, name=y_name)
-
-        # Split into training and testing sets
-        X_train_orig, X_test_orig, y_train_orig, y_test_orig = train_test_split(
-            X, y, test_size=0.25, random_state=1
-        )
-
-        # Split training set into final training and validation sets
-        X_train, X_test, y_train, y_test = train_test_split(
-            X_train_orig, y_train_orig, test_size=0.25, random_state=1, stratify=y_train_orig
-        )
-        X = X_train_orig.copy()
-        y = y_train_orig.copy()
+        X_train_res, y_train_res = rus.fit_resample(X_train_orig, y_train_orig)
+        
+        # Reconstruct DataFrame and Series to ensure correct indices and names
+        X_train_processed = pd.DataFrame(X_train_res, columns=original_columns)
+        y_train_processed = pd.Series(y_train_res, name=y_name)
+        
 
     # Oversampling
     elif local_param_dict.get("resample") == "oversample":
-        # Train test split
-        X_train_orig, X_test_orig, y_train_orig, y_test_orig = train_test_split(
-            X, y, test_size=0.25, random_state=1
-        )
-
         # Store original column names to reconstruct DataFrame after resampling
         original_columns = X_train_orig.columns
         y_name = y_train_orig.name
@@ -96,15 +76,25 @@ def get_data_split(
         # Oversample training set
         sampling_strategy = 1
         ros = RandomOverSampler(sampling_strategy=sampling_strategy, random_state=1)
-        X_train_orig_res, y_train_orig_res = ros.fit_resample(X_train_orig, y_train_orig)
-        X_train_orig = pd.DataFrame(X_train_orig_res, columns=original_columns)
-        y_train_orig = pd.Series(y_train_orig_res, name=y_name)
-        print(y_train_orig.value_counts())
+        X_train_res, y_train_res = ros.fit_resample(X_train_orig, y_train_orig)
+        
+        # Reconstruct DataFrame and Series
+        X_train_processed = pd.DataFrame(X_train_res, columns=original_columns)
+        y_train_processed = pd.Series(y_train_res, name=y_name)
+    
+    else: # No resampling
+        X_train_processed = X_train_orig
+        y_train_processed = y_train_orig
 
-        # Split training set into final training and validation sets
-        X_train, X_test, y_train, y_test = train_test_split(
-            X_train_orig, y_train_orig, test_size=0.25, random_state=1, stratify=y_train_orig
-        )
+    # Finally, split the (potentially resampled) training data into the final
+    # training and validation sets for the grid search.
+    X_train, X_test, y_train, y_test = train_test_split(
+        X_train_processed,
+        y_train_processed,
+        test_size=0.25,
+        random_state=1,
+        stratify=y_train_processed,
+    )
 
     return X_train, X_test, y_train, y_test, X_test_orig, y_test_orig
 

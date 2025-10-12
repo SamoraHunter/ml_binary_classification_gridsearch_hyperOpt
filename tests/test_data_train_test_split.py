@@ -53,19 +53,23 @@ class TestDataTrainTestSplit(unittest.TestCase):
             self.X, self.y, local_param_dict
         )
 
-        # The entire dataset is first undersampled to 20*2=40 samples
-        # Then split 75/25 -> 30/10
-        self.assertEqual(len(X_test_orig), 10)
+        # Original data is split 75/25 -> 75/25.
+        # X_test_orig should have 25% of 100 samples = 25.
+        self.assertEqual(len(X_test_orig), 25)
 
-        # Then the 30 are split 75/25 -> 22/8
+        # The initial training set of 75 (60 class 0, 15 class 1) is undersampled
+        # to have 15 of each class, totaling 30.
+        # This is then split 75/25 -> 22/8
         self.assertEqual(len(X_train), 22)
         self.assertEqual(len(y_train), 22)
         self.assertEqual(len(X_test), 8)
+        self.assertEqual(len(y_test), 8)
         
         # Check if the training set is balanced after the full process
         # The final y_train comes from a split of a balanced set, so it should be roughly balanced
-        self.assertAlmostEqual(y_train.value_counts(normalize=True)[0], 0.5, delta=0.2)
-        self.assertAlmostEqual(y_train.value_counts(normalize=True)[1], 0.5, delta=0.2)
+        # With 22 samples, it should be 11 of each.
+        self.assertEqual(y_train.value_counts()[0], 11)
+        self.assertEqual(y_train.value_counts()[1], 11)
 
     def test_get_data_split_oversample(self):
         """Test data splitting with oversampling."""
@@ -74,19 +78,23 @@ class TestDataTrainTestSplit(unittest.TestCase):
             self.X, self.y, local_param_dict
         )
 
-        # Original data is split 75/25 -> 75/25
+        # Original data is split 75/25 -> 75/25.
+        # With stratification, y_test_orig should have 25% of each class:
+        # 25% of 80 (class 0) = 20
+        # 25% of 20 (class 1) = 5
         self.assertEqual(len(X_test_orig), 25)
 
         # The initial training set of 75 (60 class 0, 15 class 1) is oversampled
-        # to have 62 of each class, totaling 124.
-        # This is then split 75/25 -> 93/31
-        self.assertEqual(len(X_train), 93)
-        self.assertEqual(len(y_train), 93)
-        self.assertEqual(len(X_test), 31)
+        # to have 60 of each class, totaling 120.
+        # This is then split 75/25 -> 90/30
+        self.assertEqual(len(X_train), 90)
+        self.assertEqual(len(y_train), 90)
+        self.assertEqual(len(X_test), 30)
 
         # The final y_train should be as balanced as possible.
-        # With an odd number of samples (93), a perfect 50/50 split is impossible.
-        self.assertAlmostEqual(y_train.value_counts()[0], y_train.value_counts()[1], delta=1)
+        # With 90 samples from a balanced set, the split should be perfectly balanced.
+        self.assertEqual(y_train.value_counts()[0], 45)
+        self.assertEqual(y_train.value_counts()[1], 45)
 
     def test_invalid_shape_overrides_resample(self):
         """Test that resampling is disabled for invalid (e.g., 3D) data shapes."""
