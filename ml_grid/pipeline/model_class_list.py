@@ -49,7 +49,12 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
     Returns:
         List[Any]: A list of instantiated model class objects.
     """
+    # Get the parameter space size, defaulting to 'small' if not provided.
+    # This prevents errors when the key is missing from the configuration.
     parameter_space_size = ml_grid_object.local_param_dict.get("param_space_size")
+    if parameter_space_size is None:
+        parameter_space_size = "small"
+    
     model_class_dict: Optional[Dict[str, bool]] = ml_grid_object.model_class_dict
 
     if model_class_dict is None:
@@ -80,7 +85,15 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
 
     for class_name, include in model_class_dict.items():
         if include:
-            model_class = eval(class_name)
+            # Try the exact name first, then try with '_class' appended for convenience
+            try:
+                model_class = eval(class_name)
+            except NameError:
+                class_name_with_suffix = f"{class_name}_class"
+                try:
+                    model_class = eval(class_name_with_suffix)
+                except NameError:
+                    raise NameError(f"Could not find model class '{class_name}' or '{class_name_with_suffix}'. Please check the name and ensure it's imported.")
             model_instance = model_class(
                 X=ml_grid_object.X_train,
                 y=ml_grid_object.y_train,
