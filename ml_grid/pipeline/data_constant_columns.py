@@ -63,10 +63,13 @@ def remove_constant_columns_with_debug(
 ]:
     """Removes constant columns from training and testing datasets.
 
-    This function identifies columns that have zero variance in either the
-    training or testing set and removes them from all provided datasets
+    This function identifies columns that have zero variance in the
+    training set and removes them from all provided datasets
     (X_train, X_test, X_test_orig). It supports both pandas DataFrames and
     NumPy arrays, including 3D arrays for time series data.
+    
+    IMPORTANT: Only checks X_train for constant columns to prevent data leakage.
+    A column is constant if it has <= 1 unique value in X_train.
 
     Args:
         X_train (Union[pd.DataFrame, np.ndarray]): Training feature data.
@@ -90,23 +93,49 @@ def remove_constant_columns_with_debug(
     is_pandas = isinstance(X_train, pd.DataFrame)
 
     if is_pandas:
-        # Original logic for pandas DataFrames
-        train_variances = X_train.var(axis=0)
+        # Identify constant columns in X_train
+        # A column is constant if it has 1 or fewer unique values (excluding NaN)
+        constant_columns = []
+        
+        for col in X_train.columns:
+            try:
+                # Use nunique() without dropna to be more conservative
+                # A column with all NaN is also constant and should be dropped
+                n_unique = X_train[col].nunique(dropna=False)
+                
+                if n_unique <= 1:
+                    constant_columns.append(col)
+                    if verbosity > 1:
+                        print(f"Column '{col}' is constant: nunique={n_unique}, sample values: {X_train[col].head()}")
+                # Additional check for numeric columns with zero variance
+                elif pd.api.types.is_numeric_dtype(X_train[col]):
+                    try:
+                        col_std = X_train[col].std()
+                        if col_std == 0 or (pd.notna(col_std) and np.isclose(col_std, 0)):
+                            constant_columns.append(col)
+                            if verbosity > 1:
+                                print(f"Column '{col}' has zero variance: std={col_std}")
+                    except Exception as e:
+                        if verbosity > 1:
+                            print(f"Could not calculate std for column '{col}': {e}")
+            except Exception as e:
+                if verbosity > 1:
+                    print(f"Error checking column '{col}': {e}")
+        
         if verbosity > 1:
-            print(f"Variance of X_train columns:\n{train_variances}")
-
-        constant_columns_train = train_variances[train_variances == 0].index
+            print(f"\nUnique value counts in X_train:")
+            for col in X_train.columns:
+                print(f"  {col}: {X_train[col].nunique(dropna=False)} unique values")
+        
         if verbosity > 0:
-            print(f"Constant columns in X_train: {list(constant_columns_train)}")
-
-        # A column is constant if it has no variance in the training set.
-        # We should not consider the test set variance, as a small test set
-        # might misleadingly have constant columns.
-        constant_columns = constant_columns_train
-
-        X_train = X_train.loc[:, ~X_train.columns.isin(constant_columns)]
-        X_test = X_test.loc[:, ~X_test.columns.isin(constant_columns)]
-        X_test_orig = X_test_orig.loc[:, ~X_test_orig.columns.isin(constant_columns)]
+            print(f"\nConstant columns identified in X_train: {constant_columns}")
+            print(f"Number of constant columns to remove: {len(constant_columns)}")
+        
+        if constant_columns:
+            X_train = X_train.drop(columns=constant_columns, errors='ignore')
+            X_test = X_test.drop(columns=constant_columns, errors='ignore')
+            X_test_orig = X_test_orig.drop(columns=constant_columns, errors='ignore')
+            
     else:  # Handle numpy arrays
         # Determine variance calculation axis based on dimensions
         if X_train.ndim == 3:

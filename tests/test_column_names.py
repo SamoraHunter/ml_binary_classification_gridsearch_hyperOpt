@@ -8,13 +8,13 @@ class TestColumnNames(unittest.TestCase):
     def setUp(self):
         """Set up common variables for tests."""
         self.all_df_columns = [
-            'age', 'male', 'bmi_val', 'census_A', 'blood_test_mean', # Corrected to bmi_ and census_
-            'diag_order_num_diagnostic-order', 'drug_order_num_drug-order', 'annotation_1_count',
+            'age', 'male', 'bmi_val', 'census_A', 'bloods_test_mean',
+            'diag_order_num-diagnostic-order', 'drug_order_num-drug-order', 'annotation_1_count',
             'meta_sp_annotation_1_count_subject_present', 'annotation_mrc_1_count_mrc_cs',
             'meta_sp_annotation_mrc_1_count_subject_present_mrc_cs', 'core_02_feature',
-            'bed_feature', 'vte_status_feature', 'hosp_site_A', # Corrected to hosp_site_
-            'core_resus_feature', 'news_resus_feature', # Corrected to news_
-            'date_time_stamp_2022', 'ConsultantCode_X', 'outcome_var_1',
+            'bed_feature', 'vte_status_feature', 'hosp_site_A',
+            'core_resus_feature', 'news_resus_feature',
+            'date_time_stamp_2022', 'appointments_ConsultantCode_X', 'outcome_var_1',
             'some_col__index_level_0', 'Unnamed: 0'
         ]
         self.drop_term_list = ['bad_term']
@@ -47,7 +47,11 @@ class TestColumnNames(unittest.TestCase):
         pert_cols, _ = get_pertubation_columns(
             self.all_df_columns, local_param_dict, self.drop_term_list
         )
-        # Expect all columns except outcome and special drop columns
+        # Expected columns: age, male, bmi_val, census_A, bloods_test_mean,
+        # diag_order, drug_order, annotation_1_count, meta_sp_annotation_1,
+        # annotation_mrc_1, meta_sp_annotation_mrc_1, core_02_feature,
+        # bed_feature, vte_status_feature, hosp_site_A, core_resus_feature,
+        # news_resus_feature, date_time_stamp_2022, appointments_ConsultantCode_X
         self.assertEqual(len(pert_cols), 19)
 
     def test_get_pertubation_columns_selects_none(self):
