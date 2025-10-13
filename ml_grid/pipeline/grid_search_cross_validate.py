@@ -263,6 +263,13 @@ class grid_search_crossvalidate:
             self.logger.info(
                 "Adjusted KNN n_neighbors parameter space to prevent errors on small CV folds."
             )
+        
+        # Dynamically adjust CatBoost subsample parameter for small datasets
+        if "catboost" in method_name.lower():
+            self._adjust_catboost_parameters(parameter_space)
+            self.logger.info(
+                "Adjusted CatBoost subsample parameter space to prevent errors on small CV folds."
+            )
 
         # Instantiate and run the hyperparameter grid/random search
         search = HyperparameterSearch(
@@ -533,6 +540,43 @@ class grid_search_crossvalidate:
         elif isinstance(parameter_space, dict) and 'n_neighbors' in parameter_space:
             parameter_space['n_neighbors'] = adjust_param(parameter_space['n_neighbors'])
 
+    def _adjust_catboost_parameters(self, parameter_space: Union[Dict, List[Dict]]):
+        """
+        Dynamically adjusts the 'subsample' parameter for CatBoost to prevent
+        errors on small datasets during cross-validation.
+        """
+        n_splits = self.cv.get_n_splits()
+        n_samples_in_fold = int(len(self.X_train) * (n_splits - 1) / n_splits)
+        
+        # Ensure n_samples_in_fold is at least 1 to avoid division by zero
+        n_samples_in_fold = max(1, n_samples_in_fold)
+        
+        # The minimum subsample value must be > 1/n_samples to ensure at least one sample is chosen
+        min_subsample = 1.0 / n_samples_in_fold
+
+        def adjust_param(param_value):
+            if is_skopt_space(param_value):
+                # For skopt.space objects (Real), adjust the lower bound
+                new_low = max(param_value.low, min_subsample)
+                # Ensure the new low is not higher than the high
+                if new_low > param_value.high:
+                    new_low = param_value.high
+                param_value.low = new_low
+            elif isinstance(param_value, (list, np.ndarray)):
+                # For lists, filter the values
+                new_param_value = [s for s in param_value if s >= min_subsample]
+                if not new_param_value:
+                    # If all values are filtered out, use the smallest valid value
+                    return [min(p for p in param_value if p > 0) if any(p > 0 for p in param_value) else 1.0]
+                return new_param_value
+            return param_value
+
+        if isinstance(parameter_space, list):
+            for params in parameter_space:
+                if 'subsample' in params:
+                    params['subsample'] = adjust_param(params['subsample'])
+        elif isinstance(parameter_space, dict) and 'subsample' in parameter_space:
+            parameter_space['subsample'] = adjust_param(parameter_space['subsample'])
 
 
 def dummy_auc() -> float:
