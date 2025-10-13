@@ -330,11 +330,10 @@ class grid_search_crossvalidate:
         if self.global_parameters.verbose >= 3:
             print("Fitting final model")
         #current_algorithm = grid.best_estimator_
-        # Use numpy arrays for fitting the final model and for cross-validation.
-        X_train_final_np = self.X_train.values
+        # Pass the DataFrame for the final fit to support models that need column names (e.g., LightGBM wrapper).
+        # For cross-validation, we will use numpy arrays for performance and compatibility.
         y_train_values = self.y_train.values
-
-        current_algorithm.fit(X_train_final_np, y_train_values)
+        current_algorithm.fit(self.X_train, y_train_values)
 
         metric_list = self.metric_list
 
@@ -372,6 +371,7 @@ class grid_search_crossvalidate:
 
         try:
             # Perform the cross-validation
+            X_train_final_np = self.X_train.values
             scores = cross_validate(
                 current_algorithm,
                 X_train_final_np,
@@ -390,6 +390,7 @@ class grid_search_crossvalidate:
                 current_algorithm.set_params(tree_method='hist') 
                 
                 try:
+                    X_train_final_np = self.X_train.values
                     scores = cross_validate(
                         current_algorithm,
                         X_train_final_np,
