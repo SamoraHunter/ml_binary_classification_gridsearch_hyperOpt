@@ -138,8 +138,10 @@ class grid_search_crossvalidate:
 
         # CRITICAL: Initialize the cross-validation object before it is used.
         self.cv = RepeatedKFold(
-            n_splits=max(2, min(len(self.X_train), 2) + 1), 
-            n_repeats=2, 
+            # Ensure n_splits is at least 2 but not more than the number of samples.
+            # This prevents errors with very small datasets.
+            n_splits=min(len(self.X_train), 5),
+            n_repeats=2,
             random_state=1
         )
 
@@ -258,11 +260,23 @@ class grid_search_crossvalidate:
         self.logger.info(f"n_iter_v = {n_iter_v}")
 
         # Dynamically adjust KNN parameter space for small datasets
-        if "kneighbors" in method_name.lower():
+        if "kneighbors" in method_name.lower() or "simbsig" in method_name.lower():
             self._adjust_knn_parameters(parameter_space)
             self.logger.info(
                 "Adjusted KNN n_neighbors parameter space to prevent errors on small CV folds."
             )
+            
+        # Check if dataset is too small for CatBoost
+        if "catboost" in method_name.lower():
+            min_samples_required = 10  # CatBoost needs a reasonable amount of data
+            if len(self.X_train) < min_samples_required:
+                self.logger.warning(
+                    f"Dataset too small for CatBoost ({len(self.X_train)} samples < {min_samples_required} required). "
+                    f"Skipping {method_name}."
+                )
+                # Return early with default scores
+                self.grid_search_cross_validate_score_result = 0.5
+                return
         
         # Dynamically adjust CatBoost subsample parameter for small datasets
         if "catboost" in method_name.lower():
@@ -270,6 +284,7 @@ class grid_search_crossvalidate:
             self.logger.info(
                 "Adjusted CatBoost subsample parameter space to prevent errors on small CV folds."
             )
+            
 
         # Instantiate and run the hyperparameter grid/random search
         search = HyperparameterSearch(
@@ -310,6 +325,7 @@ class grid_search_crossvalidate:
 
             # Pass reset data to search
             current_algorithm = search.run_search(X_train_reset, y_train_reset)
+
             
         except XGBoostError as e:
             if 'cuda' in str(e).lower() or 'memory' in str(e).lower():
@@ -510,26 +526,38 @@ class grid_search_crossvalidate:
         Dynamically adjusts the 'n_neighbors' parameter for KNN-based models
         to prevent errors on small datasets during cross-validation.
         """
-        # Smallest fold size will be n_samples * (n_splits-1)/n_splits
-        # With RepeatedKFold, n_splits is at least 2. Smallest fold is 1/2 of data.
         n_splits = self.cv.get_n_splits()
-        n_samples_in_fold = int(len(self.X_train) * (n_splits - 1) / n_splits)
         
-        # Ensure n_samples_in_fold is at least 1
-        n_samples_in_fold = max(1, n_samples_in_fold)
+        # Calculate BOTH training and test fold sizes
+        n_samples_train_fold = len(self.X_train) - (len(self.X_train) // n_splits)
+        n_samples_test_fold = len(self.X_train) // n_splits
+        
+        # CRITICAL: Use the MINIMUM of both constraints
+        # During scoring, KNN.predict() requires n_neighbors <= len(test_fold)
+        # During fitting, KNN.fit() requires n_neighbors <= len(train_fold)
+        max_n_neighbors = min(n_samples_train_fold, n_samples_test_fold)
+        max_n_neighbors = max(1, max_n_neighbors)
+        
+        self.logger.info(
+            f"KNN constraints - train_fold_size={n_samples_train_fold}, "
+            f"test_fold_size={n_samples_test_fold}, max_n_neighbors={max_n_neighbors}"
+        )
 
         def adjust_param(param_value):
             if is_skopt_space(param_value):
                 # For skopt.space objects, adjust the upper bound
-                new_high = min(param_value.high, n_samples_in_fold)
+                new_high = min(param_value.high, max_n_neighbors)
                 new_low = min(param_value.low, new_high)
                 param_value.high = new_high
                 param_value.low = new_low
+                self.logger.debug(f"Adjusted skopt space: low={new_low}, high={new_high}")
             elif isinstance(param_value, (list, np.ndarray)):
                 # For lists, filter the values
-                new_param_value = [n for n in param_value if n <= n_samples_in_fold]
+                new_param_value = [n for n in param_value if n <= max_n_neighbors]
                 if not new_param_value:
-                    return [n_samples_in_fold]
+                    self.logger.warning(f"All n_neighbors values filtered out. Using [{max_n_neighbors}]")
+                    return [max_n_neighbors]
+                self.logger.debug(f"Filtered n_neighbors list: {new_param_value}")
                 return new_param_value
             return param_value
 
@@ -546,13 +574,19 @@ class grid_search_crossvalidate:
         errors on small datasets during cross-validation.
         """
         n_splits = self.cv.get_n_splits()
-        n_samples_in_fold = int(len(self.X_train) * (n_splits - 1) / n_splits)
+        # Correctly calculate the size of the smallest training fold.
+        n_samples_in_fold = len(self.X_train) - (len(self.X_train) // n_splits)
         
         # Ensure n_samples_in_fold is at least 1 to avoid division by zero
         n_samples_in_fold = max(1, n_samples_in_fold)
         
-        # The minimum subsample value must be > 1/n_samples to ensure at least one sample is chosen
-        min_subsample = 1.0 / n_samples_in_fold
+        # If the training fold is extremely small, force subsample to 1.0
+        # to prevent CatBoost from failing on constant features.
+        if n_samples_in_fold <= 2:
+            min_subsample = 1.0
+        else:
+            # The minimum subsample value must be > 1/n_samples to ensure at least one sample is chosen
+            min_subsample = 1.0 / n_samples_in_fold
 
         def adjust_param(param_value):
             if is_skopt_space(param_value):
@@ -562,6 +596,9 @@ class grid_search_crossvalidate:
                 if new_low > param_value.high:
                     new_low = param_value.high
                 param_value.low = new_low
+                # If the fold is tiny, force the entire space to be 1.0
+                if n_samples_in_fold <= 2:
+                    param_value.low = param_value.high = 1.0
             elif isinstance(param_value, (list, np.ndarray)):
                 # For lists, filter the values
                 new_param_value = [s for s in param_value if s >= min_subsample]
@@ -569,6 +606,9 @@ class grid_search_crossvalidate:
                     # If all values are filtered out, use the smallest valid value
                     return [min(p for p in param_value if p > 0) if any(p > 0 for p in param_value) else 1.0]
                 return new_param_value
+            # If the fold is tiny, force subsample to 1.0
+            if n_samples_in_fold <= 2:
+                return [1.0] if isinstance(param_value, list) else 1.0
             return param_value
 
         if isinstance(parameter_space, list):
