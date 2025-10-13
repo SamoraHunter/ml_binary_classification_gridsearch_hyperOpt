@@ -4,7 +4,8 @@ from typing import Any, Dict, Optional, Union
 import numpy as np
 import pandas as pd
 import torch
-from simbsig.neighbors import KNeighborsClassifier
+from simbsig.neighbors import KNeighborsClassifier as SimbsigKNeighborsClassifier
+from sklearn.neighbors import KNeighborsClassifier as SklearnKNeighborsClassifier
 from sklearn import metrics
 import logging
 
@@ -48,18 +49,22 @@ class KNNWrapper:
         self.p = p
         self.metric = metric
         self.metric_params = metric_params
+        self._init_device = device  # Store the original device parameter
+        self.device = device
+        
+        # Auto-detect device if not specified, or validate if specified
+        self._set_device(device)
 
-        # Auto-detect device
+        self.model: Optional[Union[SimbsigKNeighborsClassifier, SklearnKNeighborsClassifier]] = None
+
+    def _set_device(self, device: Optional[str]):
+        """Helper to set the device, falling back to CPU if GPU is not available."""
         gpu_available = torch.cuda.is_available()
         if device == "gpu" and not gpu_available:
-            logging.getLogger('ml_grid').warning("GPU requested for KNNWrapper, but torch.cuda.is_available() is False. Falling back to CPU.")
+            logging.getLogger('ml_grid').warning("GPU requested for KNNWrapper, but torch.cuda is not available. Falling back to CPU.")
             self.device = "cpu"
-        elif device:
-            self.device = device
         else:
-            self.device = "gpu" if gpu_available else "cpu"
-
-        self.model: Optional[KNeighborsClassifier] = None
+            self.device = device if device else ("gpu" if gpu_available else "cpu")
 
     def fit(
         self, X: Union[pd.DataFrame, np.ndarray], y: Union[pd.Series, np.ndarray]
@@ -75,17 +80,31 @@ class KNNWrapper:
         Returns:
             KNNWrapper: The fitted estimator.
         """
-        self.model = KNeighborsClassifier(
-            n_neighbors=self.n_neighbors,
-            weights=self.weights,
-            algorithm=self.algorithm,
-            leaf_size=self.leaf_size,
-            p=self.p,
-            metric=self.metric,
-            metric_params=self.metric_params,
-            device=self.device,
-        )
-
+        # If the device is CPU, use the standard scikit-learn implementation
+        # to completely avoid any simbsig/torch/cuda calls.
+        if self.device == 'cpu':
+            logging.getLogger('ml_grid').info("Using scikit-learn's KNeighborsClassifier for CPU execution.")
+            self.model = SklearnKNeighborsClassifier(
+                n_neighbors=self.n_neighbors,
+                weights=self.weights,
+                algorithm=self.algorithm,
+                leaf_size=self.leaf_size,
+                p=self.p,
+                metric=self.metric,
+                metric_params=self.metric_params,
+            )
+        else:
+            # If GPU is intended and available, use the simbsig implementation.
+            self.model = SimbsigKNeighborsClassifier(
+                n_neighbors=self.n_neighbors,
+                weights=self.weights,
+                algorithm=self.algorithm,
+                leaf_size=self.leaf_size,
+                p=self.p,
+                metric=self.metric,
+                metric_params=self.metric_params,
+                device=self.device,
+            )
         self.model.fit(X, y)
         return self
 
@@ -97,10 +116,10 @@ class KNNWrapper:
                 contained subobjects that are estimators.
 
         Returns:
-            Dict[str, Any]: Parameter names mapped to their values.
+            Dict[str, Any]: Parameter names mapped to their original values.
         """
         return {
-            "device": self.device,
+            "device": self._init_device,
             "n_neighbors": self.n_neighbors,
             "weights": self.weights,
             "algorithm": self.algorithm,
@@ -108,7 +127,6 @@ class KNNWrapper:
             "p": self.p,
             "metric": self.metric,
             "metric_params": self.metric_params,
-            "n_neighbors": self.n_neighbors,
         }
 
     def predict(self, X: Union[pd.DataFrame, np.ndarray]) -> np.ndarray:
@@ -158,5 +176,10 @@ class KNNWrapper:
             KNNWrapper: The instance with updated parameters.
         """
         for parameter, value in parameters.items():
+            # Special handling for device to re-validate availability
+            if parameter == 'device':
+                # Update both the initial and current device setting
+                self._init_device = value
+                self._set_device(value)
             setattr(self, parameter, value)
         return self

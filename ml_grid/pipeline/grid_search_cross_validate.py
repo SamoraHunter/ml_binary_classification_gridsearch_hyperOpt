@@ -8,6 +8,7 @@ import keras
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+import torch
 from IPython.display import clear_output
 from numpy import absolute, mean, std
 from scikeras.wrappers import KerasClassifier
@@ -150,6 +151,15 @@ class grid_search_crossvalidate:
         if "catboost" in method_name.lower() and hasattr(current_algorithm, 'set_params'):
             ml_grid_object.logger.info("Silencing CatBoost verbose output.")
             current_algorithm.set_params(verbose=0)
+
+        # Check for GPU availability and set device for torch-based models
+        if "simbsig" in str(type(algorithm_implementation)):
+            if not torch.cuda.is_available():
+                self.logger.info("No CUDA GPU detected. Forcing simbsig model to use CPU.")
+                if hasattr(current_algorithm, 'set_params'):
+                    current_algorithm.set_params(device='cpu')
+            else:
+                self.logger.info("CUDA GPU detected. Allowing simbsig model to use GPU.")
         
         self.logger.info(f"Algorithm implementation: {algorithm_implementation}")
 
@@ -250,6 +260,9 @@ class grid_search_crossvalidate:
         # Dynamically adjust KNN parameter space for small datasets
         if "kneighbors" in method_name.lower():
             self._adjust_knn_parameters(parameter_space)
+            self.logger.info(
+                "Adjusted KNN n_neighbors parameter space to prevent errors on small CV folds."
+            )
 
         # Instantiate and run the hyperparameter grid/random search
         search = HyperparameterSearch(
