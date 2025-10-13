@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Optional
 import logging
+import torch
 
 from ml_grid.model_classes.adaboost_classifier_class import adaboost_class
 from ml_grid.model_classes.catboost_classifier_class import CatBoost_class
@@ -51,6 +52,9 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
         List[Any]: A list of instantiated model class objects.
     """
     logger = logging.getLogger('ml_grid')
+    
+    # Check for GPU availability once
+    gpu_available = torch.cuda.is_available()
     # Get the parameter space size, defaulting to 'small' if not provided.
     # This prevents errors when the key is missing from the configuration.
     parameter_space_size = ml_grid_object.local_param_dict.get("param_space_size")
@@ -76,8 +80,8 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
             "GaussianNB_class": True,
             "LightGBMClassifierWrapper": True,
             "adaboost_class": True,
-            "kerasClassifier_class": True,
-            "knn__gpu_wrapper_class": True,
+            "kerasClassifier_class": gpu_available,
+            "knn__gpu_wrapper_class": gpu_available,  
             "NeuralNetworkClassifier_class": False,
             "TabTransformer_class": False,
             "h2o_classifier_class": False,
@@ -87,6 +91,12 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
 
     for class_name, include in model_class_dict.items():
         if include:
+            # Proactively skip GPU-specific models if no GPU is available
+            if "_gpu_" in class_name.lower() and not gpu_available:
+                logger.warning(
+                    f"Skipping '{class_name}' because it requires a GPU, but no CUDA-enabled GPU is available."
+                )
+                continue
             # Try the exact name first, then try with '_class' appended for convenience
             try:
                 model_class = eval(class_name)
