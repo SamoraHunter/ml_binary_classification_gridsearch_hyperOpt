@@ -11,6 +11,54 @@ from keras.optimizers import Adam
 from ml_grid.util import param_space
 from scikeras.wrappers import KerasClassifier
 
+def create_model(
+    layers: int = 1,
+    kernel_reg: tf.keras.regularizers.Regularizer = tf.keras.regularizers.l1_l2(
+        l1=0, l2=0
+    ),
+    width: int = 15,
+    learning_rate: float = 0.01,
+    dropout_val: float = 0.2,
+    input_dim_val: int = 0,
+) -> Sequential:
+    """Builds and compiles a Keras Sequential model.
+
+    Args:
+        layers (int): The number of dense layers in the model.
+        kernel_reg (tf.keras.regularizers.Regularizer): Kernel regularizer.
+        width (int): The number of units in each dense layer.
+        learning_rate (float): The learning rate for the Adam optimizer.
+        dropout_val (float): The dropout rate.
+        input_dim_val (int): The input dimension for the first layer.
+
+    Returns:
+        Sequential: The compiled Keras model.
+    """
+    model = Sequential()
+    for i in range(0, layers):
+        model.add(
+            Dense(
+                math.floor(width),
+                input_dim=input_dim_val,
+                kernel_initializer="uniform", activation="linear",
+                kernel_constraint=max_norm(4), 
+                kernel_regularizer=kernel_reg,
+            )
+        )
+
+    model.add(Dropout(dropout_val))
+    model.add(Dense(1, kernel_initializer="uniform", activation="sigmoid"))
+    # Compile model
+    optimizer = Adam(learning_rate=learning_rate) 
+    metric = tf.keras.metrics.AUC()
+
+    model.compile(
+        loss="binary_crossentropy",
+        optimizer=optimizer,
+        metrics=[metric, "accuracy"],
+    )
+
+    return model
 
 class kerasClassifier_class:
     """Keras Sequential model classifier wrapped for use with scikit-learn."""
@@ -37,55 +85,6 @@ class kerasClassifier_class:
         gpu_devices = tf.config.experimental.list_physical_devices("GPU")
         for device in gpu_devices:
             tf.config.experimental.set_memory_growth(device, True)
-
-        def create_model(
-            layers: int = 1,
-            kernel_reg: tf.keras.regularizers.Regularizer = tf.keras.regularizers.l1_l2(
-                l1=0, l2=0
-            ),
-            width: int = 15,
-            learning_rate: float = 0.01,
-            dropout_val: float = 0.2,
-            input_dim_val: int = 0,
-        ) -> Sequential:
-            """Builds and compiles a Keras Sequential model.
-
-            Args:
-                layers (int): The number of dense layers in the model.
-                kernel_reg (tf.keras.regularizers.Regularizer): Kernel regularizer.
-                width (int): The number of units in each dense layer.
-                learning_rate (float): The learning rate for the Adam optimizer.
-                dropout_val (float): The dropout rate.
-                input_dim_val (int): The input dimension for the first layer.
-
-            Returns:
-                Sequential: The compiled Keras model.
-            """
-            model = Sequential()
-            for i in range(0, layers):
-                model.add(
-                    Dense(
-                        math.floor(width),
-                        input_dim=input_dim_val,
-                        kernel_initializer="uniform", activation="linear",
-                        kernel_constraint=max_norm(4), 
-                        kernel_regularizer=kernel_reg,
-                    )
-                )
-
-            model.add(Dropout(dropout_val))
-            model.add(Dense(1, kernel_initializer="uniform", activation="sigmoid"))
-            # Compile model
-            optimizer = Adam(learning_rate=learning_rate) 
-            metric = tf.keras.metrics.AUC()
-
-            model.compile(
-                loss="binary_crossentropy",
-                optimizer=optimizer,
-                metrics=[metric, "accuracy"],
-            )
-
-            return model
 
         self.X = X
         self.y = y
@@ -134,41 +133,5 @@ class kerasClassifier_class:
             # dropout_val = np.logspace(-1, -3, 2)
         }
 
-    def create_model(
-        layers: int = 1,
-        kernel_reg: tf.keras.regularizers.Regularizer = tf.keras.regularizers.l1_l2(
-            l1=0, l2=0
-        ),
-        width: int = 15,
-        learning_rate: float = 0.01,
-        dropout_val: float = 0.2,
-        input_dim_val: int = 0,
-    ) -> Sequential:
-        """Builds and compiles a Keras Sequential model.
-
-        Note: This method appears to be a duplicate of the nested `create_model`
-        function inside `__init__`.
-
-        Args:
-            layers (int): The number of dense layers in the model.
-            kernel_reg (tf.keras.regularizers.Regularizer): Kernel regularizer.
-            width (int): The number of units in each dense layer.
-            learning_rate (float): The learning rate for the Adam optimizer.
-            dropout_val (float): The dropout rate.
-            input_dim_val (int): The input dimension for the first layer.
-
-        Returns:
-            Sequential: The compiled Keras model.
-        """
-        model = Sequential()
-        for i in range(0, layers):
-            model.add(
-                Dense(
-                    math.floor(width),
-                    input_dim=input_dim_val,
-                    kernel_initializer="uniform", activation="linear",
-                    kernel_constraint=max_norm(4),
-                    kernel_regularizer=kernel_reg,
-                )
-            )
-        # This function is incomplete in the original code.
+    # The duplicate create_model method has been removed. The module-level
+    # function will be used instead.
