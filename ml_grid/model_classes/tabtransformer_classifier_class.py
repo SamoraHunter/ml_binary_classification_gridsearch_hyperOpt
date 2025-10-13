@@ -6,10 +6,11 @@ import torch.nn as nn
 from ml_grid.model_classes.tabtransformerClassifier import TabTransformerClassifier
 from ml_grid.util import param_space
 from skopt.space import Real, Categorical
+import logging
 
 from ml_grid.util.global_params import global_parameters
 
-print("Imported TabTransformerClassifier class")
+logging.getLogger('ml_grid').debug("Imported TabTransformerClassifier class")
 
 class TabTransformerWrapper(TabTransformerClassifier):
     """A wrapper for TabTransformerClassifier to handle tuple-based parameters.
@@ -97,8 +98,8 @@ class TabTransformer_class:
         num_continuous = df_cont.shape[1]
 
         # Print the results
-        print("Number of unique values within each category:", categories)
-        print("Number of continuous columns:", num_continuous)
+        logging.getLogger('ml_grid').info(f"TabTransformer: Number of unique values within each category: {categories}")
+        logging.getLogger('ml_grid').info(f"TabTransformer: Number of continuous columns: {num_continuous}")
 
         self.method_name = "TabTransformerClassifier"
 

@@ -1,5 +1,6 @@
 import traceback
 from typing import Any, Dict, List, Tuple
+import logging
 
 import numpy as np
 from catboost import CatBoostError
@@ -74,6 +75,8 @@ class run:
                 current experimental run, such as `param_space_size`.
         """
         self.global_params = global_parameters
+        
+        self.logger = logging.getLogger('ml_grid')
 
         self.verbose = self.global_params.verbose
 
@@ -88,7 +91,7 @@ class run:
         self.model_class_list = ml_grid_object.model_class_list
 
         if self.verbose >= 2:
-            print(f"{len(self.model_class_list)} models loaded")
+            self.logger.info(f"{len(self.model_class_list)} models loaded")
 
         self.pg_list = []
 
@@ -108,7 +111,7 @@ class run:
             self.pg_list.append(pg)
 
             if self.verbose >= 1:
-                print(f"{elem.method_name}:{pg}")
+                self.logger.info(f"{elem.method_name} parameter space size: {pg}")
 
             for param in elem.parameter_space:
                 
@@ -120,13 +123,12 @@ class run:
                                 and isinstance(elem.parameter_space.get(param), np.ndarray)
                                 is False
                             ):
-                                print("What is this?")
-                                print(
+                                self.logger.warning("Unexpected parameter type in grid search space.")
+                                self.logger.warning(
                                     f"{elem.method_name, param} {type(elem.parameter_space.get(param))}"
                                 )
 
                     except Exception as e:
-                        #                     print(e)
                         pass
                 #validate bayes params?
                         
@@ -161,7 +163,7 @@ class run:
         self.local_param_dict = local_param_dict
 
         if self.verbose >= 2:
-            print(f"Passed main init, len(arg_list): {len(self.arg_list)}")
+            self.logger.info(f"Passed main init, len(arg_list): {len(self.arg_list)}")
 
     def execute(self) -> Tuple[List[List[Any]], float]:
         """Executes the grid search for each model in the list.
@@ -185,7 +187,7 @@ class run:
         if self.multiprocess:
 
             def multi_run_wrapper(args: Tuple) -> Any:
-                print("not implemented ")
+                self.logger.warning("Multiprocessing is not fully implemented.")
                 # return grid_search_cross_validate(*args)
 
             if __name__ == "__main__":
@@ -199,31 +201,31 @@ class run:
         elif self.multiprocess == False:
             for k in range(0, len(self.arg_list)):
                 try:
-                    print("grid searching...")
+                    self.logger.info(f"Starting grid search for {self.arg_list[k][2]}...")
                     res = grid_search_cross_validate.grid_search_crossvalidate(
                         *self.arg_list[k]
                         # algorithm_implementation = LogisticRegression_class(parameter_space_size=self.parameter_space_size).algorithm_implementation, parameter_space = self.arg_list[k][1], method_name=self.arg_list[k][2], X = self.arg_list[k][3], y=self.arg_list[k][4]
                     ).grid_search_cross_validate_score_result
                     
                     self.highest_score = max(self.highest_score, res)
-                    print(f"highest score: {highest_score}")
+                    self.logger.info(f"Current highest score: {self.highest_score}")
 
                 except ValueError as e:
                     if "All feature columns were removed" in str(e):
-                        print(f"Skipping run due to data issue: {e}")
+                        self.logger.warning(f"Skipping run for {self.arg_list[k][2]} due to data issue: {e}")
                         continue # Skip to the next iteration
 
                 except CatBoostError as e:
-                    print(f"CatBoostError: {e}")
-                    print(f"continuing despite catboost error...")
+                    self.logger.error(f"CatBoostError occurred for {self.arg_list[k][2]}: {e}")
+                    self.logger.warning(f"Continuing despite CatBoost error...")
 
                 except Exception as e:
 
-                    print(e)
-                    print("error on ", self.arg_list[k][2])
+                    self.logger.error(f"An exception occurred during grid search for {self.arg_list[k][2]}: {e}", exc_info=True)
+                    
                     self.model_error_list.append(
                         [self.arg_list[k][0], e, traceback.print_exc()]
-                    )
+                    ) # traceback is printed to stderr, not captured here.
 
                     if self.error_raise:
                         raise e
@@ -235,10 +237,9 @@ class run:
                         else:
                             raise e
 
-        print(
+        self.logger.info(
             f"Model error list: nb. errors returned from func: {self.model_error_list}"
         )
-        print(self.model_error_list)
         
         # return highest score from run for additional optimisation:
         

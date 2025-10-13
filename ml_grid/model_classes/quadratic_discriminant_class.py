@@ -7,8 +7,9 @@ from ml_grid.util import param_space
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from ml_grid.util.global_params import global_parameters
 from skopt.space import Categorical
+import logging
 
-print("Imported QuadraticDiscriminantAnalysis class")
+logging.getLogger('ml_grid').debug("Imported QuadraticDiscriminantAnalysis class")
 
 
 class quadratic_discriminant_analysis_class:

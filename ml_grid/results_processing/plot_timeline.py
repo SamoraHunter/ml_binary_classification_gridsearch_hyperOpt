@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from typing import List, Dict, Optional, Union, Tuple
 from ml_grid.results_processing.core import get_clean_data
+import logging
 import warnings
 
 # Maximum number of outcomes to display in stratified plots to avoid clutter.
@@ -30,6 +31,7 @@ class TimelineAnalysisPlotter:
         """
         self.data = data
         self.clean_data = get_clean_data(data)
+        self.logger = logging.getLogger('ml_grid')
         
         if 'run_timestamp' not in self.data.columns:
             raise ValueError("run_timestamp column required for timeline analysis")
@@ -297,7 +299,7 @@ class TimelineAnalysisPlotter:
         n_outcomes = len(outcomes)
         
         if n_outcomes == 0:
-            print("No outcomes to plot for stratified improvement trends.")
+            self.logger.info("No outcomes to plot for stratified improvement trends.")
             return
 
         fig, axes = plt.subplots(n_outcomes, 1, figsize=(figsize[0], figsize[1] * n_outcomes / 2.5), sharex=True, squeeze=False)
@@ -366,7 +368,7 @@ class TimelineAnalysisPlotter:
             warnings.warn("'run_time' column not found. Skipping computational cost plot.", stacklevel=2)
             return
 
-        print("\nGenerating Computational Cost Timeline (run_time)...")
+        self.logger.info("\nGenerating Computational Cost Timeline (run_time)...")
         # Re-use the existing timeline plotting logic for the 'run_time' metric
         self.plot_performance_timeline(
             metric='run_time',

@@ -2,6 +2,7 @@
 
 import itertools as it
 import random
+import logging
 from typing import Dict, Generator, List, Optional, Union
 
 from ml_grid.util.global_params import global_parameters
@@ -24,16 +25,15 @@ class Grid:
         """
 
         self.global_params = global_parameters
-
         self.verbose = self.global_params.verbose
+        self.logger = logging.getLogger('ml_grid')
 
         if sample_n is None:
             self.sample_n = 1000
         else:
             self.sample_n = sample_n
 
-        if self.verbose >= 1:
-            print(f"Feature space slice sample_n {self.sample_n}")
+        self.logger.info(f"Feature space slice sample_n: {self.sample_n}")
 
         # Default grid
         # User can update grid dictionary on the object
@@ -95,14 +95,14 @@ class Grid:
 
         self.settings_list = list(c_prod(self.grid))
         full_settings_size = len(self.settings_list)
-        print(f"Full settings_list size: {full_settings_size}")
+        self.logger.info(f"Full settings_list size: {full_settings_size}")
 
         random.shuffle(self.settings_list)
 
         # Ensure sample_n is not greater than the number of available settings
         sample_size = min(self.sample_n, full_settings_size)
-        if self.sample_n > full_settings_size and self.verbose >= 1:
-            print(f"Warning: sample_n ({self.sample_n}) is larger than the number of settings ({full_settings_size}). Using all settings.")
+        if self.sample_n > full_settings_size:
+            self.logger.warning(f"sample_n ({self.sample_n}) is larger than the number of settings ({full_settings_size}). Using all settings.")
 
         self.settings_list = random.sample(self.settings_list, sample_size)
 

@@ -5,8 +5,9 @@ from ml_grid.util import param_space
 from sklearn.linear_model import LogisticRegression
 from ml_grid.util.global_params import global_parameters
 from skopt.space import Categorical, Real
+import logging
 
-print("Imported logistic regression class")
+logging.getLogger('ml_grid').debug("Imported logistic regression class")
 
 class LogisticRegression_class:
     """LogisticRegression with support for both Bayesian and non-Bayesian parameter spaces."""

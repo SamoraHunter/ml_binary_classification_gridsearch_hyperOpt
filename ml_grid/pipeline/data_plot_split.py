@@ -1,5 +1,6 @@
 from typing import Dict, Sized, Union
 
+import logging
 import matplotlib.pyplot as plt
 
 
@@ -17,7 +18,8 @@ def plot_pie_chart_with_counts(
     labels = ["X_train", "X_test", "X_test_orig"]
 
     if sum(sizes) == 0:
-        print("Cannot plot pie chart, all datasets are empty.")
+        logger = logging.getLogger('ml_grid')
+        logger.warning("Cannot plot pie chart, all datasets are empty.")
         return
 
     # Colors for the pie chart sections

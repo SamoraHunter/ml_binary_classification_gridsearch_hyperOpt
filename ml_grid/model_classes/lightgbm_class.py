@@ -89,20 +89,22 @@ class LightGBMClassifier(BaseEstimator, ClassifierMixin):
             # early_stopping_rounds=self.early_stopping_rounds,
             verbose=self.verbosity,
         )
-        # X.columns = X.columns.str.replace('[^a-zA-Z0-9_]', '', regex=True)
-        # Change columns names ([LightGBM] Do not support special JSON characters in feature name.)
-        new_names = {col: re.sub(r"[^A-Za-z0-9_]+", "", col) for col in X.columns}
-        new_n_list = list(new_names.values())
-        # [LightGBM] Feature appears more than one time.
-        new_names = {
-            col: f"{new_col}_{i}" if new_col in new_n_list[:i] else new_col
-            for i, (col, new_col) in enumerate(new_names.items())
-        }
-        X = X.rename(columns=new_names)
+        
+        X_fit = X
+        if isinstance(X, pd.DataFrame):
+            # Change columns names ([LightGBM] Do not support special JSON characters in feature name.)
+            new_names = {col: re.sub(r"[^A-Za-z0-9_]+", "", col) for col in X.columns}
+            new_n_list = list(new_names.values())
+            # [LightGBM] Feature appears more than one time.
+            new_names = {
+                col: f"{new_col}_{i}" if new_col in new_n_list[:i] else new_col
+                for i, (col, new_col) in enumerate(new_names.items())
+            }
+            X_fit = X.rename(columns=new_names)
 
         y = np.ravel(y)
 
-        self.model.fit(X, y)
+        self.model.fit(X_fit, y)
         if self.objective == "binary":
             self.classes_ = np.unique(y)
         return self
@@ -127,18 +129,20 @@ class LightGBMClassifier(BaseEstimator, ClassifierMixin):
                 "Model has not been fitted yet. Call 'fit' before 'predict'."
             )
 
-        # Change columns names ([LightGBM] Do not support special JSON characters in feature name.)
-        new_names = {
-            col: re.sub(r"[^A-Za-z0-9_]+", "", col) for col in X.columns
-        }
-        new_n_list = list(new_names.values())
-        # [LightGBM] Feature appears more than one time.
-        new_names = {
-            col: f"{new_col}_{i}" if new_col in new_n_list[:i] else new_col
-            for i, (col, new_col) in enumerate(new_names.items())
-        }
-        X = X.rename(columns=new_names)
-        return self.model.predict(X)
+        X_pred = X
+        if isinstance(X, pd.DataFrame):
+            # Change columns names ([LightGBM] Do not support special JSON characters in feature name.)
+            new_names = {
+                col: re.sub(r"[^A-Za-z0-9_]+", "", col) for col in X.columns
+            }
+            new_n_list = list(new_names.values())
+            # [LightGBM] Feature appears more than one time.
+            new_names = {
+                col: f"{new_col}_{i}" if new_col in new_n_list[:i] else new_col
+                for i, (col, new_col) in enumerate(new_names.items())
+            }
+            X_pred = X.rename(columns=new_names)
+        return self.model.predict(X_pred)
 
     def score(self, X: pd.DataFrame, y: Union[pd.Series, np.ndarray]) -> float:
         """Returns the mean accuracy on the given test data and labels.

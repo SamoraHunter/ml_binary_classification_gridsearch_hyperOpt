@@ -1,5 +1,6 @@
 import inspect
 import warnings
+import logging
 from typing import Any, Dict, List, Union
 
 import numpy as np
@@ -123,11 +124,12 @@ class HyperparameterSearch:
     def _configure_gpu(self) -> None:
         """Configures TensorFlow to use GPU with memory growth enabled."""
         try:
+            logger = logging.getLogger('ml_grid')
             gpu_devices = tf.config.experimental.list_physical_devices("GPU")
             for device in gpu_devices:
                 tf.config.experimental.set_memory_growth(device, True)
         except Exception as e:
-            print(f"Could not configure GPU for TensorFlow: {e}")
+            logger.warning(f"Could not configure GPU for TensorFlow: {e}")
 
     def run_search(self, X_train: pd.DataFrame, y_train: pd.Series) -> BaseEstimator:
         """Executes the hyperparameter search.

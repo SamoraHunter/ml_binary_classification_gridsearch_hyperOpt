@@ -1,4 +1,5 @@
 import os
+import logging
 from typing import Optional
 from datetime import datetime
 from pathlib import Path
@@ -20,10 +21,11 @@ def create_experiment_directory(
     Returns:
         str: The full path to the created experiment directory.
     """
+    logger = logging.getLogger('ml_grid')
     
     current_date_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     folder_name = f"{current_date_time}_{additional_naming}" if additional_naming else current_date_time    
     experiment_dir = Path(base_dir) / folder_name
     experiment_dir.mkdir(parents=True, exist_ok=True)
-    print(f"Experiment directory created: {experiment_dir}")
+    logger.info(f"Experiment directory created: {experiment_dir}")
     return str(experiment_dir)

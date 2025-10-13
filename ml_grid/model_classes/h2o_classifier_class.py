@@ -6,8 +6,9 @@ from ml_grid.util import param_space
 from ml_grid.util.global_params import global_parameters
 from skopt.space import Categorical, Real, Integer
 # from h2o.sklearn import H2OAutoMLClassifier
+import logging
 
-print("Imported h2o_classifier_class")
+logging.getLogger('ml_grid').debug("Imported h2o_classifier_class")
 
 class h2o_classifier_class:
     """H2OAutoMLClassifier with support for both Bayesian and non-Bayesian parameter spaces."""
@@ -29,7 +30,7 @@ class h2o_classifier_class:
                 optimization. Defaults to None.
         """
         global_params = global_parameters
-        print("init h2o_classifier_class")
+        logging.getLogger('ml_grid').debug("init h2o_classifier_class")
         self.X = X
         self.y = y
 

@@ -2,6 +2,7 @@
 
 from typing import Any, Dict, List, Optional
 
+import logging
 import numpy as np
 import pandas as pd
 from ml_grid.util import param_space
@@ -9,7 +10,7 @@ from ml_grid.util.global_params import global_parameters
 from sklearn.naive_bayes import GaussianNB
 from skopt.space import Categorical
 
-print("Imported gaussiannb class")
+logging.getLogger('ml_grid').debug("Imported gaussiannb class")
 
 
 class GaussianNBWrapper(GaussianNB):
@@ -91,7 +92,7 @@ class GaussianNB_class:
             }
 
             # Log parameter space for verification
-            print(f"Parameter Space: {self.parameter_space}")
+            logging.getLogger('ml_grid').debug(f"Parameter Space: {self.parameter_space}")
 
         else:
             # For traditional grid search, use lists

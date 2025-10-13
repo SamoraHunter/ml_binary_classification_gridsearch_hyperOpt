@@ -11,6 +11,7 @@ import seaborn as sns
 from typing import Tuple, Optional, List
 import warnings
 import ast
+import logging
 
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -36,6 +37,7 @@ class GlobalImportancePlotter:
         """
         self.data = data
         self.clean_data = get_clean_data(data)
+        self.logger = logging.getLogger('ml_grid')
         
         # Define all potential predictors from other plotters
         self.feature_categories = [
@@ -148,11 +150,11 @@ class GlobalImportancePlotter:
             figsize (Tuple[int, int], optional): The figure size for the plot.
                 Defaults to (12, 10).
         """
-        print(f"Running Global Importance Analysis for metric: {metric.upper()}")
+        self.logger.info(f"Running Global Importance Analysis for metric: {metric.upper()}")
         try:
             X, y, preprocessor, numeric_features, categorical_features = self._prepare_data_for_importance_analysis(metric)
         except ValueError as e:
-            print(f"Could not prepare data for global importance analysis: {e}")
+            self.logger.error(f"Could not prepare data for global importance analysis: {e}")
             return
 
         model_pipeline = Pipeline(steps=[('preprocessor', preprocessor), ('regressor', RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1))])

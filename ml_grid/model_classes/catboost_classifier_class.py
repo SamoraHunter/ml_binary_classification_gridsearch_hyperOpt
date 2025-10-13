@@ -6,6 +6,7 @@ from catboost import CatBoostClassifier
 from skopt.space import Categorical, Real, Integer
 from ml_grid.util import param_space
 from ml_grid.util.global_params import global_parameters
+import logging
 
 class CatBoost_class:
     """CatBoost Classifier with hyperparameter tuning."""
@@ -61,7 +62,7 @@ class CatBoost_class:
                 "verbose": Categorical([0]),
                 "allow_const_label": Categorical([True]),
             }
-            print(f"Bayesian Parameter Space: {self.parameter_space}")
+            logging.getLogger('ml_grid').debug(f"Bayesian Parameter Space for CatBoost: {self.parameter_space}")
         else:
             self.parameter_space = {
                 "iterations": [100, 200, 500, 1000],
@@ -85,6 +86,6 @@ class CatBoost_class:
                 "verbose": [0],
                 "allow_const_label": [True],
             }
-            print(f"Traditional Parameter Space: {self.parameter_space}")
+            logging.getLogger('ml_grid').debug(f"Traditional Parameter Space for CatBoost: {self.parameter_space}")
 
         return None

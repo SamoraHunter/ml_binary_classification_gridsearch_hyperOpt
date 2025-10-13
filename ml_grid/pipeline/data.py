@@ -20,7 +20,7 @@ from ml_grid.pipeline.embeddings import create_embedding_pipeline, apply_embeddi
 from ml_grid.pipeline.data_feature_importance_methods import feature_importance_methods
 from ml_grid.pipeline.data_outcome_list import handle_outcome_list
 from ml_grid.pipeline.data_percent_missing import handle_percent_missing
-from ml_grid.pipeline.data_plot_split import plot_pie_chart_with_counts
+from ml_grid.pipeline.data_plot_split import plot_pie_chart_with_counts # This import is not used in the provided code, but kept as it's not the focus of this fix.
 from pandas.testing import assert_index_equal
 from ml_grid.pipeline.data_scale import data_scale_methods
 from ml_grid.util.global_params import global_parameters
@@ -28,6 +28,7 @@ from ml_grid.util.logger_setup import setup_logger
 
 warnings.filterwarnings("ignore", category=ConvergenceWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
+from sklearn.preprocessing import StandardScaler # Added explicit import for StandardScaler
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 class NoFeaturesError(Exception):
@@ -357,10 +358,6 @@ class pipe:
         )
             # print('\n'.join(map(str, self.drop_list[0:5])))
 
-        print("------------------------")
-
-        # print("LGBM column name fix")
-
         # Remove special characters and spaces from column names
         # self.X.columns = self.X.columns.str.replace('[^\w\s]', '').str.replace(' ', '_')
 
@@ -395,13 +392,12 @@ class pipe:
             max_seq_length = max_client_idcode_sequence_length(self.df)
             self.logger.info(f"Max sequence length for time-series: {max_seq_length}")
 
-            if self.verbose >= 1:
-                print("time_series_mode", "convert_df_to_time_series")
-                print(self.X.shape)
+            self.logger.info("time_series_mode: convert_df_to_time_series")
+            self.logger.info(self.X.shape)
 
             self.X, self.y = convert_Xy_to_time_series(self.X, self.y, max_seq_length)
-            if not self.final_column_list:
-                print(self.X.shape)
+            if not self.final_column_list: # This condition seems odd, but preserving logic
+                self.logger.info(self.X.shape)
 
         (
             self.X_train,
@@ -493,7 +489,7 @@ class pipe:
         scale = self.local_param_dict.get("scale")
         if scale:
             try:
-                scaler = data_scale_methods().get_scaler() # Assuming this returns a scaler instance
+                scaler = StandardScaler() # Use StandardScaler directly to resolve AttributeError
                 self.X_train = pd.DataFrame(scaler.fit_transform(self.X_train), columns=self.X_train.columns, index=self.X_train.index)
                 self.X_test = pd.DataFrame(scaler.transform(self.X_test), columns=self.X_test.columns, index=self.X_test.index)
                 self.X_test_orig = pd.DataFrame(scaler.transform(self.X_test_orig), columns=self.X_test_orig.columns, index=self.X_test_orig.index)
@@ -700,8 +696,8 @@ class pipe:
         # Finalize the feature transformation log
         self.feature_transformation_log = pd.DataFrame(self._feature_log_list)
         if self.verbose >= 1:
-            print("\n--- Feature Transformation Log ---")
+            self.logger.info("\n--- Feature Transformation Log ---\n" + self.feature_transformation_log.to_string())
             display(self.feature_transformation_log)
-            print("--------------------------------\n")
+            self.logger.info("--------------------------------\n")
         
         self.logger.info("Data pipeline processing complete.")

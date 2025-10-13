@@ -1,5 +1,6 @@
 import sys
 from typing import Any, Dict, List, Tuple
+import logging
 
 import pandas as pd
 import numpy as np
@@ -90,7 +91,7 @@ def handle_correlation_matrix(
     Returns:
         List[Any]: The updated list containing unique pairs of correlated columns.
     """
-
+    logger = logging.getLogger('ml_grid')
     # Define the correlation threshold
     threshold = local_param_dict.get("corr") if local_param_dict.get("corr") is not None else 0.98
 
@@ -113,7 +114,7 @@ def handle_correlation_matrix(
     # Calculate number of chunks
     n_chunks = int(np.ceil(n_cols / chunk_size))
     
-    print(f"Processing {n_cols} columns in {n_chunks} chunks of size {chunk_size}...")
+    logger.info(f"Processing {n_cols} columns in {n_chunks} chunks of size {chunk_size}...")
     
     # Process correlation matrix in chunks (upper triangle only)
     for i in tqdm(range(n_chunks), desc="Processing column chunks"):
@@ -167,13 +168,13 @@ def handle_correlation_matrix(
                             break
                             
             except Exception as e:
-                print(f"Warning: Error processing chunk ({i}, {j}): {e}", file=sys.stderr)
+                logger.warning(f"Error processing chunk ({i}, {j}): {e}", file=sys.stderr)
                 continue
     
     # Add the identified columns to the initial drop_list
     drop_list.extend(list(to_drop))
     
-    print(f"Identified {len(to_drop)} columns to drop due to high correlation.")
+    logger.info(f"Identified {len(to_drop)} columns to drop due to high correlation.")
     
     # Return a list of unique columns to drop
     return list(set(drop_list))

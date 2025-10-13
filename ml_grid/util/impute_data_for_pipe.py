@@ -1,5 +1,6 @@
 import pickle
 import random
+import logging
 from typing import Dict, List, Union
 
 import numpy as np
@@ -38,12 +39,13 @@ def mean_impute_dataframe(
     Returns:
         pd.DataFrame: The DataFrame with missing numeric values imputed.
     """
+    logger = logging.getLogger('ml_grid')
 
     random.seed(seed)
     
     # Drop columns that are completely empty (no values at all)
     data = data.dropna(axis=1, how='all')
-    print(f"After dropping completely empty columns, data shape: {data.shape}")
+    logger.info(f"After dropping completely empty columns, data shape: {data.shape}")
     
     # Ensure y_vars is a list
     y_vars = [y_vars] if isinstance(y_vars, str) else y_vars
@@ -57,12 +59,12 @@ def mean_impute_dataframe(
     X_train, X_val, y_train, y_val = train_test_split(X_train_orig, y_train_orig, test_size=val_size, random_state=random_state)
 
     # Print shapes after split
-    print(f"Train shape: {X_train.shape}, Validation shape: {X_val.shape}, Test shape: {X_test_orig.shape}")
+    logger.info(f"Train shape: {X_train.shape}, Validation shape: {X_val.shape}, Test shape: {X_test_orig.shape}")
     
     # Identify numeric and non-numeric columns
     numeric_cols = X.select_dtypes(include=[np.number]).columns
     non_numeric_cols = X.select_dtypes(exclude=[np.number]).columns
-    print(f"Numeric columns: {len(numeric_cols)}, Non-numeric columns: {len(non_numeric_cols)}")
+    logger.info(f"Numeric columns: {len(numeric_cols)}, Non-numeric columns: {len(non_numeric_cols)}")
     
     # Initialize imputed DataFrames
     X_train_imputed = X_train.copy()
@@ -109,13 +111,12 @@ def mean_impute_dataframe(
     
     # Verification step: Check for NaN values post-imputation
     if final_data.isnull().sum().any():
-        print("Warning: There are still NaN values after imputation!")
-        # Optionally, print which columns still have NaNs
-        print(final_data.isnull().sum()[final_data.isnull().sum() > 0])
+        logger.warning("There are still NaN values after imputation!")
+        logger.warning(f"Columns with NaNs: \n{final_data.isnull().sum()[final_data.isnull().sum() > 0]}")
     else:
-        print("No NaN values found after imputation.")
+        logger.info("No NaN values found after imputation.")
     
-    print(f"Final data shape: {final_data.shape}")
+    logger.info(f"Final data shape: {final_data.shape}")
     
     
     return final_data
@@ -139,11 +140,12 @@ def save_missing_percentage(
     """
     percent_missing = df.isnull().mean() * 100
     percent_missing = percent_missing.to_dict()
+    logger = logging.getLogger('ml_grid')
 
     with open(output_file, 'wb') as file:
         pickle.dump(percent_missing, file)
         
-    print("Warning: ensure you rename the pickle file: training_data_filename + _percent_missing.pkl")
+    logger.warning("Ensure you rename the pickle file: training_data_filename + _percent_missing.pkl")
 
     return percent_missing
 

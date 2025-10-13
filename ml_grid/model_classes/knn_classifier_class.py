@@ -5,8 +5,9 @@ from ml_grid.util import param_space
 from ml_grid.util.global_params import global_parameters
 from sklearn.neighbors import KNeighborsClassifier
 from skopt.space import Real, Integer, Categorical
+import logging
 
-print("Imported KNeighborsClassifier class")
+logging.getLogger('ml_grid').debug("Imported KNeighborsClassifier class")
 
 class knn_classifiers_class:
     """KNeighborsClassifier with support for both Bayesian and non-Bayesian parameter spaces."""

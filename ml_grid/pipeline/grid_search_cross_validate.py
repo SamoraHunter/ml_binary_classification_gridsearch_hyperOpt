@@ -1,5 +1,6 @@
 import time
 import traceback
+import logging
 import warnings
 from typing import Any, Dict, List, Optional, Union
 
@@ -40,7 +41,7 @@ from ml_grid.util.global_params import global_parameters
 from ml_grid.util.project_score_save import project_score_save_class
 from ml_grid.util.validate_parameters import validate_parameters_helper
 from sklearn.preprocessing import MinMaxScaler
-from ml_grid.util.bayes_utils import calculate_combinations
+from ml_grid.util.bayes_utils import calculate_combinations, is_skopt_space
 from skopt.space import Categorical
 
 class grid_search_crossvalidate:
@@ -77,12 +78,14 @@ class grid_search_crossvalidate:
         warnings.filterwarnings("ignore", category=ConvergenceWarning)
         warnings.filterwarnings("ignore", category=FutureWarning)
 
+        self.logger = logging.getLogger('ml_grid')
+
         self.global_params = global_parameters
 
         self.verbose = self.global_params.verbose
 
         if self.verbose < 8:
-            print(f"Clearing ")
+            self.logger.debug("Clearing output.")
             clear_output(wait=True)
 
         self.sub_sample_param_space_pct = self.global_params.sub_sample_param_space_pct
@@ -101,14 +104,14 @@ class grid_search_crossvalidate:
                 for device in gpu_devices:
                     tf.config.experimental.set_memory_growth(device, True)
             except Exception as e:
-                print(f"Could not configure GPU for TensorFlow: {e}")
+                self.logger.warning(f"Could not configure GPU for TensorFlow: {e}")
 
         self.metric_list = self.global_params.metric_list
 
         self.error_raise = self.global_params.error_raise
 
         if self.verbose >= 3:
-            print(f"crossvalidating {method_name}")
+            self.logger.info(f"Cross-validating {method_name}")
 
         self.global_parameters = global_parameters
 
@@ -132,6 +135,7 @@ class grid_search_crossvalidate:
             self.X_train = scale_data(self.X_train)
             self.X_test = scale_data(self.X_test)
 
+        # CRITICAL: Initialize the cross-validation object before it is used.
         self.cv = RepeatedKFold(
             n_splits=max(2, min(len(self.X_train), 2) + 1), 
             n_repeats=2, 
@@ -147,10 +151,10 @@ class grid_search_crossvalidate:
             ml_grid_object.logger.info("Silencing CatBoost verbose output.")
             current_algorithm.set_params(verbose=0)
         
-        if self.verbose >= 1:
-            print(f"algorithm_implementation: {algorithm_implementation}")
+        self.logger.info(f"Algorithm implementation: {algorithm_implementation}")
 
         parameters = parameter_space
+        
         if(self.global_params.bayessearch is False):
             n_iter_v = np.nan
         else:
@@ -161,8 +165,8 @@ class grid_search_crossvalidate:
 
         # Grid search over hyperparameter space, randomised.
 
-        if(ml_grid_object.verbose >= 3):
-            print("algorithm_implementation: ", algorithm_implementation, " type: ", type(algorithm_implementation), )
+        if ml_grid_object.verbose >= 3:
+            self.logger.debug(f"algorithm_implementation: {algorithm_implementation}, type: {type(algorithm_implementation)}")
         
         if(self.global_params.bayessearch is False):
             # Validate parameters
@@ -179,10 +183,10 @@ class grid_search_crossvalidate:
         #     if self.sub_sample_parameter_val < n_iter_v:
         #         n_iter_v = self.sub_sample_parameter_val
         #     if n_iter_v < 2:
-        #         print("warn n_iter_v < 2")
+        #         self.logger.warning("warn n_iter_v < 2")
         #         n_iter_v = 2
         #     if n_iter_v > max_param_space_iter_value:
-        #         print(f"Warn n_iter_v > max_param_space_iter_value, setting {max_param_space_iter_value}")
+        #         self.logger.warning(f"Warn n_iter_v > max_param_space_iter_value, setting {max_param_space_iter_value}")
         #         n_iter_v = max_param_space_iter_value
 
         #     grid = RandomizedSearchCV(
@@ -210,24 +214,22 @@ class grid_search_crossvalidate:
             pg = len(pg)
         else:
             pg = calculate_combinations(parameter_space, steps=n_iter_v) #untested n iter v
-        #print(f"Approximate number of combinations: {approx_combinations}")
-        # print(pg) 
+        #self.logger.debug(f"Approximate number of combinations: {approx_combinations}")
  
         if (random_grid_search and n_iter_v > 100000) or (
             random_grid_search == False and pg > 100000
         ):
-            print("grid too large", str(pg), str(n_iter_v))
-            print("Warning grid too large, ", str(pg))
+            self.logger.warning(f"Grid too large. pg: {pg}, n_iter_v: {n_iter_v}")
             # raise Exception("grid too large", str(pg))
 
         if self.global_parameters.verbose >= 1:
             if random_grid_search:
-                print(
+                self.logger.info(
                     f"Randomized parameter grid size for {current_algorithm} \n : Full: {pg}, (mean * {self.sub_sample_param_space_pct}): {self.sub_sample_parameter_val}, current: {n_iter_v} "
                 )
 
             else:
-                print(f"parameter grid size: Full: {pg}")
+                self.logger.info(f"Parameter grid size: Full: {pg}")
 
         #grid.fit(self.X_train, self.y_train)
         if self.global_parameters.bayessearch:
@@ -238,12 +240,16 @@ class grid_search_crossvalidate:
         if self.sub_sample_parameter_val < n_iter_v:
             n_iter_v = self.sub_sample_parameter_val
         if n_iter_v < 2:
-            print("warn n_iter_v < 2")
+            self.logger.warning("n_iter_v < 2, setting to 2")
             n_iter_v = 2
         if n_iter_v > max_param_space_iter_value:
-            print(f"Warn n_iter_v > max_param_space_iter_value, setting {max_param_space_iter_value}")
+            self.logger.warning(f"n_iter_v > max_param_space_iter_value, setting to {max_param_space_iter_value}.")
             n_iter_v = max_param_space_iter_value
-        print("n_iter_v = ", n_iter_v)
+        self.logger.info(f"n_iter_v = {n_iter_v}")
+
+        # Dynamically adjust KNN parameter space for small datasets
+        if "kneighbors" in method_name.lower():
+            self._adjust_knn_parameters(parameter_space)
 
         # Instantiate and run the hyperparameter grid/random search
         search = HyperparameterSearch(
@@ -253,11 +259,12 @@ class grid_search_crossvalidate:
             global_params=self.global_parameters,
             sub_sample_pct=self.sub_sample_param_space_pct,  # Explore 50% of the parameter space
             max_iter=n_iter_v,         # Maximum iterations for randomized search
-            ml_grid_object=ml_grid_object
+            ml_grid_object=ml_grid_object,
+            cv=self.cv
         )
 
         if self.global_parameters.verbose >= 3:
-            print("Running hyperparameter search")
+            self.logger.debug("Running hyperparameter search")
         
         try:    
             # Verify initial index alignment
@@ -286,7 +293,7 @@ class grid_search_crossvalidate:
             
         except XGBoostError as e:
             if 'cuda' in str(e).lower() or 'memory' in str(e).lower():
-                print("GPU memory error detected, falling back to CPU...")
+                self.logger.warning("GPU memory error detected, falling back to CPU...")
                  
                  # Change the tree_method in parameter_space dynamically
                 if isinstance(parameter_space, list):
@@ -303,15 +310,15 @@ class grid_search_crossvalidate:
                     global_params=self.global_parameters,
                     sub_sample_pct=self.sub_sample_param_space_pct,
                     max_iter=n_iter_v,
-                    ml_grid_object=ml_grid_object
+                    ml_grid_object=ml_grid_object,
+                    cv=self.cv
                 )
                 # Try again with CPU method and reset indices
                 X_train_reset = self.X_train.reset_index(drop=True)
                 y_train_reset = self.y_train.reset_index(drop=True)
                 current_algorithm = search.run_search(X_train_reset, y_train_reset)
             else: 
-                print("unknown xgb error")
-                print(e)
+                self.logger.error(f"Unknown XGBoostError: {e}", exc_info=True)
                 raise
             
         except Exception as e:
@@ -328,7 +335,7 @@ class grid_search_crossvalidate:
 
 
         if self.global_parameters.verbose >= 3:
-            print("Fitting final model")
+            self.logger.debug("Fitting final model")
         #current_algorithm = grid.best_estimator_
         # Pass the DataFrame for the final fit to support models that need column names (e.g., LightGBM wrapper).
         # For cross-validation, we will use numpy arrays for performance and compatibility.
@@ -344,10 +351,9 @@ class grid_search_crossvalidate:
             raise ValueError("Only one class present in y_train. ROC AUC score is not defined in that case. grid_search_cross_validate>>>cross_validate")
 
         if self.global_parameters.verbose >= 1:
-            print("Getting cross validation scores")
-            print(self.X_train.shape, self.y_train.shape)
-            print("y_train value counts:")
-            print(self.y_train.value_counts())
+            self.logger.info("Getting cross validation scores")
+            self.logger.info(f"X_train shape: {self.X_train.shape}, y_train shape: {self.y_train.shape}")
+            self.logger.info(f"y_train value counts:\n{self.y_train.value_counts()}")
 
         # Set a time threshold in seconds
         time_threshold = 60  # For example, 60 seconds
@@ -386,7 +392,7 @@ class grid_search_crossvalidate:
             
         except XGBoostError as e:
             if 'cuda' in str(e).lower() or 'memory' in str(e).lower():
-                print("GPU memory error detected, falling back to CPU...")
+                self.logger.warning("GPU memory error detected during cross-validation, falling back to CPU...")
                 current_algorithm.set_params(tree_method='hist') 
                 
                 try:
@@ -402,8 +408,8 @@ class grid_search_crossvalidate:
                         error_score=self.error_raise,  # Raise error if cross-validation fails
                     )
                 except Exception as e:
-                    print(f"An unexpected error occurred during cross-validation attempt 2: {e}")
-                    print("Returning default scores")
+                    self.logger.error(f"An unexpected error occurred during cross-validation attempt 2: {e}", exc_info=True)
+                    self.logger.warning("Returning default scores")
                     failed = True
                     scores = default_scores  # Use default scores for other errors
                     
@@ -412,19 +418,19 @@ class grid_search_crossvalidate:
         except ValueError as e:
             # Handle specific ValueError if AdaBoostClassifier fails due to poor performance
             if "BaseClassifier in AdaBoostClassifier ensemble is worse than random" in str(e):
-                print(f"AdaBoostClassifier failed: {e}")
-                print("Skipping AdaBoostClassifier due to poor base classifier performance.")
+                self.logger.warning(f"AdaBoostClassifier failed: {e}")
+                self.logger.warning("Skipping AdaBoostClassifier due to poor base classifier performance.")
                 
                 # Set default scores if the AdaBoostClassifier fails
                 scores = default_scores  # Use default scores
                 
             else:
-                print(f"An unexpected error occurred during cross-validation: {e}")
+                self.logger.error(f"An unexpected ValueError occurred during cross-validation: {e}", exc_info=True)
                 scores = default_scores  # Use default scores for other errors
 
         except Exception as e:
             # Catch any other general exceptions and log them
-            print(f"An error occurred during cross-validation: {e}")
+            self.logger.error(f"An unexpected error occurred during cross-validation: {e}", exc_info=True)
             scores = default_scores  # Use default scores if an error occurs
 
         # End the timer
@@ -436,9 +442,9 @@ class grid_search_crossvalidate:
         if self.global_parameters.verbose >= 1:
             # Print a warning if the execution time exceeds the threshold
             if elapsed_time > time_threshold:
-                print(f"Warning: Cross-validation took too long ({elapsed_time:.2f} seconds). Consider optimizing the parameters or reducing CV folds.")
+                self.logger.warning(f"Cross-validation took too long ({elapsed_time:.2f} seconds). Consider optimizing the parameters or reducing CV folds.")
             else:
-                print(f"Cross-validation {method_name} completed in {elapsed_time:.2f} seconds.")
+                self.logger.info(f"Cross-validation for {method_name} completed in {elapsed_time:.2f} seconds.")
             
         
         current_algorithm_scores = scores
@@ -451,7 +457,7 @@ class grid_search_crossvalidate:
         plot_auc = False
         if plot_auc:
             # This was passing a classifier trained on the test dataset....
-            print(" ")
+            self.logger.debug("Plotting AUC is disabled.")
 
             # plot_auc_results(current_algorithm, self.X_test_orig[self.X_train.columns], self.y_test_orig, self.cv)
             # plot_auc_results(grid.best_estimator_, X_test_orig, self.y_test_orig, cv)
@@ -479,6 +485,40 @@ class grid_search_crossvalidate:
         
         self.grid_search_cross_validate_score_result = auc
 
+    def _adjust_knn_parameters(self, parameter_space: Union[Dict, List[Dict]]):
+        """
+        Dynamically adjusts the 'n_neighbors' parameter for KNN-based models
+        to prevent errors on small datasets during cross-validation.
+        """
+        # Smallest fold size will be n_samples * (n_splits-1)/n_splits
+        # With RepeatedKFold, n_splits is at least 2. Smallest fold is 1/2 of data.
+        n_splits = self.cv.get_n_splits()
+        n_samples_in_fold = int(len(self.X_train) * (n_splits - 1) / n_splits)
+        
+        # Ensure n_samples_in_fold is at least 1
+        n_samples_in_fold = max(1, n_samples_in_fold)
+
+        def adjust_param(param_value):
+            if is_skopt_space(param_value):
+                # For skopt.space objects, adjust the upper bound
+                new_high = min(param_value.high, n_samples_in_fold)
+                new_low = min(param_value.low, new_high)
+                param_value.high = new_high
+                param_value.low = new_low
+            elif isinstance(param_value, (list, np.ndarray)):
+                # For lists, filter the values
+                new_param_value = [n for n in param_value if n <= n_samples_in_fold]
+                if not new_param_value:
+                    return [n_samples_in_fold]
+                return new_param_value
+            return param_value
+
+        if isinstance(parameter_space, list):
+            for params in parameter_space:
+                if 'n_neighbors' in params:
+                    params['n_neighbors'] = adjust_param(params['n_neighbors'])
+        elif isinstance(parameter_space, dict) and 'n_neighbors' in parameter_space:
+            parameter_space['n_neighbors'] = adjust_param(parameter_space['n_neighbors'])
 
 
 

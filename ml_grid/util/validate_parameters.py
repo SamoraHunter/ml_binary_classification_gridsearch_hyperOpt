@@ -1,6 +1,7 @@
 """Functions to validate model-specific hyperparameters before grid search."""
 
 from typing import Any, Dict
+import logging
 
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
@@ -27,30 +28,26 @@ def validate_knn_parameters(
         Dict[str, Any]: The validated parameters dictionary.
     """
 
+    logger = logging.getLogger('ml_grid')
     # Get the number of samples in the training data
-    print("Validating KNN parameters")
+    logger.debug("Validating KNN parameters")
     X_train = ml_grid_object.X_train
     n_samples = X_train.shape[0]
-    print(f"  n_samples: {n_samples}")
+    logger.debug(f"  n_samples: {n_samples}")
 
     # Get the maximum number of neighbors
     max_neighbors = n_samples - 1
-    print(f"  max_neighbors: {max_neighbors}")
+    logger.debug(f"  max_neighbors: {max_neighbors}")
 
     # Get the n_neighbors values from the parameters
     n_neighbors = parameters.get("n_neighbors")
-    print(f"  n_neighbors: {n_neighbors}")
+    logger.debug(f"  Initial n_neighbors: {n_neighbors}")
 
     # Check if any n_neighbors values are too large
     if n_neighbors is not None:
         for i in range(len(n_neighbors)):
             if n_neighbors[i] > max_neighbors:
-                print(f"  n_neighbors[{i}] is greater than max_neighbors")
-
-                # If so, reduce the value to be within the allowed range
-                print(
-                    f"    Reducing n_neighbors[{i}] from {n_neighbors[i]} to {max_neighbors}"
-                )
+                logger.debug(f"    Capping n_neighbors[{i}] from {n_neighbors[i]} to {max_neighbors}")
                 n_neighbors[i] = max_neighbors
 
     parameters["n_neighbors"] = n_neighbors

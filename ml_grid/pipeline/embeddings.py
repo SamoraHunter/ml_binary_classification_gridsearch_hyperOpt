@@ -4,6 +4,7 @@ Designed for automated data pipelines that prepare features for binary classific
 Focuses on methods suitable for sparse, high-dimensional data with reproducible transforms.
 """
 
+import logging
 from typing import Union, Optional, Dict, Any, Literal
 
 import numpy as np
@@ -114,10 +115,11 @@ def create_embedding_pipeline(
     
     # Supervised methods - require labels
     elif method_lower == "lda":
+        logger = logging.getLogger('ml_grid')
         # LDA limited to n_classes - 1, so max 1 for binary classification
         effective_components = min(n_components, 1)
         if effective_components != n_components:
-            print(f"Warning: LDA with binary classification limited to 1 component (requested {n_components})")
+            logger.warning(f"LDA with binary classification limited to 1 component (requested {n_components}). Adjusting n_components to 1.")
         steps.append(("embed", LinearDiscriminantAnalysis(n_components=effective_components, **kwargs)))
         
     elif method_lower == "select_kbest_f":

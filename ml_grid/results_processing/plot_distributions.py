@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from typing import List, Dict, Optional, Union, Tuple
 import warnings
+import logging
 from ml_grid.results_processing.core import get_clean_data, stratify_by_outcome
 
 # Maximum number of outcomes to display in stratified plots to avoid clutter.
@@ -29,6 +30,7 @@ class DistributionPlotter:
         """
         self.data = data
         self.clean_data = get_clean_data(data)
+        self.logger = logging.getLogger('ml_grid')
         plt.style.use(style)
         
         # Set color palette
@@ -367,15 +369,15 @@ class DistributionPlotter:
         summary_df = pd.DataFrame(summary_data).round(4)
         
         # Display as a formatted table
-        print("\nDistribution Summary by Outcome Variable")
-        print("=" * 80)
+        self.logger.info("\nDistribution Summary by Outcome Variable")
+        self.logger.info("=" * 80)
         
         # Show basic info first
         basic_cols = ['outcome_variable', 'sample_size'] + [f'{m}_mean' for m in available_metrics]
         basic_summary = summary_df[basic_cols]
         
-        print("\nMean Performance by Outcome:")
-        print(basic_summary.to_string(index=False))
+        self.logger.info("\nMean Performance by Outcome:")
+        self.logger.info(f"\n{basic_summary.to_string(index=False)}")
         
         return summary_df
     

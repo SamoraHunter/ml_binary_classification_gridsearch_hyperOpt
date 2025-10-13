@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import logging
 from typing import List, Optional, Tuple, Union
 
 
@@ -20,9 +21,10 @@ def remove_constant_columns(
     Raises:
         AssertionError: If X is None.
     """
+    logger = logging.getLogger('ml_grid')
     try:
-        if verbose > 1:
-            print("Identifying constant columns")
+        if verbose > 1: # verbose is passed but not used well here.
+            logger.info("Identifying constant columns")
 
         assert X is not None, "Null pointer exception: X cannot be None."
 
@@ -35,17 +37,17 @@ def remove_constant_columns(
 
         if constant_columns:
             if verbose > 1:
-                print(f"Constant columns identified: {constant_columns}")
+                logger.info(f"Constant columns identified: {constant_columns}")
 
             # Add constant columns to drop_list
             drop_list.extend(constant_columns)
 
     except AssertionError as e:
-        print(str(e))
+        logger.error(str(e))
         raise
 
     except Exception as e:
-        print("Unhandled exception:", str(e))
+        logger.error(f"Unhandled exception: {e}", exc_info=True)
         raise
 
     return drop_list
@@ -84,11 +86,12 @@ def remove_constant_columns_with_debug(
         modified X_train, X_test, and X_test_orig datasets with constant
         columns removed.
     """
+    logger = logging.getLogger('ml_grid')
     if verbosity > 0:
         # Debug message: Initial shapes of X_train, X_test, X_test_orig
-        print(f"Initial X_train shape: {X_train.shape}")
-        print(f"Initial X_test shape: {X_test.shape}")
-        print(f"Initial X_test_orig shape: {X_test_orig.shape}")
+        logger.debug(f"Initial X_train shape: {X_train.shape}")
+        logger.debug(f"Initial X_test shape: {X_test.shape}")
+        logger.debug(f"Initial X_test_orig shape: {X_test_orig.shape}")
 
     is_pandas = isinstance(X_train, pd.DataFrame)
 
@@ -106,7 +109,7 @@ def remove_constant_columns_with_debug(
                 if n_unique <= 1:
                     constant_columns.append(col)
                     if verbosity > 1:
-                        print(f"Column '{col}' is constant: nunique={n_unique}, sample values: {X_train[col].head()}")
+                        logger.debug(f"Column '{col}' is constant: nunique={n_unique}, sample values: {X_train[col].head()}")
                 # Additional check for numeric columns with zero variance
                 elif pd.api.types.is_numeric_dtype(X_train[col]):
                     try:
@@ -114,22 +117,22 @@ def remove_constant_columns_with_debug(
                         if col_std == 0 or (pd.notna(col_std) and np.isclose(col_std, 0)):
                             constant_columns.append(col)
                             if verbosity > 1:
-                                print(f"Column '{col}' has zero variance: std={col_std}")
+                                logger.debug(f"Column '{col}' has zero variance: std={col_std}")
                     except Exception as e:
                         if verbosity > 1:
-                            print(f"Could not calculate std for column '{col}': {e}")
+                            logger.warning(f"Could not calculate std for column '{col}': {e}")
             except Exception as e:
                 if verbosity > 1:
-                    print(f"Error checking column '{col}': {e}")
+                    logger.warning(f"Error checking column '{col}': {e}")
         
         if verbosity > 1:
-            print(f"\nUnique value counts in X_train:")
+            logger.debug(f"\nUnique value counts in X_train:")
             for col in X_train.columns:
-                print(f"  {col}: {X_train[col].nunique(dropna=False)} unique values")
+                logger.debug(f"  {col}: {X_train[col].nunique(dropna=False)} unique values")
         
         if verbosity > 0:
-            print(f"\nConstant columns identified in X_train: {constant_columns}")
-            print(f"Number of constant columns to remove: {len(constant_columns)}")
+            logger.info(f"\nConstant columns identified in X_train: {constant_columns}")
+            logger.info(f"Number of constant columns to remove: {len(constant_columns)}")
         
         if constant_columns:
             X_train = X_train.drop(columns=constant_columns, errors='ignore')
@@ -149,7 +152,7 @@ def remove_constant_columns_with_debug(
         train_variances = X_train.var(axis=var_axis)
         constant_indices_train = np.where(train_variances == 0)[0]
         if verbosity > 0:
-            print(f"Constant feature indices in X_train: {list(constant_indices_train)}")
+            logger.info(f"Constant feature indices in X_train: {list(constant_indices_train)}")
 
         # A feature is constant if it has no variance in the training set.
         # We should not consider the test set variance, as a small test set
@@ -172,9 +175,9 @@ def remove_constant_columns_with_debug(
 
     if verbosity > 0:
         # Debug message: Shape after removing constant columns from X_train, X_test, X_test_orig
-        print(f"Shape of X_train after removing constant columns: {X_train.shape}")
-        print(f"Shape of X_test after removing constant columns: {X_test.shape}")
-        print(f"Shape of X_test_orig after removing constant columns: {X_test_orig.shape}")
+        logger.debug(f"Shape of X_train after removing constant columns: {X_train.shape}")
+        logger.debug(f"Shape of X_test after removing constant columns: {X_test.shape}")
+        logger.debug(f"Shape of X_test_orig after removing constant columns: {X_test_orig.shape}")
 
     # Return the modified X_train, X_test, and X_test_orig, with y_test_orig unchanged
     return X_train, X_test, X_test_orig

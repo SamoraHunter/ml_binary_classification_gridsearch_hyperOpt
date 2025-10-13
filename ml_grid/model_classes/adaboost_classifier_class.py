@@ -5,8 +5,9 @@ from sklearn.ensemble import AdaBoostClassifier
 from ml_grid.util import param_space
 from ml_grid.util.global_params import global_parameters
 from skopt.space import Categorical, Real, Integer
+import logging
 
-print("Imported AdaBoostClassifier class")
+logging.getLogger('ml_grid').debug("Imported AdaBoostClassifier class")
 
 class adaboost_class:
     """AdaBoostClassifier with support for both Bayesian and non-Bayesian parameter spaces."""

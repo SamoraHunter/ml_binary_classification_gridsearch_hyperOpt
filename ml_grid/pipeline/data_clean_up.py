@@ -1,5 +1,6 @@
 import re
 from typing import List
+import logging
 
 import pandas as pd
 
@@ -12,6 +13,8 @@ class clean_up_class:
     def __init__(self):
         """Initializes the clean_up_class."""
         self.global_params = global_parameters
+
+        self.logger = logging.getLogger('ml_grid')
 
         self.verbose = self.global_params.verbose
 
@@ -31,7 +34,7 @@ class clean_up_class:
         """
         try:
             if self.verbose > 1:
-                print("dropping duplicated columns")
+                self.logger.info("Dropping duplicated columns")
 
             assert X is not None, "Null pointer exception: X cannot be None."
 
@@ -43,11 +46,11 @@ class clean_up_class:
             )
 
         except AssertionError as e:
-            print(str(e))
+            self.logger.error(str(e))
             raise
 
         except Exception as e:
-            print(f"Unhandled exception: {e}")
+            self.logger.error(f"Unhandled exception: {e}", exc_info=True)
             raise
 
         return X
@@ -59,10 +62,10 @@ class clean_up_class:
             X (pd.DataFrame): The DataFrame to screen.
         """
         if self.verbose > 1:
-            print("Screening for non float data types:")
+            self.logger.info("Screening for non float data types:")
             for col in X.columns:
                 if X[col].dtype != int and X[col].dtype != float:
-                    print(col)
+                    self.logger.info(col)
 
     def handle_column_names(self, X: pd.DataFrame) -> pd.DataFrame:
         """Renames columns to remove characters unsupported by some ML models.

@@ -5,8 +5,9 @@ from sklearn.neural_network import MLPClassifier
 from skopt.space import Real, Integer, Categorical
 from ml_grid.util import param_space
 from ml_grid.util.global_params import global_parameters
+import logging
 
-print("Imported MLPClassifier class")
+logging.getLogger('ml_grid').debug("Imported MLPClassifier class")
 
 
 class mlp_classifier_class:

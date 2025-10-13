@@ -1,5 +1,6 @@
 from typing import Any, Tuple
 
+import logging
 import pandas as pd
 from ml_grid.pipeline.data_feature_methods import feature_methods
 
@@ -47,6 +48,7 @@ class feature_importance_methods:
             aligned y_test, and X_test_orig DataFrames with selected features.
         """
 
+        logger = logging.getLogger('ml_grid')
         # Work with copies to avoid modifying the original DataFrames in the calling scope
         X_train_copy = X_train.copy()
         X_test_copy = X_test.copy()
@@ -55,19 +57,19 @@ class feature_importance_methods:
         self.feature_method = ml_grid_object.local_param_dict.get("feature_selection_method")
 
         if self.feature_method == "anova" or self.feature_method is None:
-            print("feature_method ANOVA") 
+            logger.info("feature_method ANOVA")
             fm = feature_methods()
             # The data pipeline now guarantees a clean index, so no reset is needed here.
             features = fm.getNfeaturesANOVAF(n=target_n_features, X_train=X_train_copy, y_train=y_train)
 
         elif self.feature_method == "markov_blanket":
-            print("feature method Markov") 
+            logger.info("feature method Markov")
             fm = feature_methods()
             # The data pipeline now guarantees a clean index, so no reset is needed here.
             features = fm.getNFeaturesMarkovBlanket(n=target_n_features, X_train=X_train_copy, y_train=y_train)
 
-        print(f"target_n_features: {target_n_features}")
-        print(f"Selected features: {features}")
+        logger.info(f"target_n_features: {target_n_features}")
+        logger.info(f"Selected features: {features}")
 
         # CRITICAL FIX: Apply feature selection to the X_train that was passed in,
         # which has already been cleaned of post-split constant columns.

@@ -1,5 +1,6 @@
 import random
 from typing import Any, Dict, Tuple, Union
+import logging
 
 import numpy as np
 import pandas as pd
@@ -37,13 +38,14 @@ def get_data_split(
             - X_test_orig: Original features for validation.
             - y_test_orig: Original target variable for validation.
     """
+    logger = logging.getLogger('ml_grid')
     random.seed(1234)
     np.random.seed(1234)
 
     # Check if data is valid
     if not is_valid_shape(X):
         local_param_dict["resample"] = None
-        print("overriding resample with None")
+        logger.warning("Input data is not 2D, overriding resample strategy to None.")
 
     # No resampling
     # First, split into a preliminary training set and a final hold-out test set.

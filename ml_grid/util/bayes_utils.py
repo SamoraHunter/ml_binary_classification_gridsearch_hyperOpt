@@ -1,5 +1,5 @@
 from typing import Any, Dict, List, Union
-
+import logging
 from skopt.space import Real, Integer, Categorical
 
 
@@ -29,6 +29,7 @@ def calculate_combinations(
 
     def calculate_param_combinations(single_space: Dict[str, Any], steps: int) -> int:
         """Calculates combinations for a single parameter space dictionary."""
+        logger = logging.getLogger('ml_grid')
         combinations = 1
         for param, values in single_space.items():
             if isinstance(values, Real):
@@ -41,12 +42,9 @@ def calculate_combinations(
                 combinations *= len(values)
 
         if not isinstance(combinations, (int, float)) or combinations <= 0:
-            print(
-                "Warning: Number of parameter combinations is not a positive integer. Returning 1."
-            )
-            print("combinations:", combinations)
-            print("parameter_space:", single_space)
-            print("steps:", steps)
+            logger.warning("Number of parameter combinations is not a positive integer. Returning 1.")
+            logger.warning(f"Combinations calculated: {combinations}")
+            logger.warning(f"Parameter space: {single_space}")
             return 1
 
         return int(combinations)
@@ -63,3 +61,15 @@ def calculate_combinations(
         raise ValueError(
             "Invalid input: parameter_space must be a dict or a list of dicts."
         )
+
+
+def is_skopt_space(param_value: Any) -> bool:
+    """Checks if a parameter value is a scikit-optimize space object.
+
+    Args:
+        param_value (Any): The parameter value to check.
+
+    Returns:
+        bool: True if the value is an instance of Real, Integer, or Categorical from skopt.
+    """
+    return isinstance(param_value, (Real, Integer, Categorical))

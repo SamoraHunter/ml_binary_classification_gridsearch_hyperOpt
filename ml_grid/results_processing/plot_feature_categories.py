@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from typing import List, Tuple, Optional
 import warnings
+import logging
 import ast
 
 from ml_grid.results_processing.core import get_clean_data
@@ -31,6 +32,7 @@ class FeatureCategoryPlotter:
         """
         self.data = data
         self.clean_data = get_clean_data(data)
+        self.logger = logging.getLogger('ml_grid')
         self.feature_categories = [
             'age', 'sex', 'bmi', 'ethnicity', 'bloods', 'diagnostic_order', 'drug_order',
             'annotation_n', 'meta_sp_annotation_n', 'meta_sp_annotation_mrc_n',
@@ -149,7 +151,7 @@ class FeatureCategoryPlotter:
                 })
         
         if not impact_data:
-            print("Could not calculate impact for any feature categories. This may be because no categories had both included and excluded runs.")
+            self.logger.info("Could not calculate impact for any feature categories. This may be because no categories had both included and excluded runs.")
             return
             
         impact_df = pd.DataFrame(impact_data).sort_values('impact', ascending=False)

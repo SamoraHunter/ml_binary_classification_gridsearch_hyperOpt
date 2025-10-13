@@ -1,4 +1,5 @@
 from typing import Any, Dict, List, Tuple
+import logging
 
 from fuzzysearch import find_near_matches
 
@@ -57,6 +58,8 @@ def get_pertubation_columns(
     """
 
     global_params = global_parameters
+
+    logger = logging.getLogger('ml_grid')
 
     verbose = global_params.verbose
 
@@ -284,7 +287,7 @@ def get_pertubation_columns(
     elif verbose >= 1:
         for i, lst in enumerate(candidate_feature_category_lists, start=1):
             var_name = [name for name, var in locals().items() if var is lst][0]
-            print(f"{var_name}: {len(lst)}")
+            logger.info(f"{var_name}: {len(lst)}")
 
     pertubation_columns = []
 
@@ -351,7 +354,7 @@ def get_pertubation_columns(
         if col not in pertubation_columns and col in all_df_columns:
             pertubation_columns.append(col)
 
-    print(f"local_param_dict data perturbation: \n {local_param_dict.get('data')}")
+    logger.info(f"local_param_dict data perturbation: \n {local_param_dict.get('data')}")
 
     if verbose >= 2:
         plot_dict_values(local_param_dict.get("data"))

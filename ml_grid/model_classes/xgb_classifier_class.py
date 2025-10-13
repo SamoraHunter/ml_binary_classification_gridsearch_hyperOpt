@@ -6,8 +6,9 @@ import xgboost as xgb
 from ml_grid.util import param_space
 from skopt.space import Real, Categorical, Integer
 from ml_grid.util.global_params import global_parameters
+import logging
 
-print("Imported XGB class")
+logging.getLogger('ml_grid').debug("Imported XGB class")
 
 class XGB_class_class:
     """XGBoost classifier with support for Bayesian and Grid Search parameter spaces."""

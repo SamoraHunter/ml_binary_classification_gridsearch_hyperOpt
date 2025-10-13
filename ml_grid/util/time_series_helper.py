@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
+import logging
 from tensorflow.keras.preprocessing import sequence
-from IPython.display import display
 
 
 def add_date_order_sequence_column(df):
@@ -74,6 +74,8 @@ def convert_Xy_to_time_series(X, y, max_seq_length):
     Returns:
     tuple: Tuple containing X and y in the format suitable for time series training.
     """
+    logger = logging.getLogger('ml_grid')
+    logger.info(f"Starting time-series conversion for {len(X['client_idcode'].unique())} unique clients.")
     # Get feature columns
     feature_list = X.columns
 
@@ -81,8 +83,11 @@ def convert_Xy_to_time_series(X, y, max_seq_length):
     X_list = []
     y_list = []
 
+    # Use tqdm for progress bar, but disable it if not in an interactive environment or if verbosity is low.
+    # The logger will still provide updates.
+    unique_clients = X["client_idcode"].unique()
     # Loop over each unique client_idcode in X
-    for pat in tqdm(X["client_idcode"].unique()):
+    for i, pat in enumerate(tqdm(unique_clients, desc="Converting to time-series")):
         # Extract data for this patient
         pat_data = (
             X[X["client_idcode"] == pat][feature_list]
@@ -100,10 +105,15 @@ def convert_Xy_to_time_series(X, y, max_seq_length):
 
         # Append the target variable for this patient to y_list
         y_list.append(y[X["client_idcode"] == pat].iloc[0])
+        
+        if (i + 1) % 100 == 0:
+            logger.debug(f"Processed {i + 1}/{len(unique_clients)} clients.")
 
     # Convert lists to NumPy arrays
     X_array = np.array(X_list)
     y_array = np.array(y_list)
+    
+    logger.info(f"Time-series conversion complete. Output shapes: X={X_array.shape}, y={y_array.shape}")
 
     return X_array, y_array
 

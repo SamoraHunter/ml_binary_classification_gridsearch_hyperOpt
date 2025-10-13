@@ -5,9 +5,10 @@ from ml_grid.util.global_params import global_parameters
 from sklearn.svm import SVC
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
+import logging
 from skopt.space import Real, Categorical
 
-print("Imported SVC class")
+logging.getLogger('ml_grid').debug("Imported SVC class")
 
 
 class SVC_class:
@@ -70,20 +71,20 @@ class SVC_class:
                         index=self.X.index if hasattr(self.X, 'index') else None
                     )
                     
-                    print("Data scaling completed successfully")
+                    logging.getLogger('ml_grid').info("Data scaling completed successfully for SVC")
                 
             except Exception as e:
                 error_msg = f"Data scaling failed: {str(e)}"
-                print(error_msg)
+                logging.getLogger('ml_grid').error(error_msg)
                 
                 # Additional debug info
                 if hasattr(self, 'X'):
-                    print(f"Data type: {type(self.X)}")
+                    logging.getLogger('ml_grid').debug(f"Data type: {type(self.X)}")
                     if hasattr(self.X, 'shape'):
-                        print(f"Shape: {self.X.shape}")
+                        logging.getLogger('ml_grid').debug(f"Shape: {self.X.shape}")
                     if isinstance(self.X, pd.DataFrame):
-                        print(f"Columns: {self.X.columns.tolist()}")
-                        print(f"Data types:\n{self.X.dtypes}")
+                        logging.getLogger('ml_grid').debug(f"Columns: {self.X.columns.tolist()}")
+                        logging.getLogger('ml_grid').debug(f"Data types:\n{self.X.dtypes}")
                         
                 raise RuntimeError(error_msg) from e
 

@@ -1,5 +1,6 @@
 import os
 import pickle
+import logging
 from typing import Any, Dict, List
 
 
@@ -29,6 +30,7 @@ def handle_percent_missing(
     Returns:
         List[str]: Updated list of columns to be dropped from the dataframe.
     """
+    logger = logging.getLogger('ml_grid')
     # Check for null pointer references
     assert local_param_dict is not None
     assert all_df_columns is not None
@@ -51,10 +53,10 @@ def handle_percent_missing(
             try:
                 percent_missing_dict = pickle.load(handle)
             except Exception as e:
-                print(f"Error loading pickle file: {e}")
+                logger.error(f"Error loading pickle file: {e}")
                 percent_missing_dict = {}
     else:
-        print(f"File {percent_missing_filename} not found. Returning empty dict.")
+        logger.warning(f"File {percent_missing_filename} not found. Returning empty dict.")
         percent_missing_dict = {}
 
     percent_missing_threshold = local_param_dict.get("percent_missing")
@@ -73,10 +75,10 @@ def handle_percent_missing(
                 ):
                     percent_missing_drop_list.append(col)
             except Exception as e:
-                print(f"Error processing column {col}: {e}")
+                logger.error(f"Error processing column {col}: {e}")
                 pass
 
-        print(
+        logger.info(
             f"Identified {len(percent_missing_drop_list)} columns with > {percent_missing_threshold} percent missing data."
         )
 
@@ -84,7 +86,7 @@ def handle_percent_missing(
         drop_list.extend(percent_missing_drop_list)
 
     else:
-        print(
+        logger.info(
             "percent_missing_threshold is None or percent_missing_dict is empty. Skipping percent missing data check."
         )
 

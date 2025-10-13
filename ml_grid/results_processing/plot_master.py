@@ -7,6 +7,7 @@ comprehensive set of visualizations for ML results analysis.
 import os
 import pandas as pd
 from typing import List, Optional, NoReturn
+import logging
 
 # Import all the individual plotter classes
 from ml_grid.results_processing.plot_algorithms import AlgorithmComparisonPlotter
@@ -49,6 +50,7 @@ class MasterPlotter:
 
         self.data = data
         self.output_dir = output_dir
+        self.logger = logging.getLogger('ml_grid')
 
         # Instantiate all the specialized plotters
         self.algo_plotter = AlgorithmComparisonPlotter(self.data)
@@ -61,49 +63,49 @@ class MasterPlotter:
             self.global_importance_plotter = GlobalImportancePlotter(self.data)
         except ValueError as e:
             self.global_importance_plotter = None
-            print(f"Warning: Could not initialize GlobalImportancePlotter. Reason: {e}")
+            self.logger.warning(f"Could not initialize GlobalImportancePlotter. Reason: {e}")
 
         # Pipeline parameter plotter
         try:
             self.pipeline_plotter = PipelineParameterPlotter(self.data)
         except ValueError as e:
             self.pipeline_plotter = None
-            print(f"Warning: Could not initialize PipelineParameterPlotter. Reason: {e}")
+            self.logger.warning(f"Could not initialize PipelineParameterPlotter. Reason: {e}")
 
         # Feature category plotter
         try:
             self.feature_cat_plotter = FeatureCategoryPlotter(self.data)
         except ValueError as e:
             self.feature_cat_plotter = None
-            print(f"Warning: Could not initialize FeatureCategoryPlotter. Reason: {e}")
+            self.logger.warning(f"Could not initialize FeatureCategoryPlotter. Reason: {e}")
 
         # Feature plotter requires 'decoded_features' column
         if 'decoded_features' in self.data.columns:
             self.feature_plotter = FeatureAnalysisPlotter(self.data)
         else:
             self.feature_plotter = None
-            print("Warning: 'decoded_features' column not found. Feature-related plots will be skipped.")
+            self.logger.warning("'decoded_features' column not found. Feature-related plots will be skipped.")
 
         # Hyperparameter plotter requires 'algorithm_implementation' column
         if 'algorithm_implementation' in self.data.columns:
             self.hyperparam_plotter = HyperparameterAnalysisPlotter(self.data)
         else:
             self.hyperparam_plotter = None
-            print("Warning: 'algorithm_implementation' column not found. Hyperparameter-related plots will be skipped.")
+            self.logger.warning("'algorithm_implementation' column not found. Hyperparameter-related plots will be skipped.")
 
         # Best model plotter
         try:
             self.best_model_plotter = BestModelAnalyzerPlotter(self.data)
         except ValueError as e:
             self.best_model_plotter = None
-            print(f"Warning: Could not initialize BestModelAnalyzerPlotter. Reason: {e}")
+            self.logger.warning(f"Could not initialize BestModelAnalyzerPlotter. Reason: {e}")
             
         # Results summarizer
         try:
             self.summarizer = ResultsSummarizer(self.data)
         except ValueError as e:
             self.summarizer = None
-            print(f"Warning: Could not initialize ResultsSummarizer. Reason: {e}")
+            self.logger.warning(f"Could not initialize ResultsSummarizer. Reason: {e}")
 
     def plot_all(self,
                  metric: str = 'auc_m',
@@ -130,20 +132,20 @@ class MasterPlotter:
             save_best_results (bool, optional): If True, saves a CSV summary of
                 the best model per outcome. Defaults to True.
         """
-        print(f"--- Starting MasterPlotter.plot_all() ---", flush=True)
-        print(f"Parameters: metric='{metric}', stratify_by_outcome={stratify_by_outcome}, save_best_results={save_best_results}", flush=True)
+        self.logger.info(f"--- Starting MasterPlotter.plot_all() ---")
+        self.logger.info(f"Parameters: metric='{metric}', stratify_by_outcome={stratify_by_outcome}, save_best_results={save_best_results}")
 
         # --- Step 1: Generate and Save Summary Table First ---
         # This is done first to avoid being blocked by interactive plot windows.
         if self.summarizer and save_best_results:
-            print("\n>>> 1. Generating and Saving Best Model Summary Table...", flush=True)
+            self.logger.info("\n>>> 1. Generating and Saving Best Model Summary Table...")
             try:
                 # Use 'auc' as the default metric for the summary table, as it's most standard
                 summary_metric = 'auc' if 'auc' in self.data.columns else metric
-                print(f"   - Using metric '{summary_metric}' for summary table.", flush=True)
+                self.logger.info(f"   - Using metric '{summary_metric}' for summary table.")
 
                 if 'outcome_variable' not in self.data.columns:
-                    raise ValueError("'outcome_variable' column is required to find the best model per outcome.")
+                    raise ValueError("'outcome_variable' column is required to find the best model per outcome.") # This will be caught and logged
                 if 'decoded_features' not in self.data.columns:
                      raise ValueError("'decoded_features' column is required to expand feature names.")
 
@@ -154,17 +156,17 @@ class MasterPlotter:
 
                 output_path = os.path.join(self.output_dir, "best_models_summary.csv")
                 best_models_df.to_csv(output_path, index=False)
-                print(f"✅ Best models summary successfully saved to: {os.path.abspath(output_path)}", flush=True)
+                self.logger.info(f"✅ Best models summary successfully saved to: {os.path.abspath(output_path)}")
                 
             except Exception as e:
-                print(f"❌ Warning: Could not generate or save best models summary table. Reason: {e}", flush=True)
+                self.logger.error(f"❌ Could not generate or save best models summary table. Reason: {e}")
         elif not self.summarizer:
-            print("\n>>> 1. Skipping Best Model Summary Table: ResultsSummarizer was not initialized.", flush=True)
+            self.logger.info("\n>>> 1. Skipping Best Model Summary Table: ResultsSummarizer was not initialized.")
         elif not save_best_results:
-            print("\n>>> 1. Skipping Best Model Summary Table: 'save_best_results' is False.", flush=True)
+            self.logger.info("\n>>> 1. Skipping Best Model Summary Table: 'save_best_results' is False.")
 
         # --- Step 2: Generate Plots ---
-        print("\n>>> 2. Generating Algorithm Comparison Plots...")
+        self.logger.info("\n>>> 2. Generating Algorithm Comparison Plots...")
         try:
             self.algo_plotter.plot_algorithm_boxplots(metric=metric, stratify_by_outcome=stratify_by_outcome)
             self.algo_plotter.plot_algorithm_performance_heatmap(metric=metric, aggregation='mean')
@@ -174,56 +176,56 @@ class MasterPlotter:
             self.algo_plotter.plot_pareto_front(metric_y=metric, metric_x='run_time')
             self.algo_plotter.plot_statistical_significance_heatmap(metric=metric)
         except Exception as e:
-            print(f"Warning: Could not generate algorithm plots. Reason: {e}")
+            self.logger.warning(f"Could not generate algorithm plots. Reason: {e}")
 
-        print("\n>>> 3. Generating Distribution Plots...")
+        self.logger.info("\n>>> 3. Generating Distribution Plots...")
         try:
             self.dist_plotter.plot_metric_distributions(metrics=[metric, 'f1', 'mcc'], stratify_by_outcome=stratify_by_outcome)
             self.dist_plotter.plot_comparative_distributions(metric=metric, plot_type='violin')
         except Exception as e:
-            print(f"Warning: Could not generate distribution plots. Reason: {e}")
+            self.logger.warning(f"Could not generate distribution plots. Reason: {e}")
 
-        print("\n>>> 4. Generating Timeline Plots...")
+        self.logger.info("\n>>> 4. Generating Timeline Plots...")
         try:
             self.timeline_plotter.plot_performance_timeline(metric=metric, stratify_by_outcome=stratify_by_outcome)
             self.timeline_plotter.plot_improvement_trends(metric=metric, stratify_by_outcome=stratify_by_outcome)
             self.timeline_plotter.plot_computational_cost_timeline(stratify_by_outcome=stratify_by_outcome)
         except Exception as e:
-            print(f"Warning: Could not generate timeline plots. Reason: {e}")
+            self.logger.warning(f"Could not generate timeline plots. Reason: {e}")
 
         if self.feature_plotter:
-            print("\n>>> 5. Generating Feature Analysis Plots...")
+            self.logger.info("\n>>> 5. Generating Feature Analysis Plots...")
             try:
                 self.feature_plotter.plot_feature_usage_frequency(top_n=top_n_features, stratify_by_outcome=stratify_by_outcome)
                 self.feature_plotter.plot_feature_performance_impact(metric=metric, top_n=top_n_features // 2)
                 self.feature_plotter.plot_feature_metric_correlation(metric=metric, top_n=top_n_features // 2)
                 self.feature_plotter.plot_feature_set_intersections(top_n_sets=15, stratify_by_outcome=stratify_by_outcome)
             except Exception as e:
-                print(f"Warning: Could not generate feature plots. Reason: {e}")
+                self.logger.warning(f"Could not generate feature plots. Reason: {e}")
 
         if self.hyperparam_plotter:
-            print("\n>>> 6. Generating Hyperparameter Analysis Plots...")
+            self.logger.info("\n>>> 6. Generating Hyperparameter Analysis Plots...")
             try:
                 # Get algorithms that have parsable hyperparameters
                 available_algos = self.hyperparam_plotter.get_available_algorithms()
                 if not available_algos:
-                    print("Info: No algorithms with parsable hyperparameters found. Skipping hyperparameter plots.")
+                    self.logger.info("No algorithms with parsable hyperparameters found. Skipping hyperparameter plots.")
                 else:
                     # Find the top overall algorithm *that has parsable hyperparameters*
                     plottable_data = self.data[self.data['method_name'].isin(available_algos)]
 
                     if plottable_data.empty:
-                        print("Info: No data found for algorithms with parsable hyperparameters. Skipping.")
+                        self.logger.info("No data found for algorithms with parsable hyperparameters. Skipping.")
                     else:
                         top_algo = plottable_data.groupby('method_name')[metric].mean().idxmax()
-                        print(f"Analyzing hyperparameters for top algorithm: {top_algo}")
+                        self.logger.info(f"Analyzing hyperparameters for top algorithm: {top_algo}")
 
                         self.hyperparam_plotter.plot_hyperparameter_importance(algorithm_name=top_algo, metric=metric)
 
                         # For the second plot, find a hyperparameter of the top algorithm to analyze
                         # This uses the parsed data within the hyperparam_plotter instance
                         algo_data = self.hyperparam_plotter.clean_data[self.hyperparam_plotter.clean_data['algorithm_name'] == top_algo]
-                        
+
                         # Get all hyperparameters for this algorithm from the first valid param dict
                         params_list = [p for p in algo_data['params_dict'] if p]
                         if params_list:
@@ -233,64 +235,64 @@ class MasterPlotter:
                             for param in sorted(list(all_keys)):
                                 if algo_data['params_dict'].apply(lambda p: p.get(param) if p else None).nunique() > 1:
                                     hyperparameters_to_plot.append(param)
-                            
+
                             if hyperparameters_to_plot:
                                  self.hyperparam_plotter.plot_performance_by_hyperparameter(
-                                     algorithm_name=top_algo, 
-                                     hyperparameters=hyperparameters_to_plot, 
+                                     algorithm_name=top_algo,
+                                     hyperparameters=hyperparameters_to_plot,
                                      metric=metric
                                  )
                             else:
-                                print(f"Info: No hyperparameters with multiple values found for {top_algo} to generate performance plot.")
+                                self.logger.info(f"No hyperparameters with multiple values found for {top_algo} to generate performance plot.")
             except Exception as e:
-                print(f"Warning: Could not generate hyperparameter plots. Reason: {e}")
+                self.logger.warning(f"Could not generate hyperparameter plots. Reason: {e}")
 
         if self.feature_cat_plotter:
-            print("\n>>> 7. Generating Feature Category Analysis Plots...")
+            self.logger.info("\n>>> 7. Generating Feature Category Analysis Plots...")
             try:
                 # Use 'auc' as requested, but fall back to the main metric if 'auc' is not present
                 category_metric = 'auc' if 'auc' in self.data.columns else metric
-                print(f"Analyzing feature category impact on metric: {category_metric.upper()}")
+                self.logger.info(f"Analyzing feature category impact on metric: {category_metric.upper()}")
                 self.feature_cat_plotter.plot_category_performance_boxplots(metric=category_metric)
                 self.feature_cat_plotter.plot_category_impact_on_metric(metric=category_metric)
             except Exception as e:
-                print(f"Warning: Could not generate feature category plots. Reason: {e}")
+                self.logger.warning(f"Could not generate feature category plots. Reason: {e}")
 
         if self.pipeline_plotter:
-            print("\n>>> 8. Generating Pipeline Parameter Analysis Plots...")
+            self.logger.info("\n>>> 8. Generating Pipeline Parameter Analysis Plots...")
             try:
                 # Use 'auc' as requested, but fall back to the main metric if 'auc' is not present
                 pipeline_metric = 'auc' if 'auc' in self.data.columns else metric
-                print(f"Analyzing pipeline parameter impact on metric: {pipeline_metric.upper()}")
+                self.logger.info(f"Analyzing pipeline parameter impact on metric: {pipeline_metric.upper()}")
                 self.pipeline_plotter.plot_categorical_parameters(metric=pipeline_metric)
                 self.pipeline_plotter.plot_continuous_parameters(metric=pipeline_metric)
             except Exception as e:
-                print(f"Warning: Could not generate pipeline parameter plots. Reason: {e}")
+                self.logger.warning(f"Could not generate pipeline parameter plots. Reason: {e}")
 
         if self.global_importance_plotter:
-            print("\n>>> 9. Generating Global Importance Analysis Plot...")
+            self.logger.info("\n>>> 9. Generating Global Importance Analysis Plot...")
             try:
                 # Use 'auc' as requested, but fall back to the main metric if 'auc' is not present
                 global_metric = 'auc' if 'auc' in self.data.columns else metric
                 self.global_importance_plotter.plot_global_importance(metric=global_metric, top_n=40)
             except Exception as e:
-                print(f"Warning: Could not generate global importance plot. Reason: {e}")
+                self.logger.warning(f"Could not generate global importance plot. Reason: {e}")
 
         if self.interaction_plotter:
-            print("\n>>> 10. Generating Interaction Analysis Plots...")
+            self.logger.info("\n>>> 10. Generating Interaction Analysis Plots...")
             try:
                 # Example interaction plot
                 self.interaction_plotter.plot_categorical_interaction(param1='resample', param2='scale', metric='auc')
             except Exception as e:
-                print(f"Warning: Could not generate interaction plots. Reason: {e}")
+                self.logger.warning(f"Could not generate interaction plots. Reason: {e}")
 
         if self.best_model_plotter:
-            print("\n>>> 11. Generating Best Model Analysis Plots...")
+            self.logger.info("\n>>> 11. Generating Best Model Analysis Plots...")
             try:
                 # Use 'auc' as requested, but fall back to the main metric if 'auc' is not present
                 best_model_metric = 'auc' if 'auc' in self.data.columns else metric
                 self.best_model_plotter.plot_best_model_summary(metric=best_model_metric)
             except Exception as e:
-                print(f"Warning: Could not generate best model plots. Reason: {e}")
+                self.logger.warning(f"Could not generate best model plots. Reason: {e}")
 
-        print("\n--- All Plot Generation Complete ---", flush=True)
+        self.logger.info("\n--- All Plot Generation Complete ---")

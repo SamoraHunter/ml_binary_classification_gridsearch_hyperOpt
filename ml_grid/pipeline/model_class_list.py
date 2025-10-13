@@ -1,4 +1,5 @@
 from typing import Any, Dict, List, Optional
+import logging
 
 from ml_grid.model_classes.adaboost_classifier_class import adaboost_class
 from ml_grid.model_classes.catboost_classifier_class import CatBoost_class
@@ -49,17 +50,18 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
     Returns:
         List[Any]: A list of instantiated model class objects.
     """
+    logger = logging.getLogger('ml_grid')
     # Get the parameter space size, defaulting to 'small' if not provided.
     # This prevents errors when the key is missing from the configuration.
     parameter_space_size = ml_grid_object.local_param_dict.get("param_space_size")
     if parameter_space_size is None:
         parameter_space_size = "small"
-    
+
     model_class_dict: Optional[Dict[str, bool]] = ml_grid_object.model_class_dict
 
     if model_class_dict is None:
         if ml_grid_object.verbose >= 1:
-            print("model_class_dict is None, using default model_class_dict")
+            logger.info("model_class_dict is None, using default model_class_dict")
 
         model_class_dict = {
             "LogisticRegression_class": True,

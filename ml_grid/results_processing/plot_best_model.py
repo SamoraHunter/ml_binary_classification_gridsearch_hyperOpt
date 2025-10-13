@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from typing import List, Optional, Tuple, Dict, Any
 import warnings
+import logging
 import textwrap
 import ast
 
@@ -34,6 +35,7 @@ class BestModelAnalyzerPlotter:
         
         self.data = data
         self.clean_data = get_clean_data(data)
+        self.logger = logging.getLogger('ml_grid')
         
         # Define feature categories and pipeline parameters from other modules for consistency
         self.feature_categories = [
@@ -90,7 +92,7 @@ class BestModelAnalyzerPlotter:
             # Filter to only the requested outcomes
             best_models_df = best_models_df[best_models_df['outcome_variable'].isin(outcomes_to_plot)]
             if best_models_df.empty:
-                print(f"Warning: No data found for the specified outcomes: {outcomes_to_plot}")
+                self.logger.warning(f"No data found for the specified outcomes: {outcomes_to_plot}")
                 return
         elif len(best_models_df) > MAX_OUTCOMES_TO_PLOT:
             warnings.warn(
@@ -101,7 +103,7 @@ class BestModelAnalyzerPlotter:
             )
             best_models_df = best_models_df.head(MAX_OUTCOMES_TO_PLOT)
 
-        print(f"--- Generating Best Model Summaries (Metric: {metric.upper()}) ---")
+        self.logger.info(f"--- Generating Best Model Summaries (Metric: {metric.upper()}) ---")
         for _, model_series in best_models_df.iterrows():
             self._plot_single_model_summary(model_series, metric, figsize)
 

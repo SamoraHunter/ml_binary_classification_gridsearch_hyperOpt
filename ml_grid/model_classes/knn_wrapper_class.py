@@ -6,6 +6,7 @@ import pandas as pd
 import torch
 from simbsig.neighbors import KNeighborsClassifier
 from sklearn import metrics
+import logging
 
 class KNNWrapper:
     """A scikit-learn compatible wrapper for the GPU-accelerated KNN from simbsig.
@@ -51,7 +52,7 @@ class KNNWrapper:
         # Auto-detect device
         gpu_available = torch.cuda.is_available()
         if device == "gpu" and not gpu_available:
-            print("Warning: GPU requested for KNNWrapper, but torch.cuda.is_available() is False. Falling back to CPU.")
+            logging.getLogger('ml_grid').warning("GPU requested for KNNWrapper, but torch.cuda.is_available() is False. Falling back to CPU.")
             self.device = "cpu"
         elif device:
             self.device = device

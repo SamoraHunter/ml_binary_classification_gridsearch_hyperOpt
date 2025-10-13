@@ -8,6 +8,7 @@ from sklearn import metrics
 from sklearn.metrics import *
 import pickle
 import os
+import logging
 import warnings
 from typing import Any, Dict, List, Optional
 
@@ -135,7 +136,8 @@ class project_score_save_class:
         # n_iter_v = np.nan ##????????????
 
         try:
-            print("Writing grid permutation to log")
+            logger = logging.getLogger('ml_grid')
+            logger.info("Writing grid permutation to log")
             # write line to best grid scores---------------------
             column_list = _get_score_log_columns(list(global_params.metric_list.keys()))
             line = pd.DataFrame(data=None, columns=column_list)
@@ -144,9 +146,9 @@ class project_score_save_class:
             try:
                 auc = metrics.roc_auc_score(y_test, best_pred_orig)
             except Exception as e:
-                if ml_grid_object.verbose >= 1:
-                    print(best_pred_orig)
-                    print(e)
+                logger.warning(f"Could not calculate AUC score: {e}")
+                logger.debug(f"y_test unique values: {y_test.unique()}")
+                logger.debug(f"best_pred_orig unique values: {np.unique(best_pred_orig)}")
                 auc = np.nan
 
             mcc = matthews_corrcoef(y_test, best_pred_orig)
@@ -201,12 +203,7 @@ class project_score_save_class:
 
             end = time.time()
             
-            print("Debug scores:")
-            print(scores)
-            
-        
-                
-
+            logger.debug(f"Cross-validation scores: {scores}")
             line["run_time"] = int((end - start) / 60)
             line["t_fits"] = pg
             line["n_fits"] = n_iter_v
@@ -227,9 +224,8 @@ class project_score_save_class:
                         line[f"{metric}_std"] = np.array(scores[f"test_{metric}"]).std()
                     
                 except Exception as e:
-                    print(e)
-                    print(scores)
-                    raise e
+                    logger.error(f"Error processing scores for BayesSearch: {e}")
+                    logger.debug(f"Scores dictionary: {scores}")
             else:
                 line["fit_time_m"] = scores["fit_time"].mean() #deprecated for bayes
                 line["fit_time_std"] = scores["fit_time"].std()
@@ -244,7 +240,8 @@ class project_score_save_class:
             
             
 
-            print(line)
+            logger.info(f"Logged results for method '{method_name}'")
+            logger.debug(f"Log line data: \n{line.to_string()}")
 
             # line['outcome_var'] = y_test.name
 
@@ -258,7 +255,6 @@ class project_score_save_class:
 
             if store_models:
                 if "keras" not in method_name.lower():
-                    #print("SAVING MODEL!")
                     models_dir = Path(ml_grid_object.base_project_dir) / "models"
                     models_dir.mkdir(parents=True, exist_ok=True)
 
@@ -268,12 +264,10 @@ class project_score_save_class:
                         with open(model_path, 'wb') as f:
                             pickle.dump(current_algorithm, f)
                     except Exception as e:
-                        print(e)
-                        raise e
+                        logger.error(f"Failed to save model {param_space_index}: {e}")
             # ---------------------------
         except Exception as e:
-            print(e)
-            print(traceback.format_exc())
-            print("Failed to upgrade grid entry")
+            logger = logging.getLogger('ml_grid')
+            logger.error(f"Failed to update score log: {e}", exc_info=True)
             if global_params.error_raise:
-                input()
+                raise e

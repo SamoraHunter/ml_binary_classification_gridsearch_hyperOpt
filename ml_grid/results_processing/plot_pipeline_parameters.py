@@ -5,6 +5,7 @@ Focuses on visualizing the impact of data transformations and pipeline settings 
 """
 
 import pandas as pd
+import logging
 import matplotlib.pyplot as plt
 import seaborn as sns
 from typing import List, Tuple, Optional
@@ -26,6 +27,7 @@ class PipelineParameterPlotter:
         """
         self.data = data
         self.clean_data = get_clean_data(data)
+        self.logger = logging.getLogger('ml_grid')
         
         # Define which parameters are categorical vs continuous based on the request
         self.categorical_params = [
@@ -66,7 +68,7 @@ class PipelineParameterPlotter:
             ValueError: If the specified metric is not found in the data.
         """
         if not self.available_categorical:
-            print("Info: No categorical pipeline parameters found to plot.")
+            self.logger.info("No categorical pipeline parameters found to plot.")
             return
             
         if metric not in self.clean_data.columns:
@@ -122,7 +124,7 @@ class PipelineParameterPlotter:
             ValueError: If the specified metric is not found in the data.
         """
         if not self.available_continuous:
-            print("Info: No continuous pipeline parameters found to plot.")
+            self.logger.info("No continuous pipeline parameters found to plot.")
             return
 
         if metric not in self.clean_data.columns:

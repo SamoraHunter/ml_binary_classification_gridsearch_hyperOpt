@@ -5,6 +5,7 @@ Focuses on visualizing how pairs of parameters jointly affect model performance.
 """
 
 import pandas as pd
+import logging
 import matplotlib.pyplot as plt
 import seaborn as sns
 from typing import Tuple, Optional
@@ -27,6 +28,7 @@ class InteractionPlotter:
         """
         self.data = data
         self.clean_data = get_clean_data(data)
+        self.logger = logging.getLogger('ml_grid')
         plt.style.use('default')
 
     def plot_categorical_interaction(
@@ -47,7 +49,7 @@ class InteractionPlotter:
                 Defaults to (10, 8).
         """
         if param1 not in self.clean_data.columns or param2 not in self.clean_data.columns:
-            print(f"Warning: One or both parameters ('{param1}', '{param2}') not found. Skipping.")
+            self.logger.warning(f"One or both parameters ('{param1}', '{param2}') not found. Skipping interaction plot.")
             return
         if metric not in self.clean_data.columns:
             raise ValueError(f"Metric '{metric}' not found in data.")
@@ -64,7 +66,7 @@ class InteractionPlotter:
                 values=metric, index=param1, columns=param2, aggfunc='mean'
             )
         except Exception as e:
-            print(f"Could not create pivot table for '{param1}' and '{param2}'. Reason: {e}")
+            self.logger.error(f"Could not create pivot table for '{param1}' and '{param2}'. Reason: {e}")
             return
 
         plt.figure(figsize=figsize)
@@ -99,7 +101,7 @@ class InteractionPlotter:
                 Defaults to (10, 8).
         """
         if param1 not in self.clean_data.columns or param2 not in self.clean_data.columns:
-            print(f"Warning: One or both parameters ('{param1}', '{param2}') not found. Skipping.")
+            self.logger.warning(f"One or both parameters ('{param1}', '{param2}') not found. Skipping interaction plot.")
             return
         if metric not in self.clean_data.columns:
             raise ValueError(f"Metric '{metric}' not found in data.")
@@ -107,7 +109,7 @@ class InteractionPlotter:
         plot_data = self.clean_data[[param1, param2, metric]].dropna()
 
         if plot_data.empty:
-            print(f"No data to plot for interaction between '{param1}' and '{param2}'.")
+            self.logger.info(f"No data to plot for interaction between '{param1}' and '{param2}'.")
             return
 
         plt.figure(figsize=figsize)

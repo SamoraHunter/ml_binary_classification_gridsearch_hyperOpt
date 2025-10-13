@@ -7,8 +7,9 @@ from ml_grid.util import param_space
 
 # from ml_grid.model_classes.nni_sklearn_wrapper import *
 from ml_grid.model_classes.nni_sklearn_wrapper import NeuralNetworkClassifier
+import logging
 
-print("Imported NeuralNetworkClassifier class")
+logging.getLogger('ml_grid').debug("Imported NeuralNetworkClassifier class")
 
 
 class NeuralNetworkClassifier_class:

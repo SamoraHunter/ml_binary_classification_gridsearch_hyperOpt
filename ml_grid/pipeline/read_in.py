@@ -1,5 +1,6 @@
 import random
 import pandas as pd
+import logging
 import numpy as np
 
 import polars as pl
@@ -16,25 +17,26 @@ class read:
                 the Polars library and converts it to a pandas DataFrame.
                 Falls back to pandas if Polars fails. Defaults to False.
         """
+        logger = logging.getLogger('ml_grid')
         filename = input_filename
-        print(f"Init main >read on {filename}")
+        logger.info(f"Reading data from {filename}")
         if use_polars:
             try:
                 self.raw_input_data = pl.read_csv(filename, ignore_errors=True)
                 self.raw_input_data = self.raw_input_data.to_pandas()
             except Exception as e:
-                print(f"Error reading with Polars: {e}")
-                print("Trying to read with Pandas...")
+                logger.warning(f"Error reading with Polars: {e}")
+                logger.info("Falling back to pandas...")
                 try:
                     self.raw_input_data = pd.read_csv(filename)
                 except Exception as e:
-                    print(f"Error reading with Pandas: {e}")
+                    logger.error(f"Error reading with Pandas: {e}")
                     self.raw_input_data = pd.DataFrame()
         else:
             try:
                 self.raw_input_data = pd.read_csv(filename)
             except Exception as e:
-                print(f"Error reading with Pandas: {e}")
+                logger.error(f"Error reading with Pandas: {e}")
                 self.raw_input_data = pd.DataFrame()
 
 
@@ -66,6 +68,7 @@ class read_sample:
             ValueError: If the 'outcome_var_1' column does not contain at least
                 two unique classes after sampling.
         """
+        logger = logging.getLogger('ml_grid')
         self.filename = input_filename
 
         # The columns that are necessary to be in the input data
@@ -96,7 +99,7 @@ class read_sample:
         # Combine the necessary and selected additional columns
         selected_columns = necessary_columns + selected_additional_columns
 
-        print(f"Init main > read_sample on {self.filename}")
+        logger.info(f"Reading data sample from {self.filename}")
 
         # If both test_sample_n and column_sample_n are 0
         # Read in all columns and all rows

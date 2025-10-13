@@ -5,8 +5,9 @@ from ml_grid.model_classes.knn_wrapper_class import KNNWrapper
 from ml_grid.util import param_space
 from ml_grid.util.global_params import global_parameters
 from skopt.space import Categorical, Integer
+import logging
 
-print("Imported knn__gpu class")
+logging.getLogger('ml_grid').debug("Imported knn__gpu class")
 
 class knn__gpu_wrapper_class:
     """KNN with GPU support, including Bayesian and non-Bayesian parameter space."""

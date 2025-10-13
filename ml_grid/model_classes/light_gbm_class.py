@@ -8,6 +8,7 @@ from ml_grid.util import param_space
 
 from ml_grid.model_classes.lightgbm_class import LightGBMClassifier
 from ml_grid.util.global_params import global_parameters
+import logging
 
 
 class LightGBMClassifierWrapper:
@@ -85,6 +86,5 @@ class LightGBMClassifierWrapper:
 
 
 
-
-print("Imported LightGBM classifier wrapper class")
+logging.getLogger('ml_grid').debug("Imported LightGBM classifier wrapper class")
 # light_gbm_class LightGBMClassifierWrapper

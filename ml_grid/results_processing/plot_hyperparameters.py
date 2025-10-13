@@ -10,6 +10,7 @@ import seaborn as sns
 from typing import List, Optional, Tuple, Dict, Any
 import warnings
 import ast
+import logging
 import scipy.stats as stats
 from sklearn.metrics import r2_score
 
@@ -31,6 +32,7 @@ class HyperparameterAnalysisPlotter:
         
         self.data = data
         self.clean_data = get_clean_data(data)
+        self.logger = logging.getLogger('ml_grid')
         
         # Extract algorithm name from algorithm_implementation
         self.clean_data['algorithm_name'] = self.clean_data['algorithm_implementation'].apply(
@@ -135,8 +137,8 @@ class HyperparameterAnalysisPlotter:
         
         if algo_data.empty:
             available_algos = self.get_available_algorithms()
-            print(f"No data found for algorithm: {algorithm_name}")
-            print(f"Available algorithms: {available_algos}")
+            self.logger.warning(f"No data found for algorithm: {algorithm_name}")
+            self.logger.info(f"Available algorithms: {available_algos}")
             return
 
         # Cap the number of plots to prevent excessively large figures
@@ -152,7 +154,7 @@ class HyperparameterAnalysisPlotter:
 
         n_params = len(hyperparameters)
         if n_params == 0:
-            print(f"No valid hyperparameters were provided to plot for algorithm '{algorithm_name}'.")
+            self.logger.info(f"No valid hyperparameters were provided to plot for algorithm '{algorithm_name}'.")
             return
 
         cols = min(3, n_params)
@@ -334,13 +336,13 @@ class HyperparameterAnalysisPlotter:
         
         if algo_data.empty:
             available_algos = self.get_available_algorithms()
-            print(f"No data found for algorithm: {algorithm_name}")
-            print(f"Available algorithms: {available_algos}")
+            self.logger.warning(f"No data found for algorithm: {algorithm_name}")
+            self.logger.info(f"Available algorithms: {available_algos}")
             return
 
         # Check if metric exists
         if metric not in algo_data.columns:
-            print(f"Metric '{metric}' not found. Available metrics: {algo_data.select_dtypes(include=[np.number]).columns.tolist()}")
+            self.logger.error(f"Metric '{metric}' not found. Available metrics: {algo_data.select_dtypes(include=[np.number]).columns.tolist()}")
             return
 
         # Identify top models
@@ -348,7 +350,7 @@ class HyperparameterAnalysisPlotter:
         top_models = algo_data[algo_data[metric] >= threshold]
 
         if top_models.empty:
-            print(f"No models found in the top {top_n_percent}% for algorithm '{algorithm_name}'.")
+            self.logger.info(f"No models found in the top {top_n_percent}% for algorithm '{algorithm_name}'.")
             return
 
         # Get all hyperparameters
@@ -360,7 +362,7 @@ class HyperparameterAnalysisPlotter:
         hyperparameters = sorted(all_params)
         
         if not hyperparameters:
-            print(f"No hyperparameters found for {algorithm_name}.")
+            self.logger.info(f"No hyperparameters found for {algorithm_name}.")
             return
         
         n_params = len(hyperparameters)
@@ -485,13 +487,13 @@ class HyperparameterAnalysisPlotter:
         
         if algo_data.empty:
             available_algos = self.get_available_algorithms()
-            print(f"No data found for algorithm: {algorithm_name}")
-            print(f"Available algorithms: {available_algos}")
+            self.logger.warning(f"No data found for algorithm: {algorithm_name}")
+            self.logger.info(f"Available algorithms: {available_algos}")
             return
 
         # Check if metric exists
         if metric not in algo_data.columns:
-            print(f"Metric '{metric}' not found. Available metrics: {algo_data.select_dtypes(include=[np.number]).columns.tolist()}")
+            self.logger.error(f"Metric '{metric}' not found. Available metrics: {algo_data.select_dtypes(include=[np.number]).columns.tolist()}")
             return
 
         if method not in ['pearson', 'spearman']:
@@ -501,7 +503,7 @@ class HyperparameterAnalysisPlotter:
         correlation_results_df = self._get_continuous_hyperparameter_correlations(algorithm_name, metric, method)
 
         if correlation_results_df is None or correlation_results_df.empty:
-            print(f"No continuous hyperparameters found for {algorithm_name}.")
+            self.logger.info(f"No continuous hyperparameters found for {algorithm_name}.")
             return
         
         n_params = len(correlation_results_df)
@@ -584,8 +586,8 @@ class HyperparameterAnalysisPlotter:
         
         # Print correlation summary
         if show_correlation_stats:
-            print(f"\nCorrelation Summary for {algorithm_name}:")
-            print("-" * 60)
+            self.logger.info(f"\nCorrelation Summary for {algorithm_name}:")
+            self.logger.info("-" * 60)
             corr_df = correlation_results_df.sort_values('abs_correlation', ascending=False)
             if method == 'pearson':
                 corr_label = 'r'
@@ -601,10 +603,10 @@ class HyperparameterAnalysisPlotter:
                 elif row['p_value'] < 0.05:
                     significance = "*"
                 
-                print(f"{row['hyperparameter']:20s}: {corr_label} = {row['correlation']:6.3f}{significance:3s} "
-                      f"(p = {row['p_value']:.3f}, n = {row['n_samples']})")
+                self.logger.info(f"{row['hyperparameter']:20s}: {corr_label} = {row['correlation']:6.3f}{significance:3s} "
+                                 f"(p = {row['p_value']:.3f}, n = {row['n_samples']})")
             
-            print("\nSignificance levels: *** p<0.001, ** p<0.01, * p<0.05")
+            self.logger.info("\nSignificance levels: *** p<0.001, ** p<0.01, * p<0.05")
 
     def plot_top_correlations(self,
                              algorithm_name: str,
@@ -628,8 +630,8 @@ class HyperparameterAnalysisPlotter:
         
         if algo_data.empty:
             available_algos = self.get_available_algorithms()
-            print(f"No data found for algorithm: {algorithm_name}")
-            print(f"Available algorithms: {available_algos}")
+            self.logger.warning(f"No data found for algorithm: {algorithm_name}")
+            self.logger.info(f"Available algorithms: {available_algos}")
             return
 
         if method not in ['pearson', 'spearman']:
@@ -639,7 +641,7 @@ class HyperparameterAnalysisPlotter:
         correlations_df = self._get_continuous_hyperparameter_correlations(algorithm_name, metric, method)
         
         if correlations_df is None or correlations_df.empty:
-            print(f"No continuous hyperparameters found for {algorithm_name} to plot correlations.")
+            self.logger.info(f"No continuous hyperparameters found for {algorithm_name} to plot correlations.")
             return
         top_correlations = correlations_df.sort_values('abs_correlation', ascending=False).head(top_n)
         
