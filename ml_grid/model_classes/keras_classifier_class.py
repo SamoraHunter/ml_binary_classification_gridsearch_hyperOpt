@@ -101,6 +101,8 @@ class kerasClassifier_class:
             layers=1,
             width=1,
             input_dim_val=self.x_train_col_val,
+            l1_reg=0.0,  # Register l1_reg with a default value
+            l2_reg=0.0,  # Register l2_reg with a default value
         )
         self.method_name = "kerasClassifier_class"
         X_data = self.X

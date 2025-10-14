@@ -344,6 +344,17 @@ class grid_search_crossvalidate:
                 # Re-raise other CatBoost errors
                 raise e
 
+        except ValueError as e:
+            # Handle specific ValueError if AdaBoostClassifier fails during search
+            if "BaseClassifier in AdaBoostClassifier ensemble is worse than random" in str(e):
+                self.logger.error(f"AdaBoostClassifier failed during hyperparameter search: {e}")
+                self.logger.warning(f"Continuing despite AdaBoost error...")
+                self.grid_search_cross_validate_score_result = 0.5
+                return
+            else:
+                # Re-raise other ValueErrors
+                raise e
+
             
         except XGBoostError as e:
             if 'cuda' in str(e).lower() or 'memory' in str(e).lower():
@@ -545,15 +556,14 @@ class grid_search_crossvalidate:
         to prevent errors on small datasets during cross-validation.
         """
         n_splits = self.cv.get_n_splits()
-        
-        # Calculate BOTH training and test fold sizes
+
+        # The number of samples in the training part of a fold.
         n_samples_train_fold = len(self.X_train) - (len(self.X_train) // n_splits)
         n_samples_test_fold = len(self.X_train) // n_splits
-        
-        # CRITICAL: Use the MINIMUM of both constraints
-        # During scoring, KNN.predict() requires n_neighbors <= len(test_fold)
-        # During fitting, KNN.fit() requires n_neighbors <= len(train_fold)
-        max_n_neighbors = min(n_samples_train_fold, n_samples_test_fold)
+
+        # CRITICAL: The number of neighbors cannot exceed the number of samples
+        # in the training fold that the model is fit on.
+        max_n_neighbors = n_samples_train_fold
         max_n_neighbors = max(1, max_n_neighbors)
         
         self.logger.info(
