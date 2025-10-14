@@ -14,6 +14,7 @@ from numpy import absolute, mean, std
 from scikeras.wrappers import KerasClassifier
 from sklearn import metrics
 from IPython.display import display
+from catboost import CatBoostError
 from pandas.testing import assert_index_equal
 from xgboost.core import XGBoostError
 
@@ -326,6 +327,17 @@ class grid_search_crossvalidate:
             # Pass reset data to search
             current_algorithm = search.run_search(X_train_reset, y_train_reset)
 
+        except CatBoostError as e:
+            if "All features are either constant or ignored" in str(e):
+                self.logger.error(f"CatBoostError occurred for {method_name}: {e}")
+                self.logger.warning(f"Continuing despite CatBoost error...")
+                # Set a default score and return to allow the pipeline to continue
+                self.grid_search_cross_validate_score_result = 0.5
+                return
+            else:
+                # Re-raise other CatBoost errors
+                raise e
+
             
         except XGBoostError as e:
             if 'cuda' in str(e).lower() or 'memory' in str(e).lower():
@@ -617,6 +629,14 @@ class grid_search_crossvalidate:
                     params['subsample'] = adjust_param(params['subsample'])
         elif isinstance(parameter_space, dict) and 'subsample' in parameter_space:
             parameter_space['subsample'] = adjust_param(parameter_space['subsample'])
+
+        # Also adjust 'rsm' (colsample_bylevel) which can cause the same issue
+        if isinstance(parameter_space, list):
+            for params in parameter_space:
+                if 'rsm' in params:
+                    params['rsm'] = adjust_param(params['rsm'])
+        elif isinstance(parameter_space, dict) and 'rsm' in parameter_space:
+            parameter_space['rsm'] = adjust_param(parameter_space['rsm'])
 
 
 def dummy_auc() -> float:
