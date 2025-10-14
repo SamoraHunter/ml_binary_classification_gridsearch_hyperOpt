@@ -13,9 +13,8 @@ from scikeras.wrappers import KerasClassifier
 
 def create_model(
     layers: int = 1,
-    kernel_reg: tf.keras.regularizers.Regularizer = tf.keras.regularizers.l1_l2(
-        l1=0, l2=0
-    ),
+    l1_reg: float = 0.0,
+    l2_reg: float = 0.0,
     width: int = 15,
     learning_rate: float = 0.01,
     dropout_val: float = 0.2,
@@ -25,7 +24,8 @@ def create_model(
 
     Args:
         layers (int): The number of dense layers in the model.
-        kernel_reg (tf.keras.regularizers.Regularizer): Kernel regularizer.
+        l1_reg (float): L1 regularization factor.
+        l2_reg (float): L2 regularization factor.
         width (int): The number of units in each dense layer.
         learning_rate (float): The learning rate for the Adam optimizer.
         dropout_val (float): The dropout rate.
@@ -34,6 +34,9 @@ def create_model(
     Returns:
         Sequential: The compiled Keras model.
     """
+    # Construct the regularizer inside the function from simple types
+    kernel_reg = tf.keras.regularizers.l1_l2(l1=l1_reg, l2=l2_reg)
+
     model = Sequential()
     for i in range(0, layers):
         model.add(
@@ -127,7 +130,8 @@ class kerasClassifier_class:
             #'epochs':log_large_long,
             "epochs": [300],
             "batch_size": [int(length_x_data / 2)],
-            # kernel_reg=reg_reg_list_comb,
+            "l1_reg": np.logspace(-5, -2, 4),
+            "l2_reg": np.logspace(-5, -2, 4),
             "width": floored_width,
             #'learning_rate' : np.logspace(-4, -6, 2)
             # dropout_val = np.logspace(-1, -3, 2)

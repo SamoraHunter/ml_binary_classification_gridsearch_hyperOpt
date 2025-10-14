@@ -108,6 +108,12 @@ class grid_search_crossvalidate:
             except Exception as e:
                 self.logger.warning(f"Could not configure GPU for TensorFlow: {e}")
 
+        # Explicitly set CPU as the visible device for TensorFlow to avoid CUDA init errors
+        try:
+            tf.config.set_visible_devices([], 'GPU')
+        except Exception as e:
+            self.logger.warning(f"Could not disable GPU visibility for TensorFlow: {e}")
+
         self.metric_list = self.global_params.metric_list
 
         self.error_raise = self.global_params.error_raise

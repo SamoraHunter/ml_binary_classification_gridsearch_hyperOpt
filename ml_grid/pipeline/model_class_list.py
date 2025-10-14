@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional
 import logging
 import torch
+import os
 
 from ml_grid.model_classes.adaboost_classifier_class import adaboost_class
 from ml_grid.model_classes.catboost_classifier_class import CatBoost_class
@@ -53,6 +54,9 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
     """
     logger = logging.getLogger('ml_grid')
     
+    # Check if running in a CI environment (like GitHub Actions)
+    is_ci_environment = os.environ.get('CI') == 'true'
+
     # Check for GPU availability once
     gpu_available = torch.cuda.is_available()
     # Get the parameter space size, defaulting to 'small' if not provided.
@@ -86,6 +90,16 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
             "TabTransformer_class": False,
             "h2o_classifier_class": False,
         }
+
+    # If running in a CI environment, explicitly disable resource-intensive models
+    if is_ci_environment:
+        logger.warning("CI environment detected. Disabling GPU-heavy and resource-intensive models.")
+        models_to_disable = ['kerasClassifier_class', 'knn__gpu_wrapper_class', 'h2o_classifier_class', 'TabTransformer_class']
+        for model_name in models_to_disable:
+            if model_name in model_class_dict:
+                if model_class_dict[model_name]:
+                    logger.info(f"Disabling '{model_name}' for CI run.")
+                    model_class_dict[model_name] = False
 
     model_class_list = []
 
