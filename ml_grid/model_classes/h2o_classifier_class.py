@@ -10,7 +10,7 @@ import logging
 
 logging.getLogger('ml_grid').debug("Imported h2o_classifier_class")
 
-class h2o_classifier_class:
+class H2O_class:
     """H2OAutoMLClassifier with support for both Bayesian and non-Bayesian parameter spaces."""
 
     def __init__(
@@ -48,7 +48,8 @@ class h2o_classifier_class:
                  "seed": Integer(1, 1000),  # Random seed for reproducibility
                  "max_models": Integer(2, 10),  # Number of models to build
                  "balance_classes": Categorical([True, False]),  # Whether to balance classes
-                 "project_name": Categorical([None])  # Project name (None means auto-generated)
+                 "project_name": Categorical([None]),  # Project name (None means auto-generated)
+                 "preprocessing": Categorical([None]) # Disable H2O's internal feature engineering
                 }
             ]
         else:
@@ -59,7 +60,8 @@ class h2o_classifier_class:
                  "seed": [1, 42, 123],  # Different random seeds
                  "max_models": [10, 20, 50],  # Number of models to try
                  "balance_classes": [True, False],  # Balance classes option
-                 "project_name": [None],  # Project name for H2O
+                 "project_name": [None],  # Project name for H2O,
+                 "preprocessing": [None] # Disable H2O's internal feature engineering
                 }
             ]
 

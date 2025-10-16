@@ -1,0 +1,79 @@
+# config_single_run.yml
+# Configuration for a single, deterministic pipeline run for debugging and testing.
+
+# Global settings for logging and error handling
+global_params:
+  verbose: 2
+  error_raise: True
+
+# Experiment settings
+experiment:
+  # Base directory for storing all experiment results, relative to project root
+  experiments_base_dir: "experiments"
+  # Optional suffix for the experiment directory name
+  additional_naming: "SingleRunTest"
+
+# Data pipeline settings
+data:
+  # Path to the dataset, relative to the notebook's directory
+  file_path: "test_data_hfe_1yr_m_small_multiclass.csv"
+  # List of substrings to identify columns to drop
+  drop_term_list:
+    - 'chrom'
+    - 'hfe'
+    - 'phlebo'
+  # Override the outcome variable. Set to null or remove to use 'outcome_var_n' from run_params.
+  outcome_var_override: 'outcome_var_1'
+
+# Model settings
+models:
+  # This dictionary toggles which model classes will be loaded for the single run.
+  LogisticRegression: True
+  RandomForestClassifier: True
+  XGB_class: False
+  H2O_class: False # H2O AutoML
+  H2O_GBM_class: true
+  H2O_DRF_class: true
+  H2O_DeepLearning_class: true
+  H2O_GLM_class: true
+  H2O_NaiveBayes_class: true
+  H2O_RuleFit_class: true
+  H2O_XGBoost_class: true
+  H2O_StackedEnsemble_class: true
+  H2O_GAM_class: true
+
+# This section defines a single set of parameters for a standalone run.
+run_params:
+  outcome_var_n: 1
+  param_space_size: 'xsmall'
+  scale: True
+  feature_n: 90
+  use_embedding: False
+  embedding_method: 'pca'
+  embedding_dim: 10
+  scale_features_before_embedding: True
+  percent_missing: 98
+  correlation_threshold: 0.95
+  test_size: 0.2
+  random_state: 42
+  # The 'data' sub-dictionary toggles feature groups on and off.
+  data:
+    age: True
+    sex: True
+    bmi: True
+    ethnicity: True
+    bloods: True
+    diagnostic_order: True
+    drug_order: True
+    annotation_n: True
+    meta_sp_annotation_n: True
+    annotation_mrc_n: True
+    meta_sp_annotation_mrc_n: True
+    core_02: True
+    bed: True
+    vte_status: True
+    hosp_site: True
+    core_resus: True
+    news: True
+    date_time_stamp: False
+    appointments: False

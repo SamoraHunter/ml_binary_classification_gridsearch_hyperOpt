@@ -218,7 +218,7 @@ class MasterPlotter:
                         self.logger.info("No data found for algorithms with parsable hyperparameters. Skipping.")
                     else:
                         top_algo = plottable_data.groupby('method_name')[metric].mean().idxmax()
-                        self.logger.info(f"Analyzing hyperparameters for top algorithm: {top_algo}")
+                        self.logger.info(f"Analyzing hyperparameters for top algorithm by mean '{metric}': {top_algo}")
 
                         self.hyperparam_plotter.plot_hyperparameter_importance(algorithm_name=top_algo, metric=metric)
 
@@ -226,7 +226,7 @@ class MasterPlotter:
                         # This uses the parsed data within the hyperparam_plotter instance
                         algo_data = self.hyperparam_plotter.clean_data[self.hyperparam_plotter.clean_data['algorithm_name'] == top_algo]
 
-                        # Get all hyperparameters for this algorithm from the first valid param dict
+                        # Get all hyperparameters for this algorithm from the parameter dictionaries
                         params_list = [p for p in algo_data['params_dict'] if p]
                         if params_list:
                             # Find all hyperparameters that have more than one unique value to make interesting plots

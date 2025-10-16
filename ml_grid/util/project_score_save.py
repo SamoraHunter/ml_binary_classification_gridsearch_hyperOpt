@@ -11,6 +11,7 @@ import os
 import logging
 import warnings
 from typing import Any, Dict, List, Optional
+import h2o
 
 # from sklearn.utils.testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
@@ -184,7 +185,7 @@ class project_score_save_class:
             f_list.append(current_f_vector)
 
             line["algorithm_implementation"] = [current_algorithm]
-            line["parameter_sample"] = [current_algorithm]
+            line["parameter_sample"] = [current_algorithm.get_params()]
             line["method_name"] = [method_name]
             line["nb_size"] = [sum(np.array(current_f_vector))]
             line["n_features"] = [len(current_f_vector)]
@@ -254,13 +255,23 @@ class project_score_save_class:
             line[column_list].to_csv(log_path, mode="a", header=False, index=True)
 
             if store_models:
-                if "keras" not in method_name.lower():
-                    models_dir = Path(ml_grid_object.base_project_dir) / "models"
-                    models_dir.mkdir(parents=True, exist_ok=True)
+                models_dir = Path(ml_grid_object.base_project_dir) / "models"
+                models_dir.mkdir(parents=True, exist_ok=True)
+                
+                # Check if the model is an H2O model by inspecting its base classes
+                is_h2o_model = any("h2o" in str(base_class).lower() for base_class in current_algorithm.__class__.__bases__)
 
-                    model_path = models_dir / f"{str(param_space_index)}.pkl"
+                if is_h2o_model and hasattr(current_algorithm, 'model') and current_algorithm.model is not None:
+                    # H2O models have a .model attribute which is the actual H2O estimator
+                    model_path = models_dir / str(param_space_index)
                     try:
-                        # save pickled model
+                        h2o.save_model(model=current_algorithm.model, path=str(model_path), force=True)
+                        logger.info(f"Saved H2O model to {model_path}")
+                    except Exception as e:
+                        logger.error(f"Failed to save H2O model {param_space_index}: {e}")
+                elif "keras" not in method_name.lower():
+                    try:
+                        model_path = models_dir / f"{str(param_space_index)}.pkl"
                         with open(model_path, 'wb') as f:
                             pickle.dump(current_algorithm, f)
                     except Exception as e:

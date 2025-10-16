@@ -17,6 +17,15 @@ from ml_grid.util.global_params import global_parameters
 from ml_grid.model_classes.knn_wrapper_class import KNNWrapper
 from ml_grid.model_classes.keras_classifier_class import kerasClassifier_class
 from ml_grid.model_classes.H2OAutoMLClassifier import H2OAutoMLClassifier
+from ml_grid.model_classes.H2OGBMClassifier import H2OGBMClassifier
+from ml_grid.model_classes.H2ODRFClassifier import H2ODRFClassifier
+from ml_grid.model_classes.H2OGAMClassifier import H2OGAMClassifier
+from ml_grid.model_classes.H2ODeepLearningClassifier import H2ODeepLearningClassifier
+from ml_grid.model_classes.H2OGLMClassifier import H2OGLMClassifier
+from ml_grid.model_classes.H2ONaiveBayesClassifier import H2ONaiveBayesClassifier
+from ml_grid.model_classes.H2ORuleFitClassifier import H2ORuleFitClassifier
+from ml_grid.model_classes.H2OXGBoostClassifier import H2OXGBoostClassifier
+from ml_grid.model_classes.H2OStackedEnsembleClassifier import H2OStackedEnsembleClassifier
 
 
 class HyperparameterSearch:
@@ -92,6 +101,15 @@ class HyperparameterSearch:
         custom_classifier_types = (
             KNNWrapper,
             H2OAutoMLClassifier,
+            H2OGBMClassifier,
+            H2ODRFClassifier,
+            H2OGAMClassifier,
+            H2ODeepLearningClassifier,
+            H2OGLMClassifier,
+            H2ONaiveBayesClassifier,
+            H2ORuleFitClassifier,
+            H2OXGBoostClassifier,
+            H2OStackedEnsembleClassifier,
             kerasClassifier_class,
         )
 
@@ -150,8 +168,16 @@ class HyperparameterSearch:
         verbose = getattr(self.global_params, 'verbose', 0)  # Get verbosity level, default to 0
 
         # Limit n_jobs for GPU-heavy models or Bayesian search to avoid memory/parallelization issues
-        gpu_heavy_models = (KNNWrapper, kerasClassifier_class)
-        if bayessearch or isinstance(self.algorithm, gpu_heavy_models):
+        h2o_models = (
+            H2OAutoMLClassifier, H2OGBMClassifier, H2ODRFClassifier, H2OGAMClassifier, 
+            H2ODeepLearningClassifier, H2OGLMClassifier, H2ONaiveBayesClassifier, 
+            H2ORuleFitClassifier, H2OXGBoostClassifier, H2OStackedEnsembleClassifier
+        )
+        single_threaded_models = (KNNWrapper, kerasClassifier_class) + h2o_models
+        
+        # H2O manages its own parallelism and is not safe with joblib's process-based parallelism.
+        # Force n_jobs=1 for all H2O models.
+        if bayessearch or isinstance(self.algorithm, single_threaded_models) or 'h2o' in self.method_name.lower():
             if verbose > 0:
                 self.ml_grid_object.logger.info(
                     "Using n_jobs=1 to avoid pandas indexing issues in parallel processing"
@@ -218,18 +244,13 @@ class HyperparameterSearch:
             )
 
         elif random_search:
-            n_iter = min(
-                self.max_iter,
-                max(2, int(len(ParameterGrid(parameters)) * self.sub_sample_pct / 100)),
-            )
-
             grid = RandomizedSearchCV(
                 self.algorithm,
                 parameters,
                 verbose=verbose,
                 cv=self.cv,
                 n_jobs=grid_n_jobs,
-                n_iter=n_iter,
+                n_iter=self.max_iter,
                 error_score="raise",
             )
         else:

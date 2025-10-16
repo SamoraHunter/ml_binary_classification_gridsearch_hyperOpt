@@ -1,5 +1,6 @@
 from typing import List, Union
 
+import logging
 import numpy as np
 import pandas as pd
 from PyImpetus import PPIMBC
@@ -137,13 +138,23 @@ class feature_methods:
                     simul_type=0, 
                     sig_test_type="non-parametric",
                     cv=stratified_kfold,
-                    random_state=27, 
-                    n_jobs=-1, 
-                    verbose=2)
+                    random_state=27,
+                    n_jobs=-1,
+                    # Set verbose to 0 to prevent calls to the problematic
+                    # progress printing function in joblib, which causes the
+                    # 'AttributeError: ... _pre_dispatch_amount'.
+                    verbose=0)
         
         # Fit and transform the training data
         # PyImpetus works with numpy arrays and returns feature indices in model.MB
-        model.fit(X_train.values, y_train)
+        try:
+            model.fit(X_train.values, y_train)
+        except ValueError as e:
+            # This handles cases where PyImpetus fails due to numerical precision
+            # issues (e.g., y_prob > 1). We'll log the error and fall back to
+            # using all original features for this trial.
+            logging.getLogger('ml_grid').error(f"PyImpetus failed during fit: {e}. Using all features as a fallback.")
+            return list(original_columns)
         
         # Get the feature indices from the Markov blanket (MB)
         selected_features = model.MB
