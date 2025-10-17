@@ -45,6 +45,8 @@ jobs:
 
   deploy:
     needs: build
+    # This job only runs on GitHub Actions
+    if: env.GITHUB_ACTIONS == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -53,3 +55,21 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  deploy-gitea:
+    needs: build
+    # This job only runs on Gitea Actions
+    if: env.GITEA_ACTIONS == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download documentation artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: github-pages
+          path: ./docs/build
+
+      - name: Deploy to Gitea docs location
+        run: |
+          echo "Deploying documentation to Gitea's special directory..."
+          # Replace '/path/to/gitea/docs' with the actual destination directory on your Gitea runner
+          sudo cp -r ./docs/build/* /path/to/gitea/docs/
