@@ -40,13 +40,13 @@ jobs:
 
       - name: Upload artifact for GitHub Pages
         if: env.GITHUB_ACTIONS == 'true'
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v1
         with:
           path: ./docs/build
 
       - name: Upload artifact for Gitea
         if: env.GITEA_ACTIONS == 'true'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2
         with:
           name: gitea-docs
           path: ./docs/build
@@ -71,7 +71,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download documentation artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v2
         with:
           name: gitea-docs
           path: ./docs/build
