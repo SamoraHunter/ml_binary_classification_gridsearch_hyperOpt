@@ -38,9 +38,17 @@ jobs:
       - name: Build documentation
         run: sphinx-build -b html docs/source docs/build
 
-      - name: Upload artifact
+      - name: Upload artifact for GitHub Pages
+        if: env.GITHUB_ACTIONS == 'true'
         uses: actions/upload-pages-artifact@v3
         with:
+          path: ./docs/build
+
+      - name: Upload artifact for Gitea
+        if: env.GITEA_ACTIONS == 'true'
+        uses: actions/upload-artifact@v3
+        with:
+          name: gitea-docs
           path: ./docs/build
 
   deploy:
@@ -63,13 +71,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download documentation artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v3
         with:
-          name: github-pages
+          name: gitea-docs
           path: ./docs/build
 
       - name: Deploy to Gitea docs location
         run: |
           echo "Deploying documentation to Gitea's special directory..."
-          # Replace '/path/to/gitea/docs' with the actual destination directory on your Gitea runner
-          sudo cp -r ./docs/build/* /path/to/gitea/docs/
+          # The '/pages' directory is a mounted volume on the Gitea runner for serving static content.
+          sudo mkdir -p /pages/
+          sudo cp -r ./docs/build/* /pages/
