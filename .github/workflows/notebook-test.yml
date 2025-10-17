@@ -83,6 +83,16 @@ jobs:
           which python
           python --version
 
+      - name: Set resource limits for Gitea runner
+        if: env.GITEA_ACTIONS == 'true'
+        run: |
+          echo "Setting thread limits for Gitea environment."
+          echo "OMP_NUM_THREADS=1" >> $GITHUB_ENV
+          echo "MKL_NUM_THREADS=1" >> $GITHUB_ENV
+          echo "OPENBLAS_NUM_THREADS=1" >> $GITHUB_ENV
+          echo "VECLIB_MAXIMUM_THREADS=1" >> $GITHUB_ENV
+          echo "NUMEXPR_NUM_THREADS=1" >> $GITHUB_ENV
+
       - name: Run tests
         run: |
           set -e
