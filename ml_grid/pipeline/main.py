@@ -210,32 +210,16 @@ class run:
                     self.highest_score = max(self.highest_score, res)
                     self.logger.info(f"Current highest score: {self.highest_score}")
 
-                except ValueError as e:
-                    if "All feature columns were removed" in str(e):
-                        self.logger.warning(f"Skipping run for {self.arg_list[k][2]} due to data issue: {e}")
-                        continue # Skip to the next iteration
-
-                except CatBoostError as e:
-                    self.logger.error(f"CatBoostError occurred for {self.arg_list[k][2]}: {e}")
-                    self.logger.warning(f"Continuing despite CatBoost error...")
-
-                except Exception as e:
-
+                except Exception as e: # Catches any exception from grid_search_crossvalidate
                     self.logger.error(f"An exception occurred during grid search for {self.arg_list[k][2]}: {e}", exc_info=True)
                     
                     self.model_error_list.append(
                         [self.arg_list[k][0], e, traceback.print_exc()]
                     ) # traceback is printed to stderr, not captured here.
 
-                    if self.error_raise:
-                        raise e
-                        res = input(
-                            "error thrown in grid_search_crossvalidate on model class list, input pass to pass else raise"
-                        )
-                        if res == "pass":
-                            continue
-                        else:
-                            raise e
+                    # --- USER REQUEST: Unconditionally halt on any exception ---
+                    self.logger.critical("Halting execution due to an exception during model run.")
+                    raise e
 
         self.logger.info(
             f"Model error list: nb. errors returned from func: {self.model_error_list}"
