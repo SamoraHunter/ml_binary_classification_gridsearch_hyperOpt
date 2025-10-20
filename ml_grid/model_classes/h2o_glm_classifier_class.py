@@ -19,7 +19,9 @@ class H2O_GLM_class:
     ):
         self.X = X
         self.y = y
-        self.algorithm_implementation = H2OGLMClassifier()
+        # For binary classification, it's crucial to set family='binomial'
+        # This was missing and is the root cause of downstream errors.
+        self.algorithm_implementation = H2OGLMClassifier(family='binomial')
         self.method_name = "H2OGLMClassifier"
         self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
 

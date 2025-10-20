@@ -16,7 +16,10 @@ class H2OGBMClassifier(H2OBaseClassifier):
         All keyword arguments are passed directly to the H2OGradientBoostingEstimator.
         Example args: ntrees=50, max_depth=5, learn_rate=0.1, seed=1
         """
-        super().__init__(H2OGradientBoostingEstimator, **kwargs)
+        # Remove estimator_class from kwargs if present (happens during sklearn clone)
+        kwargs.pop('estimator_class', None)
+        # Pass estimator_class as a keyword argument
+        super().__init__(estimator_class=H2OGradientBoostingEstimator, **kwargs)
 
     def fit(self, X: pd.DataFrame, y: pd.Series) -> "H2OGBMClassifier":
         """Fits the H2O GBM model with specific robustness checks."""

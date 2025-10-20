@@ -10,4 +10,7 @@ class H2ONaiveBayesClassifier(H2OBaseClassifier):
         All keyword arguments are passed directly to the H2ONaiveBayesEstimator.
         Example args: laplace=1
         """
-        super().__init__(H2ONaiveBayesEstimator, **kwargs)
+        # Remove estimator_class from kwargs if present (happens during sklearn clone)
+        kwargs.pop('estimator_class', None)
+        # Pass the specific estimator class
+        super().__init__(estimator_class=H2ONaiveBayesEstimator, **kwargs)

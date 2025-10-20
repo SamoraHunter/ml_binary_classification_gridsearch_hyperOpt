@@ -26,6 +26,7 @@ class H2O_RuleFit_class:
         if global_parameters.bayessearch:
             self.parameter_space = [
                 {
+                    "min_rule_length": Integer(1, 5),
                     "max_rule_length": Integer(2, 10),
                     "model_type": Categorical(["rules_and_linear", "rules", "linear"]),
                     "rule_generation_ntrees": Integer(20, 100),
@@ -35,6 +36,7 @@ class H2O_RuleFit_class:
         else:
             self.parameter_space = [
                 {
+                    "min_rule_length": [1, 2],
                     "max_rule_length": [3, 5, 10],
                     "model_type": ["rules_and_linear", "rules"],
                     "rule_generation_ntrees": [50],

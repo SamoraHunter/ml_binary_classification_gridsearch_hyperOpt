@@ -34,7 +34,7 @@ class H2O_GAM_class:
             self.parameter_space = [
                 {
                     "num_knots": Integer(5, 20),
-                    "bs": Categorical([0, 1]), # Use cubic regression splines or thin plate regression splines
+                    "bs": Categorical(['cs', 'tp']), # Use cubic regression splines or thin plate regression splines
                     "scale": Real(0.001, 1.0, "log-uniform"),
                     "seed": Integer(1, 1000),
                 }
@@ -43,7 +43,7 @@ class H2O_GAM_class:
             self.parameter_space = [
                 {
                     "num_knots": [5, 10, 15],
-                    "bs": [0, 1],
+                    "bs": ['cs', 'tp'],
                     "scale": [0.01, 0.1, 1.0],
                     "seed": [1, 42],
                 }
