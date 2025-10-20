@@ -488,14 +488,19 @@ class pipe:
         features_before = self.X_train.shape[1]
         scale = self.local_param_dict.get("scale")
         if scale:
-            try:
-                scaler = StandardScaler() # Use StandardScaler directly to resolve AttributeError
-                self.X_train = pd.DataFrame(scaler.fit_transform(self.X_train), columns=self.X_train.columns, index=self.X_train.index)
-                self.X_test = pd.DataFrame(scaler.transform(self.X_test), columns=self.X_test.columns, index=self.X_test.index)
-                self.X_test_orig = pd.DataFrame(scaler.transform(self.X_test_orig), columns=self.X_test_orig.columns, index=self.X_test_orig.index)
-            except Exception as e:
-                self.logger.error(f"Exception scaling data post-split: {e}", exc_info=True)
-                self.logger.warning("Continuing without scaling.")
+            # --- FIX for ValueError on empty DataFrame ---
+            # Scaling cannot be performed if there are no features left.
+            if self.X_train.shape[1] > 0:
+                try:
+                    scaler = StandardScaler() # Use StandardScaler directly to resolve AttributeError
+                    self.X_train = pd.DataFrame(scaler.fit_transform(self.X_train), columns=self.X_train.columns, index=self.X_train.index)
+                    self.X_test = pd.DataFrame(scaler.transform(self.X_test), columns=self.X_test.columns, index=self.X_test.index)
+                    self.X_test_orig = pd.DataFrame(scaler.transform(self.X_test_orig), columns=self.X_test_orig.columns, index=self.X_test_orig.index)
+                except Exception as e:
+                    self.logger.error(f"Exception scaling data post-split: {e}", exc_info=True)
+                    self.logger.warning("Continuing without scaling.")
+            else:
+                self.logger.warning("Skipping scaling because no features are present in X_train.")
         self._log_feature_transformation("Standard Scaling", features_before, self.X_train.shape[1], "Applied StandardScaler to numeric features based on X_train.")
         self._assert_index_alignment(self.X_train, self.y_train, "After scaling")
 
