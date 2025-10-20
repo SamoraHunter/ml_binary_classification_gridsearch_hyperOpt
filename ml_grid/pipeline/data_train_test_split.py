@@ -54,6 +54,14 @@ def get_data_split(
         X, y, test_size=0.25, random_state=1, stratify=y
     )
 
+    # --- SAFEGUARD for Resampling ---
+    # Check if the minority class in the training set is too small for resampling.
+    # imblearn samplers require at least 2 samples in the minority class.
+    minority_class_count = y_train_orig.value_counts().min()
+    if minority_class_count < 2 and local_param_dict.get("resample") is not None:
+        logger.warning(f"Minority class has only {minority_class_count} sample(s) in the training fold. Disabling resampling to prevent errors.")
+        local_param_dict["resample"] = None
+
     # Now, handle resampling ONLY on the preliminary training set (X_train_orig)
     if local_param_dict.get("resample") == "undersample":
         # Store original column names and y name to reconstruct DataFrame after resampling
