@@ -94,6 +94,7 @@ class feature_methods:
         num_simul: int = 30,
         cv: int = 5,
         svc_kernel: str = "rbf",
+        suppress_print: bool = True,
     ) -> List[str]:
         """Gets the top n features from the Markov Blanket (MB) using PyImpetus.
 
@@ -107,6 +108,8 @@ class feature_methods:
                 PyImpetus. Defaults to 30.
             cv (int): Number of cross-validation folds. Defaults to 5.
             svc_kernel (str): The kernel to be used by the SVC model.
+                Defaults to "rbf".
+            suppress_print (bool): If True, suppresses stdout from the fit method.
                 Defaults to "rbf".
 
         Raises:
@@ -145,10 +148,30 @@ class feature_methods:
                     # 'AttributeError: ... _pre_dispatch_amount'.
                     verbose=0)
         
+        import os
+        import sys
+
         # Fit and transform the training data
         # PyImpetus works with numpy arrays and returns feature indices in model.MB
         try:
-            model.fit(X_train.values, y_train)
+            if suppress_print:
+                # Use OS-level redirection to silence C-level libraries like LibSVM
+                devnull = os.open(os.devnull, os.O_WRONLY)
+                old_stdout = os.dup(1)
+                old_stderr = os.dup(2)
+                os.dup2(devnull, 1)
+                os.dup2(devnull, 2)
+                try:
+                    model.fit(X_train.values, y_train)
+                finally:
+                    # Restore original stdout and stderr
+                    os.dup2(old_stdout, 1)
+                    os.dup2(old_stderr, 2)
+                    os.close(devnull)
+                    os.close(old_stdout)
+                    os.close(old_stderr)
+            else:
+                model.fit(X_train.values, y_train)
         except ValueError as e:
             # This handles cases where PyImpetus fails due to numerical precision
             # issues (e.g., y_prob > 1). We'll log the error and fall back to
