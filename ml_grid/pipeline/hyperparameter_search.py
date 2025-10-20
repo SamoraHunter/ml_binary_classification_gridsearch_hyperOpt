@@ -165,7 +165,10 @@ class HyperparameterSearch:
         random_search = self.global_params.random_grid_search
         grid_n_jobs = self.global_params.grid_n_jobs
         bayessearch = self.global_params.bayessearch
-        verbose = getattr(self.global_params, 'verbose', 0)  # Get verbosity level, default to 0
+        # Get main verbosity level for logging
+        verbose = getattr(self.global_params, 'verbose', 0)
+        # Get specific verbosity for the search CV object, default to 0 (silent)
+        search_verbose = getattr(self.global_params, 'search_verbose', 0)
 
         # Limit n_jobs for GPU-heavy models or Bayesian search to avoid memory/parallelization issues
         h2o_models = (
@@ -239,7 +242,7 @@ class HyperparameterSearch:
                 n_iter=self.max_iter,
                 cv=self.cv,
                 n_jobs=grid_n_jobs,
-                verbose=verbose,
+                verbose=search_verbose,
                 error_score="raise",
             )
 
@@ -247,7 +250,7 @@ class HyperparameterSearch:
             grid = RandomizedSearchCV(
                 self.algorithm,
                 parameters,
-                verbose=verbose,
+                verbose=search_verbose,
                 cv=self.cv,
                 n_jobs=grid_n_jobs,
                 n_iter=self.max_iter,
@@ -258,7 +261,7 @@ class HyperparameterSearch:
             grid = GridSearchCV(
                 self.algorithm,
                 parameters,
-                verbose=verbose,
+                verbose=search_verbose,
                 cv=self.cv,
                 n_jobs=grid_n_jobs,
                 error_score="raise",
