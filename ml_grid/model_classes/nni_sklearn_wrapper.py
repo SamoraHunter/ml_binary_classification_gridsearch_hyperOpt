@@ -93,6 +93,12 @@ class NeuralNetworkClassifier(BaseEstimator, ClassifierMixin):
         Returns:
             NeuralNetworkClassifier: The fitted estimator.
         """
+        # --- FIX for 'Invalid dtype: category' ---
+        # Keras expects numerical labels, not pandas categoricals.
+        # If y is a categorical Series, convert it to its numerical codes.
+        if hasattr(y, 'dtype') and str(y.dtype) == 'category':
+            y = y.cat.codes.to_numpy()
+
         # Store class labels
         self.classes_ = np.unique(y)
 

@@ -106,3 +106,6 @@ notebooks/best_models_summary.csv
 .python-version
 packages.txt
 *.env
+notebooks/synthetic_data_generated.csv
+notebooks/percent_missing_synthetic_data_generated.pkl
+.gitignore
