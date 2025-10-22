@@ -153,6 +153,14 @@ After installation, activate the virtual environment to run your code or noteboo
     *   On Unix/Linux/macOS: `source ml_grid_ts_env/bin/activate`
     *   On Windows: `.\ml_grid_ts_env\Scripts\activate`
 
+### Running the Notebooks
+
+The `notebooks/` directory contains examples for different use cases:
+
+- **`unit_test_synthetic.ipynb`**: The main entry point for running experiments. It demonstrates how to generate synthetic data, test the data pipeline, and run a full Hyperopt search. Start here to understand the end-to-end workflow.
+- **`01_hyperopt_grid.ipynb`**: A focused example of running a full hyperparameter search using `Hyperopt` based on the `config_hyperopt.yml` file.
+- **`02_single_run.ipynb`**: A script for executing a single run with a specific set of parameters defined in `config_single_run.yml`. Useful for debugging or testing one configuration.
+
 ### Basic Example
 
 The main entry point for running experiments is a script or notebook that loads the configuration and iterates through the parameter space defined in `config.yml`.
