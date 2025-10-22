@@ -10,7 +10,7 @@ from ml_grid.model_classes.gaussiannb_class import GaussianNB_class
 from ml_grid.model_classes.gradientboosting_classifier_class import (
     GradientBoostingClassifier_class,
 )
-from ml_grid.model_classes.h2o_classifier_class import H2O_class
+from ml_grid.model_classes.h2o_classifier_class import H2OAutoMLConfig
 from ml_grid.model_classes.h2o_gbm_classifier_class import H2O_GBM_class
 from ml_grid.model_classes.h2o_drf_classifier_class import H2O_DRF_class
 from ml_grid.model_classes.h2o_deeplearning_classifier_class import (
@@ -108,9 +108,9 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
             "adaboost_class": True,
             "kerasClassifier_class": gpu_available,
             "knn__gpu_wrapper_class": gpu_available,  
-            "NeuralNetworkClassifier_class": False, # NNI based
+            "NeuralNetworkClassifier_class": False, # NNI based,
             "TabTransformer_class": False, # PyTorch based
-            "H2O_class": False, # H2O AutoML
+            "H2OAutoMLConfig": False, # H2O AutoML
             "H2O_GBM_class": True, # H2O Gradient Boosting Machine
             "H2O_DRF_class": True, # H2O Distributed Random Forest
             "H2O_DeepLearning_class": True, # H2O Deep Learning
@@ -125,7 +125,7 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
     # If running in a CI environment, explicitly disable resource-intensive models
     if is_ci_environment:
         logger.warning("CI environment detected. Disabling GPU-heavy and resource-intensive models.")
-        models_to_disable = ['kerasClassifier_class', 'knn__gpu_wrapper_class', 'H2O_class', 'H2O_GBM_class', 'H2O_DRF_class', 'H2O_DeepLearning_class', 'H2O_GLM_class', 'H2O_NaiveBayes_class', 'H2O_RuleFit_class', 'H2O_XGBoost_class', 'H2O_StackedEnsemble_class', 'H2O_GAM_class', 'TabTransformer_class']
+        models_to_disable = ['kerasClassifier_class', 'knn__gpu_wrapper_class', 'H2OAutoMLConfig', 'H2O_GBM_class', 'H2O_DRF_class', 'H2O_DeepLearning_class', 'H2O_GLM_class', 'H2O_NaiveBayes_class', 'H2O_RuleFit_class', 'H2O_XGBoost_class', 'H2O_StackedEnsemble_class', 'H2O_GAM_class', 'TabTransformer_class']
         for model_name in models_to_disable:
             if model_name in model_class_dict:
                 if model_class_dict[model_name]:

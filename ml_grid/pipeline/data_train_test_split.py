@@ -84,8 +84,10 @@ def get_data_split(
         y_name = y_train_orig.name
 
         # Oversample training set
-        sampling_strategy = 1
-        ros = RandomOverSampler(sampling_strategy=sampling_strategy, random_state=1)
+        # --- CRITICAL FIX: Use 'auto' for sampling_strategy ---
+        # 'auto' is equivalent to 'minority' and correctly handles cases where
+        # the data is already balanced, preventing a ValueError.
+        ros = RandomOverSampler(sampling_strategy='auto', random_state=1)
         X_train_res, y_train_res = ros.fit_resample(X_train_orig, y_train_orig)
         
         # Reconstruct DataFrame and Series

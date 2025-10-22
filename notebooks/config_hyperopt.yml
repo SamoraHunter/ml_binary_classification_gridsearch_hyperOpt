@@ -4,7 +4,11 @@
 # Global settings for the hyperopt run
 global_params:
   verbose: 1 # Less verbose for multiple runs
-  error_raise: False # Don't stop the search on a single trial failure
+  error_raise: true # Don't stop the search on a single trial failure
+  # Set to true to see H2O's progress bars for parsing and model fitting.
+  h2o_show_progress: false
+  # Number of iterations for RandomizedSearchCV and BayesSearchCV
+  n_iter: 2
 
 # Experiment settings for the hyperopt run
 experiment:
@@ -16,14 +20,14 @@ experiment:
 # Data settings for the hyperopt run
 data:
   # Path to the dataset
-  file_path: "test_data_hfe_1yr_m_small_multiclass.csv"
+  file_path: "synthetic_data_generated.csv"
   # List of substrings to identify columns to drop
   drop_term_list:
     - 'chrom'
     - 'hfe'
     - 'phlebo'
   # Set to true to iterate over all 'outcome_var_' columns in the dataset
-  multiple_outcomes: True
+  multiple_outcomes: true
 
 # Models to be used during the hyperopt search
 models:
@@ -45,7 +49,7 @@ models:
   H2O_NaiveBayes_class: true
   H2O_RuleFit_class: true
   H2O_XGBoost_class: true
-  H2O_StackedEnsemble_class: true
+  H2O_StackedEnsemble_class: false
   H2O_GAM_class: true
   LightGBMClassifierWrapper: true
   adaboost_class: true
@@ -58,8 +62,8 @@ models:
 # This section defines the parameter search space for Hyperopt.
 # The structure uses lists of options, which will be parsed into hp.choice.
 hyperopt_search_space:
-  resample: ['undersample', 'oversample', null]
-  scale: [True, False]
+  resample: ['undersample', 'oversample', 'null']
+  scale: [true, false]
   feature_n: [100, 95, 75, 50, 25, 5]
   param_space_size: ['medium', 'xsmall']
   percent_missing: [99, 95, 80]
@@ -68,28 +72,28 @@ hyperopt_search_space:
   outcome_var_n: ['1'] # Default, will be overridden if multiple_outcomes is true
 
   # Embedding hyperparameters
-  use_embedding: [True, False]
+  use_embedding: [true, false]
   embedding_method: ['pca', 'svd']
   embedding_dim: [32, 64, 128]
-  scale_features_before_embedding: [True, False]
+  scale_features_before_embedding: [true, false]
 
   # Feature group toggles
   data:
-    age: [True, False]
-    sex: [True, False]
-    bmi: [True]
-    ethnicity: [True, False]
-    bloods: [True, False]
-    diagnostic_order: [True, False]
-    drug_order: [True, False]
-    annotation_n: [True, False]
-    meta_sp_annotation_n: [True, False]
-    annotation_mrc_n: [True, False]
-    meta_sp_annotation_mrc_n: [True, False]
+    age: [true, false]
+    sex: [true, false]
+    bmi: [true]
+    ethnicity: [true, false]
+    bloods: [true, false]
+    diagnostic_order: [true, false]
+    drug_order: [true, false]
+    annotation_n: [true, false]
+    meta_sp_annotation_n: [true, false]
+    annotation_mrc_n: [true, false]
+    meta_sp_annotation_mrc_n: [true, false]
     core_02: [False]
     bed: [False]
-    vte_status: [True]
-    hosp_site: [True]
+    vte_status: [true]
+    hosp_site: [true]
     core_resus: [False]
     news: [False]
     date_time_stamp: [False]

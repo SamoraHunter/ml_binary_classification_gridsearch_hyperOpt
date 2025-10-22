@@ -4,7 +4,11 @@
 # Global settings for logging and error handling
 global_params:
   verbose: 2
-  error_raise: True
+  # Verbosity for the scikit-learn search object (GridSearchCV, etc.). 0 is silent.
+  search_verbose: 0
+  error_raise: true
+  # Set to true to see H2O's progress bars for parsing and model fitting.
+  h2o_show_progress: false
 
 # Experiment settings
 experiment:
@@ -16,7 +20,7 @@ experiment:
 # Data pipeline settings
 data:
   # Path to the dataset, relative to the notebook's directory
-  file_path: "test_data_hfe_1yr_m_small_multiclass.csv"
+  file_path: "synthetic_data_generated.csv"
   # List of substrings to identify columns to drop
   drop_term_list:
     - 'chrom'
@@ -28,10 +32,10 @@ data:
 # Model settings
 models:
   # This dictionary toggles which model classes will be loaded for the single run.
-  LogisticRegression: True
-  RandomForestClassifier: True
-  XGB_class: False
-  H2O_class: False # H2O AutoML
+  LogisticRegression: true
+  RandomForestClassifier: true
+  XGB_class: false
+  H2O_class: false # H2O AutoML
   H2O_GBM_class: true
   H2O_DRF_class: true
   H2O_DeepLearning_class: true
@@ -39,41 +43,41 @@ models:
   H2O_NaiveBayes_class: true
   H2O_RuleFit_class: true
   H2O_XGBoost_class: true
-  H2O_StackedEnsemble_class: true
+  H2O_StackedEnsemble_class: false
   H2O_GAM_class: true
 
 # This section defines a single set of parameters for a standalone run.
 run_params:
   outcome_var_n: 1
   param_space_size: 'xsmall'
-  scale: True
+  scale: true
   feature_n: 90
-  use_embedding: False
+  use_embedding: false
   embedding_method: 'pca'
   embedding_dim: 10
-  scale_features_before_embedding: True
+  scale_features_before_embedding: true
   percent_missing: 98
   correlation_threshold: 0.95
   test_size: 0.2
   random_state: 42
   # The 'data' sub-dictionary toggles feature groups on and off.
   data:
-    age: True
-    sex: True
-    bmi: True
-    ethnicity: True
-    bloods: True
-    diagnostic_order: True
-    drug_order: True
-    annotation_n: True
-    meta_sp_annotation_n: True
-    annotation_mrc_n: True
-    meta_sp_annotation_mrc_n: True
-    core_02: True
-    bed: True
-    vte_status: True
-    hosp_site: True
-    core_resus: True
-    news: True
-    date_time_stamp: False
-    appointments: False
+    age: true
+    sex: true
+    bmi: true
+    ethnicity: true
+    bloods: true
+    diagnostic_order: true
+    drug_order: true
+    annotation_n: true
+    meta_sp_annotation_n: true
+    annotation_mrc_n: true
+    meta_sp_annotation_mrc_n: true
+    core_02: true
+    bed: true
+    vte_status: true
+    hosp_site: true
+    core_resus: true
+    news: true
+    date_time_stamp: false
+    appointments: false

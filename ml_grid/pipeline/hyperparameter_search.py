@@ -170,17 +170,20 @@ class HyperparameterSearch:
         # Get specific verbosity for the search CV object, default to 0 (silent)
         search_verbose = getattr(self.global_params, 'search_verbose', 0)
 
-        # Limit n_jobs for GPU-heavy models or Bayesian search to avoid memory/parallelization issues
+        # --- CRITICAL FIX for H2O multiprocessing ---
+        # H2O models are not compatible with joblib's process-based parallelism.
+        # We must detect if the algorithm is an H2O model and force n_jobs=1 for the search.
         h2o_models = (
             H2OAutoMLClassifier, H2OGBMClassifier, H2ODRFClassifier, H2OGAMClassifier, 
             H2ODeepLearningClassifier, H2OGLMClassifier, H2ONaiveBayesClassifier, 
             H2ORuleFitClassifier, H2OXGBoostClassifier, H2OStackedEnsembleClassifier
         )
-        single_threaded_models = (KNNWrapper, kerasClassifier_class) + h2o_models
-        
-        # H2O manages its own parallelism and is not safe with joblib's process-based parallelism.
-        # Force n_jobs=1 for all H2O models.
-        if bayessearch or isinstance(self.algorithm, single_threaded_models) or 'h2o' in self.method_name.lower():
+        is_h2o_model = isinstance(self.algorithm, h2o_models)
+
+        # Also limit n_jobs for Bayesian search and other specific wrappers to avoid issues.
+        is_single_threaded_search = bayessearch or isinstance(self.algorithm, (KNNWrapper, kerasClassifier_class))
+
+        if is_h2o_model or is_single_threaded_search:
             if verbose > 0:
                 self.ml_grid_object.logger.info(
                     "Using n_jobs=1 to avoid pandas indexing issues in parallel processing"

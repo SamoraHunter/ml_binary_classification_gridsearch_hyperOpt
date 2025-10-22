@@ -3,6 +3,9 @@ import inspect
 import logging
 import h2o
 import numpy as np
+import os
+import tempfile
+import shutil
 import pandas as pd
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.utils.validation import check_is_fitted
@@ -10,6 +13,10 @@ from ml_grid.util.global_params import global_parameters
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+# Module-level shared checkpoint directory for all H2O classifier instances
+# This ensures clones can access models trained by other instances
+_SHARED_CHECKPOINT_DIR = tempfile.mkdtemp(prefix="h2o_checkpoints_")
 
 
 class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
@@ -33,42 +40,72 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             **kwargs: Keyword arguments passed to the H2O estimator.
         """
         # Handle estimator_class - it might come in kwargs during cloning
-        # or as a positional argument during normal instantiation
-        if estimator_class is None and 'estimator_class' in kwargs:
-            estimator_class = kwargs.pop('estimator_class')
-        elif 'estimator_class' in kwargs:
-            # If passed both ways, remove from kwargs to avoid conflict
-            kwargs.pop('estimator_class')
+        self.estimator_class = kwargs.pop('estimator_class', estimator_class)
         
-        if estimator_class is None:
-            raise ValueError("estimator_class is required")
-            
-        self.estimator_class = estimator_class
+        if not inspect.isclass(self.estimator_class):
+            raise ValueError(
+                "estimator_class is a required parameter and must be a class. "
+                f"Received: {self.estimator_class}"
+            )
         
         # --- FIX: Ensure lambda is never stored as 'lambda', always as 'lambda_' ---
-        # If lambda_ is in kwargs, keep it as lambda_
-        # If lambda is in kwargs (shouldn't happen but be safe), convert to lambda_
         if 'lambda' in kwargs:
             kwargs['lambda_'] = kwargs.pop('lambda')
         
         # Set all kwargs as attributes for proper sklearn compatibility
         for key, value in kwargs.items():
+            # CRITICAL: Never allow 'model' as a parameter - it conflicts with 'model_'
+            if key == 'model':
+                self.logger.warning(f"!!! Rejecting 'model' parameter in __init__ - this conflicts with fitted attribute 'model_'")
+                continue
             setattr(self, key, value)
-        
+
         # Initialize logger for this instance
-        # Use the project-wide logger for consistency
         self.logger = logging.getLogger('ml_grid')
         
         # Internal state attributes (not parameters)
-        self.model: Optional[Any] = None
+        # These attributes are set by fit() but must be initialized to None
+        # for scikit-learn's clone() and get_params() to work correctly.
+        self.model_: Optional[Any] = None
         self.classes_: Optional[np.ndarray] = None
         self.feature_names_: Optional[list] = None
+        self.feature_types_: Optional[Dict[str, str]] = None # To store column types
+        # self.model_id: Optional[str] - set by fit()
+        
         self._is_cluster_owner = False
         self._was_fit_on_constant_feature = False
         self._using_dummy_model = False
-        self._rename_cols_on_predict = True  # Default behavior
+        self._rename_cols_on_predict = True
+
+        # --- CRITICAL FIX: Use shared checkpoint directory across all clones ---
+        # This allows clones created by sklearn's cross-validation to access
+        # models trained by other clone instances
+        self._checkpoint_dir = _SHARED_CHECKPOINT_DIR
+
         # H2O models are not safe with joblib's process-based parallelism.
         self._n_jobs = 1
+
+    def __del__(self):
+        """Cleans up the shared checkpoint directory if this is the last instance."""
+        # This is a best-effort cleanup. In multi-process scenarios,
+        # the directory might be in use by other processes.
+        if os.path.exists(self._checkpoint_dir) and not os.listdir(self._checkpoint_dir):
+            shutil.rmtree(self._checkpoint_dir, ignore_errors=True)
+            logger.debug(f"Cleaned up empty shared checkpoint directory: {self._checkpoint_dir}")
+
+    def __getstate__(self):
+        """Custom pickling to handle H2O models properly."""
+        state = self.__dict__.copy()
+        # Don't pickle the H2O model object itself - just keep model_id and other fitted attributes
+        # The model_ will be reconstructed from model_id when needed
+        if 'model_' in state:
+            state['model_'] = None
+        return state
+
+    def __setstate__(self, state):
+        """Custom unpickling to restore state."""
+        self.__dict__.update(state)
+        # model_ will be reloaded from checkpoint when needed via _ensure_model_is_loaded
 
     def _ensure_h2o_is_running(self):
         """Safely checks for and initializes an H2O cluster if not running."""
@@ -82,7 +119,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         # Set progress bar visibility based on the global parameter
         h2o.no_progress() if not show_progress else h2o.show_progress()
 
-    def _validate_input_data(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> pd.DataFrame:
+    def _validate_input_data(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> tuple[pd.DataFrame, Optional[pd.Series]]:
         """Validates and converts input data to proper format.
         
         Args:
@@ -90,7 +127,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             y: Target vector (optional, for fit-time validation)
             
         Returns:
-            Validated DataFrame
+            Tuple of (Validated DataFrame, Validated Series)
             
         Raises:
             ValueError: If data is invalid
@@ -99,12 +136,21 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         if not isinstance(X, pd.DataFrame):
             if self.feature_names_ is not None:
                 X = pd.DataFrame(X, columns=self.feature_names_)
-            else:
+                # Additional check if X was a numpy array and column count doesn't match
+                if X.shape[1] != len(self.feature_names_):
+                    raise ValueError(
+                        f"Input data (X) has {X.shape[1]} columns, but expected {len(self.feature_names_)} "
+                        f"based on training features. Please ensure column count matches."
+                    ) # This was the syntax error fix
+            else: # This else block should be aligned with the outer 'if self.feature_names_ is not None:'
                 X = pd.DataFrame(X)
         
         # Reset index to avoid sklearn CV indexing issues
+        # CRITICAL: If we reset X, we MUST also reset y to maintain alignment.
         if not isinstance(X.index, pd.RangeIndex):
             X = X.reset_index(drop=True)
+            if y is not None and hasattr(y, 'reset_index'):
+                y = y.reset_index(drop=True)
         
         # Check for empty data
         if X.empty:
@@ -116,18 +162,14 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                 raise ValueError(f"X and y must have same length: {len(X)} != {len(y)}")
             
             # Check for NaNs in the target variable
-            # Handle different types: Series, numpy array, categorical
             if isinstance(y, pd.Series):
                 has_nans = y.isnull().any()
             elif isinstance(y, pd.Categorical):
-                # Categorical doesn't support np.isnan, use isnull on the codes
                 has_nans = pd.isna(y.codes).any() or (y.codes == -1).any()
             else:
-                # Assume numpy array or similar
                 try:
                     has_nans = np.isnan(y).any()
                 except (TypeError, ValueError):
-                    # If np.isnan fails, try pandas isna
                     has_nans = pd.isna(y).any()
             
             if has_nans:
@@ -149,14 +191,12 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         # Validate feature names match (predict time)
         if self.feature_names_ is not None and y is None:
             if list(X.columns) != self.feature_names_:
-                # Check if we can reorder
                 missing_features = set(self.feature_names_) - set(X.columns)
                 if missing_features:
                     raise ValueError(
                         f"Missing required features: {missing_features}. "
                         f"Expected: {self.feature_names_}, got: {list(X.columns)}"
                     )
-                # Reorder to match training
                 X = X[self.feature_names_]
                 logger.info("Reordered features to match training order")
         
@@ -166,7 +206,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                 "Input data contains NaN values. Please handle missing values before fitting/predicting."
             )
         
-        return X
+        return X, y
 
     def _prepare_fit(self, X: pd.DataFrame, y: pd.Series):
         """Prepares data and parameters for fitting.
@@ -177,29 +217,47 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         if not isinstance(y, pd.Series):
             y = pd.Series(y, name="outcome")
 
+        # --- CRITICAL FIX for index misalignment ---
+        # Reset indices here, just before creating the H2OFrame, to ensure
+        # X and y are perfectly aligned.
+        X = X.reset_index(drop=True)
+        y = y.reset_index(drop=True)
+
         self.classes_ = np.unique(y)
         outcome_var = y.name
         x_vars = list(X.columns)
         
         # Store feature names for validation during predict
         self.feature_names_ = x_vars
+        
+        self.logger.debug(f">>> _prepare_fit: Set classes_={self.classes_}, feature_names_={self.feature_names_}")
 
         self._ensure_h2o_is_running()
 
         # Convert target to pandas categorical type BEFORE creating H2OFrame
-        # This ensures H2O recognizes it as categorical for binomial models
         y_categorical = pd.Categorical(y)
         y_series = pd.Series(y_categorical, name=outcome_var, index=y.index)
+
+        if y_series.isnull().any():
+            raise ValueError("Target variable 'y' contains NaN values after processing. "
+                             "This is not supported by H2O models.")
         
         train_df = pd.concat([X, y_series], axis=1)
         train_h2o = h2o.H2OFrame(train_df)
         
         # Explicitly convert the outcome column to factor
-        # H2O should now recognize it as categorical since pandas sent it as categorical
         train_h2o[outcome_var] = train_h2o[outcome_var].asfactor()
+
+        # --- CRITICAL FIX for predict-time type mismatch ---
+        # Store the column types from the training frame to enforce them at predict time.
+        all_types = train_h2o.types
+        self.feature_types_ = {col: all_types[col] for col in x_vars}
 
         # Get model parameters from instance attributes
         model_params = self._get_model_params()
+
+        # Get valid parameters for the specific H2O estimator
+        estimator_params = inspect.signature(self.estimator_class).parameters
 
         # If there's only one feature, prevent H2O from dropping it if it's constant
         if len(x_vars) == 1 and self.estimator_class:
@@ -207,9 +265,12 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                 self._was_fit_on_constant_feature = True
                 logger.warning("Fitting on a single constant feature - predictions may be unreliable")
 
-            estimator_params = inspect.signature(self.estimator_class).parameters
             if 'ignore_const_cols' in estimator_params:
                 model_params.setdefault('ignore_const_cols', False)
+
+        # --- ROBUSTNESS FIX: Save checkpoints for model recovery ---
+        if 'export_checkpoints_dir' in estimator_params:
+            model_params["export_checkpoints_dir"] = self._checkpoint_dir
 
         return train_h2o, x_vars, outcome_var, model_params
 
@@ -219,14 +280,11 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         Returns:
             Dictionary of parameters to pass to H2O estimator
         """
-        # Get all possible parameters from the instance (excluding 'estimator_class')
         all_params = {k: v for k, v in self.get_params(deep=False).items() 
                       if k != 'estimator_class'}
         
-        # Get the set of valid parameter names from the H2O estimator's constructor
         valid_param_keys = set(inspect.signature(self.estimator_class).parameters.keys())
 
-        # Filter all_params to include only keys that are valid for the constructor
         model_params = {
             key: value
             for key, value in all_params.items()
@@ -235,7 +293,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
 
         return model_params
 
-    def _handle_small_data_fallback(self, X: pd.DataFrame, y: pd.Series) -> bool:
+    def _validate_min_samples_for_fit(self, X: pd.DataFrame, y: pd.Series) -> bool: # Renaming the method
         """Checks for small data and fits a dummy model if needed.
         
         Args:
@@ -252,7 +310,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             )
         return False
 
-    def fit(self, X: pd.DataFrame, y: pd.Series) -> "H2OBaseClassifier":
+    def fit(self, X: pd.DataFrame, y: pd.Series, **kwargs) -> "H2OBaseClassifier":
         """Fits the H2O model.
         
         Args:
@@ -265,27 +323,54 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         Raises:
             ValueError: If input data is invalid
         """
-        # Validate input data
-        X = self._validate_input_data(X, y)
-        
-        # Check if all features are constant, which can cause H2O to fail.
-        if X.shape[1] > 0 and (X.nunique() == 1).all():
-            raise ValueError("All features are constant. Halting execution as model fitting will fail.")
+        try:
+            self.logger.info(f"=== fit() ENTRY on instance {id(self)} ===")
+            self.logger.info(f"Current attributes: {[k for k in self.__dict__.keys() if not k.startswith('_')]}")
+            
+            if not hasattr(self, 'estimator_class') or not self.estimator_class:
+                raise AttributeError("H2OBaseClassifier is missing the 'estimator_class' attribute. "
+                                     "This typically happens if the scikit-learn cloning process is incomplete.")
+            
+            # Validate input data. This now returns a potentially modified X and y.
+            X, y = self._validate_input_data(X, y)
+            
+            # Check if all features are constant
+            if X.shape[1] > 0 and (X.nunique() == 1).all():
+                raise ValueError("All features are constant. Halting execution as model fitting will fail.")
 
-        # Check for small data
-        if self._handle_small_data_fallback(X, y):
+            # Check for small data
+            if self._validate_min_samples_for_fit(X, y):
+                return self
+
+            self.logger.info("About to call _prepare_fit...")
+            # Fit the actual model
+            train_h2o, x_vars, outcome_var, model_params = self._prepare_fit(X, y)
+            
+            self.logger.info(f"After _prepare_fit, classes_={getattr(self, 'classes_', 'MISSING')}, feature_names_={getattr(self, 'feature_names_', 'MISSING')}")
+            
+            # Instantiate the H2O model with all the hyperparameters
+            self.logger.info(f"Creating H2O model with params: {model_params}")
+            self.model_ = self.estimator_class(**model_params)
+            
+            # Call the train() method with ONLY the data-related arguments
+            self.logger.info("Calling H2O model.train()...")
+            self.model_.train(x=x_vars, y=outcome_var, training_frame=train_h2o)
+
+            # Store model_id for recovery - THIS IS CRITICAL for predict() to work
+            self.logger.info(f"H2O train complete, extracting model_id from {self.model_}")
+            self.model_id = self.model_.model_id
+            
+            # Log for debugging
+            self.logger.info(f"✓✓✓ SUCCESS: Fitted {self.estimator_class.__name__} with model_id: {self.model_id}")
+            self.logger.info(f"✓ Instance id: {id(self)}, has model_id: {hasattr(self, 'model_id')}, value: {getattr(self, 'model_id', 'MISSING')}")
+            self.logger.info(f"✓ Final attributes: {[k for k in self.__dict__.keys() if not k.startswith('_')]}")
+            
             return self
-
-        # Fit the actual model
-        train_h2o, x_vars, outcome_var, model_params = self._prepare_fit(X, y)
-        
-        # Instantiate the H2O model with all the hyperparameters
-        self.model = self.estimator_class(**model_params)
-        # Call the train() method with ONLY the data-related arguments
-        self.model.train(x=x_vars, y=outcome_var, training_frame=train_h2o)
-        
-        logger.debug(f"Successfully fitted {self.estimator_class.__name__}")
-        return self
+            
+        except Exception as e:
+            self.logger.error(f"!!! EXCEPTION in fit() on instance {id(self)}: {e}", exc_info=True)
+            self.logger.error(f"!!! Attributes at exception: {[k for k in self.__dict__.keys() if not k.startswith('_')]}")
+            raise
 
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         """Predicts class labels for samples in X.
@@ -300,30 +385,49 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             ValueError: If input data is invalid
             RuntimeError: If prediction fails
         """
-        check_is_fitted(self)
+        # CRITICAL: Check that model was fitted
+        # sklearn's check_is_fitted will check for these attributes
+        try: # --- FIX: Add feature_types_ to the check ---
+            check_is_fitted(self, ['model_id', 'classes_', 'feature_names_'])
+        except Exception as e:
+            # Add detailed debugging information
+            self.logger.error(f"predict() called on unfitted instance {id(self)}")
+            self.logger.error(f"  has model_id attr: {hasattr(self, 'model_id')}")
+            self.logger.error(f"  model_id value: {getattr(self, 'model_id', 'MISSING')}")
+            self.logger.error(f"  has classes_ attr: {hasattr(self, 'classes_')}")
+            self.logger.error(f"  has feature_names_ attr: {hasattr(self, 'feature_names_')}")
+            self.logger.error(f"  All attributes: {[k for k in self.__dict__.keys() if not k.startswith('_')]}")
+            raise RuntimeError(
+                f"This H2OBaseClassifier instance is not fitted yet. "
+                f"Call 'fit' with appropriate arguments before using this estimator. "
+                f"Details: {e}"
+            )
 
-        # If using dummy model due to constant features, return conservative prediction
         if self._was_fit_on_constant_feature:
             raise RuntimeError("Predicting on a model that was fit on a single constant feature is unreliable. Halting.")
 
-        if self.model is None:
-            raise RuntimeError("Model is None - this should not happen after fit()")
-
         # Validate input
-        X = self._validate_input_data(X)
+        X, _ = self._validate_input_data(X)
         
         # Ensure H2O is running
         self._ensure_h2o_is_running()
         
-        # Create H2O frame with explicit column names to prevent schema mismatch
+        # Ensure the model is loaded (critical for cross-validation)
+        self._ensure_model_is_loaded()
+
+        # Create H2O frame with explicit column names
         try:
-            test_h2o = h2o.H2OFrame(X, column_names=self.feature_names_)
+            # --- CRITICAL FIX: Enforce training-time column types ---
+            # This prevents H2O from re-inferring types on the test data, which
+            # can lead to "Operation not allowed on string vector" errors.
+            test_h2o = h2o.H2OFrame(X, column_names=self.feature_names_,
+                                    column_types=self.feature_types_)
         except Exception as e:
             raise RuntimeError(f"Failed to create H2O frame for prediction: {e}")
         
         # Make prediction
         try:
-            predictions = self.model.predict(test_h2o)
+            predictions = self.model_.predict(test_h2o)
         except Exception as e:
             raise RuntimeError(f"H2O prediction failed: {e}")
         
@@ -347,30 +451,38 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             ValueError: If input data is invalid
             RuntimeError: If prediction fails
         """
-        check_is_fitted(self)
+        # CRITICAL: Check that model was fitted
+        try:
+            check_is_fitted(self, ['model_id', 'classes_', 'feature_names_', 'feature_types_'])
+        except Exception as e:
+            raise RuntimeError(
+                f"This H2OBaseClassifier instance is not fitted yet. "
+                f"Call 'fit' with appropriate arguments before using this estimator. "
+                f"Details: {e}"
+            )
 
-        # If using dummy model, return conservative probability distribution
         if self._was_fit_on_constant_feature:
             raise RuntimeError("Predicting probabilities on a model that was fit on a single constant feature is unreliable. Halting.")
 
-        if self.model is None:
-            raise RuntimeError("Model is None - this should not happen after fit()")
-
         # Validate input
-        X = self._validate_input_data(X)
+        X, _ = self._validate_input_data(X)
         
         # Ensure H2O is running
         self._ensure_h2o_is_running()
         
-        # Create H2O frame with explicit column names to prevent schema mismatch
+        # Ensure the model is loaded
+        self._ensure_model_is_loaded()
+
+        # Create H2O frame with explicit column names
         try:
-            test_h2o = h2o.H2OFrame(X, column_names=self.feature_names_)
+            test_h2o = h2o.H2OFrame(X, column_names=self.feature_names_,
+                                    column_types=self.feature_types_)
         except Exception as e:
             raise RuntimeError(f"Failed to create H2O frame for prediction: {e}")
         
         # Make prediction
         try:
-            predictions = self.model.predict(test_h2o)
+            predictions = self.model_.predict(test_h2o)
         except Exception as e:
             raise RuntimeError(f"H2O prediction failed: {e}")
         
@@ -378,85 +490,164 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         prob_df = predictions.drop("predict").as_data_frame(use_multi_thread=True)
         return prob_df.values
 
-    def get_params(self, deep: bool = True) -> Dict[str, Any]:
-        """Gets parameters for this estimator.
-
-        This is the canonical scikit-learn implementation for an estimator
-        that uses **kwargs in its __init__ method. It correctly identifies
-        hyperparameters and separates them from fitted attributes.
+    def _ensure_model_is_loaded(self):
         """
-        params = {}
+        Ensures the H2O model is loaded into memory, reloading from checkpoint if necessary.
+        This prevents errors when the H2O cluster garbage collects the model.
+        """
+        # This should never happen if predict() does its job, but defensive check
+        if self.model_id is None:
+            raise RuntimeError(
+                "Cannot load model: model_id is not set. Model may not have been fitted. "
+                "This is an internal error - please ensure fit() was called successfully."
+            )
         
-        # Add all public attributes that represent constructor parameters
-        # Exclude: private attributes (_*), fitted attributes (*_), and internal state
-        INTERNAL_ATTRS = {
-            'model',   # H2O model instance (created during fit)
-            'logger',  # Logger instance (not a parameter)
-            'classes_',  # Fitted attribute (class labels)
-            'feature_names_',  # Fitted attribute (feature names from training)
-        }
+        # If model_ is already loaded, check if it's still valid in H2O
+        if self.model_ is not None:
+            try:
+                # Quick test: try to get model from cluster by ID
+                h2o.get_model(self.model_id)
+                # If we got here, model is still in cluster and model_ is valid
+                return
+            except Exception:
+                # Model was garbage collected, need to reload
+                self.logger.debug(f"Model {self.model_id} was garbage collected, reloading...")
+                self.model_ = None
         
-        for key in self.__dict__:
-            if key.startswith('_'):  # Skip private attributes
-                continue
-            if key in INTERNAL_ATTRS:  # Skip known internal state
-                continue
-            # Special handling: attributes ending in _ are fitted attributes EXCEPT 'lambda_'
-            # which is a parameter name that scikit-learn forces us to use
-            if key.endswith('_') and key != 'lambda_':
-                continue
-            params[key] = getattr(self, key)
+        # Try to get the model from H2O cluster
+        try:
+            self.model_ = h2o.get_model(self.model_id)
+            self.logger.debug(f"Successfully retrieved model {self.model_id} from H2O cluster")
+            return
+        except Exception as e:
+            self.logger.warning(f"Model {self.model_id} not found in H2O cluster: {e}")
         
-        # Handle deep copying for nested estimators
-        if deep:
-            from sklearn.base import clone as sklearn_clone
-            for key, value in list(params.items()):
-                # Skip cloning certain parameters that sklearn will handle itself
-                # or that contain raw H2O estimators (not our wrappers)
-                if key in ('estimator_class', 'base_models'):
-                    # estimator_class: it's a class reference, not an instance
-                    # base_models: sklearn will handle cloning this list separately
-                    continue
-                # Only clone objects that have get_params and are not classes
-                if hasattr(value, 'get_params') and not isinstance(value, type):
-                    params[key] = sklearn_clone(value)
+        # If not in cluster, try to reload from checkpoint
+        checkpoint_path = os.path.join(self._checkpoint_dir, self.model_id)
+        self.logger.info(f"Attempting to reload model from checkpoint: {checkpoint_path}")
         
-        return params
+        if os.path.exists(checkpoint_path):
+            try:
+                self.model_ = h2o.load_model(checkpoint_path)
+                self.logger.info(f"Successfully reloaded model {self.model_id} from checkpoint.")
+                return
+            except Exception as e:
+                raise RuntimeError(
+                    f"Failed to reload model {self.model_id} from checkpoint {checkpoint_path}: {e}"
+                )
+        else:
+            # List what's actually in the checkpoint directory for debugging
+            try:
+                available_files = os.listdir(self._checkpoint_dir) if os.path.exists(self._checkpoint_dir) else []
+            except Exception:
+                available_files = ["<error listing directory>"]
+            
+            raise RuntimeError(
+                f"Fatal: Model {self.model_id} not found in H2O cluster and no checkpoint exists at {checkpoint_path}. "
+                f"Checkpoint directory: {self._checkpoint_dir}. "
+                f"Available files: {available_files}"
+            )
 
+    def __deepcopy__(self, memo):
+        """Custom deepcopy to handle H2O models properly."""
+        # Create a new instance with the same parameters
+        params = self.get_params(deep=False)
+        cloned = self.__class__(**params)
+        
+        # Copy over fitted attributes if they exist
+        for attr in ['model_id', 'classes_', 'feature_names_', '_was_fit_on_constant_feature']:
+            if hasattr(self, attr):
+                setattr(cloned, attr, getattr(self, attr))
+                self.logger.debug(f"__deepcopy__: copied {attr} = {getattr(self, attr)}")
+        
+        # Don't copy model_ - it will be reloaded from checkpoint
+        cloned.model_ = None
+        
+        self.logger.debug(f"__deepcopy__ called: original {id(self)}, clone {id(cloned)}")
+        return cloned
+
+    def __sklearn_clone__(self):
+        """Custom cloning method for sklearn compatibility.
+        
+        This ensures that when sklearn clones the estimator, we return a properly
+        initialized new instance with the same parameters.
+        """
+        # Get all parameters (not fitted attributes)
+        params = self.get_params(deep=False)
+        # Create new instance with same parameters
+        cloned = self.__class__(**params)
+        self.logger.debug(f"__sklearn_clone__ called: original instance {id(self)}, clone instance {id(cloned)}")
+        return cloned # Removing dead code
+
+    @classmethod
     def _get_param_names(cls):
         """Get parameter names for the estimator.
         
         This override is necessary because we use **kwargs in __init__.
-        sklearn's default implementation only works with explicit parameters.
+        
+        CRITICAL: This should ONLY return parameter names, NOT fitted attribute names.
         """
-        # For estimators using **kwargs, we need to return the actual parameters
-        # that have been set on the instance
-        if isinstance(cls, type):
-            # Called as a class method - return empty list (shouldn't happen in practice)
-            return []
-        else:
-            # Called on an instance - return the keys from get_params()
-            return list(cls.get_params(deep=False).keys())
+        init_signature = inspect.signature(cls.__init__)
+        init_params = [p.name for p in init_signature.parameters.values() 
+                      if p.name not in ('self', 'args', 'kwargs')]
 
-    def set_params(self, **params):
+        # For instances, also include kwargs that were set
+        if not isinstance(cls, type):
+            extra_params = [
+                key for key in cls.__dict__
+                if not key.startswith('_')  # Exclude private attributes
+                and not key.endswith('_')    # CRITICAL: Exclude fitted attributes
+                and key not in init_params
+                and key not in ['estimator_class', 'logger']  # Exclude special attributes
+                and key not in ['model', 'model_', 'classes_', 'feature_names_', 'model_id']  # Exclude fitted
+            ]
+            return sorted(init_params + extra_params)
+        
+        return sorted(init_params)
+
+    def set_params(self: "H2OBaseClassifier", **kwargs: Any) -> "H2OBaseClassifier":
         """Sets the parameters of this estimator.
 
-        This is a scikit-learn compatible set_params method that properly
-        handles **kwargs-based initialization.
+        This is a scikit-learn compatible set_params method.
+        
+        CRITICAL: This method is called by sklearn during cloning and parameter updates.
+        We must NEVER overwrite fitted attributes (those ending in _) when set_params is called.
         """
-        # First, handle the special 'lambda' -> 'lambda_' conversion
-        if 'lambda' in params:
-            params['lambda_'] = params.pop('lambda')
+        self.logger.debug(f">>> set_params() called on instance {id(self)} with keys: {list(kwargs.keys())}")
+        
+        # Handle lambda -> lambda_ conversion
+        if 'lambda' in kwargs:
+            kwargs['lambda_'] = kwargs.pop('lambda')
 
-        # For each parameter, set it as an attribute
-        # This is the correct approach for estimators using **kwargs
-        for key, value in params.items():
-            # Handle nested parameters (e.g., 'param__subparam')
+        # CRITICAL: Preserve fitted attributes
+        # sklearn convention: fitted attributes end with underscore
+        # We must not allow set_params to overwrite these
+        fitted_attributes = {}
+        for attr in ['model_', 'classes_', 'feature_names_', 'model_id']:
+            if hasattr(self, attr):
+                fitted_attributes[attr] = getattr(self, attr)
+                self.logger.debug(f">>> Preserving fitted attribute: {attr}")
+
+        # CRITICAL: Reject any attempts to set 'model' or other fitted-like attributes
+        # These should never come from get_params()
+        forbidden_keys = ['model', 'model_', 'classes_', 'feature_names_', 'model_id']
+        for key in list(kwargs.keys()):
+            if key in forbidden_keys:
+                self.logger.warning(f">>> Rejecting forbidden key in set_params: '{key}'")
+                kwargs.pop(key)
+
+        # Set each parameter as an attribute
+        for key, value in kwargs.items():
             if '__' not in key:
-                # Simple parameter - just set it
                 setattr(self, key, value)
             else:
-                # Nested parameter - use parent's set_params for proper handling
-                super().set_params(**{key: value})
+                # This shouldn't happen for our use case, but handle it anyway
+                setattr(self, key, value)
         
+        # Restore fitted attributes
+        for attr, value in fitted_attributes.items():
+            setattr(self, attr, value)
+            self.logger.debug(f">>> Restored fitted attribute: {attr}")
+        
+        self.logger.debug(f">>> set_params() complete. Final keys: {list(self.__dict__.keys())}")
         return self

@@ -1,6 +1,7 @@
 from h2o.estimators import H2ODeepLearningEstimator
 from .H2OBaseClassifier import H2OBaseClassifier
 import pandas as pd
+import logging
 
 class H2ODeepLearningClassifier(H2OBaseClassifier):
     """A scikit-learn compatible wrapper for H2O's Deep Learning models.
@@ -37,39 +38,34 @@ class H2ODeepLearningClassifier(H2OBaseClassifier):
             estimator_class=H2ODeepLearningEstimator, **kwargs
         )
 
-    def fit(self, X: pd.DataFrame, y: pd.Series) -> "H2ODeepLearningClassifier":
-        """Fits the H2O Deep Learning model.
-
-        It resolves the hidden layer configuration before calling the base fit method.
+    def _prepare_fit(self, X: pd.DataFrame, y: pd.Series):
         """
-        # Logic to resolve hidden layer configuration
-        # If 'hidden' is not explicitly provided, use 'hidden_config'
-        if self.hidden is None:
-            config_name = self.hidden_config or 'medium'
+        Overrides the base _prepare_fit to resolve the hidden layer configuration
+        before the model is instantiated.
+        """
+        # Call the base class's _prepare_fit to get the initial setup
+        train_h2o, x_vars, outcome_var, model_params = super()._prepare_fit(X, y)
+
+        # --- Deep Learning Specific Logic ---
+        # If 'hidden' is not explicitly provided, use 'hidden_config' to set it.
+        # We modify the model_params dictionary, not self.hidden.
+        if model_params.get('hidden') is None:
+            config_name = model_params.get('hidden_config') or 'medium'
             
             hidden_layer_configs = {
                 'small': [10, 10],
                 'medium': [50, 50],
                 'large': [100, 100, 100]
             }
-
-            # Set the 'hidden' parameter based on the config
-            self.hidden = hidden_layer_configs.get(config_name, [50, 50])
-
-        # Call the base class's fit method
-        return super().fit(X, y)
-
-    def _get_model_params(self):
-        """Overrides the base method to handle special parameters.
-        
-        This removes the wrapper-specific 'hidden_config' before passing
-        parameters to the underlying H2O estimator.
-        """
-        # Get params from the parent class's implementation
-        params = super()._get_model_params()
-        
-        # Remove the wrapper-only parameter
-        params.pop('hidden_config', None)
             
-        return params
-    
+            resolved_hidden = hidden_layer_configs.get(config_name, [50, 50])
+            model_params['hidden'] = resolved_hidden
+            self.logger.debug(f"Resolved hidden layers from config '{config_name}' to {resolved_hidden}")
+
+        # Remove the wrapper-only 'hidden_config' parameter before training
+        model_params.pop('hidden_config', None)
+            
+        return train_h2o, x_vars, outcome_var, model_params
+
+    # The fit() method is now inherited from H2OBaseClassifier and will use the
+    # parameters returned by our overridden _prepare_fit().

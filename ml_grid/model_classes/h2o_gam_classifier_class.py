@@ -21,18 +21,20 @@ class H2O_GAM_class:
         self.y = y
         
         # GAM requires specifying which columns to apply splines to.
-        # We will use all available features from the dataset as the default.
-        gam_cols = list(X.columns) if X is not None else []
-        self.algorithm_implementation = H2OGAMClassifier(gam_columns=gam_cols)
+        # This is now handled dynamically in the parameter space.
+        self.algorithm_implementation = H2OGAMClassifier()
         self.method_name = "H2OGAMClassifier"
         self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
         
-        if not gam_cols:
-            logging.warning("H2O_GAM_class initialized with no columns for 'gam_columns'. This may fail if not provided later.")
+        # Define the available columns for the hyperparameter search to choose from.
+        gam_cols = list(X.columns) if X is not None else []
             
         if global_parameters.bayessearch:
             self.parameter_space = [
                 {
+                    # --- DEFINITIVE FIX for skopt ValueError ---
+                    # `gam_columns` cannot be part of the search space as skopt cannot handle list/tuple types.
+                    # It will be set to all features by default inside the H2OGAMClassifier.fit() method.
                     "num_knots": Integer(5, 20),
                     "bs": Categorical(['cs', 'tp']), # Use cubic regression splines or thin plate regression splines
                     "scale": Real(0.001, 1.0, "log-uniform"),

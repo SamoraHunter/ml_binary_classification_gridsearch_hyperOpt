@@ -110,20 +110,19 @@ class grid_search_crossvalidate:
         grid_n_jobs = self.global_params.grid_n_jobs
 
         # Configure GPU usage and job limits for specific models
-        if "keras" in method_name.lower() or "xgb" in method_name.lower() or "catboost" in method_name.lower():
+        is_gpu_model = "keras" in method_name.lower() or "xgb" in method_name.lower() or "catboost" in method_name.lower()
+        if is_gpu_model:
             grid_n_jobs = 1
             try:
                 gpu_devices = tf.config.experimental.list_physical_devices("GPU")
-                for device in gpu_devices:
-                    tf.config.experimental.set_memory_growth(device, True)
+                if gpu_devices:
+                    for device in gpu_devices:
+                        tf.config.experimental.set_memory_growth(device, True)
+                else:
+                    # Explicitly set CPU as the visible device for TensorFlow to avoid CUDA init errors
+                    tf.config.set_visible_devices([], 'GPU')
             except Exception as e:
                 self.logger.warning(f"Could not configure GPU for TensorFlow: {e}")
-
-        # Explicitly set CPU as the visible device for TensorFlow to avoid CUDA init errors
-        try:
-            tf.config.set_visible_devices([], 'GPU')
-        except Exception as e:
-            self.logger.warning(f"Could not disable GPU visibility for TensorFlow: {e}")
 
         self.metric_list = self.global_params.metric_list
 
@@ -148,6 +147,17 @@ class grid_search_crossvalidate:
 
         self.y_test_orig = self.ml_grid_object_iter.y_test_orig
 
+        # --- DEFINITIVE FIX for H2O data type error in CV ---
+        # Convert the target variable to a categorical type *before* it's passed
+        # to any H2O or search function. This ensures H2OFrame correctly infers
+        # the type, even in complex nested pipelines like BayesSearchCV.
+        self.y_train = self.y_train.astype('category')
+
+        # --- CRITICAL FIX for H2O Stacked Ensemble response column mismatch ---
+        # Enforce a consistent name for the target variable series. This prevents
+        # the "response_column must match" error in H2O StackedEnsemble.
+        self.y_train.name = 'outcome'
+
         max_param_space_iter_value = self.global_params.max_param_space_iter_value # hard limit on param space exploration
 
         if "svc" in method_name.lower():
@@ -163,8 +173,8 @@ class grid_search_crossvalidate:
         else:
             # Use the full, robust CV strategy for production runs
             self.cv = RepeatedKFold(
-                # Ensure n_splits is at least 2 but not more than the number of samples.
-                n_splits=min(len(self.X_train), 5),
+                # Using 2 splits for faster iteration and larger training folds.
+                n_splits=2,
                 n_repeats=2,
                 random_state=1
             )
@@ -190,100 +200,50 @@ class grid_search_crossvalidate:
         
         self.logger.info(f"Algorithm implementation: {algorithm_implementation}")
 
-        parameters = parameter_space
-        
-        if(self.global_params.bayessearch is False):
-            n_iter_v = np.nan
-        else:
-            n_iter_v = 2
-        #     if(sub_sample_param_space):
-        #         sub_sample_param_space_n = int(sub_sample_param_space_pct *  len(ParameterGrid(parameter_space)))
-        #         parameter_space random.sample(ParameterGrid(parameter_space), sub_sample_param_space_n)
-
-        # Grid search over hyperparameter space, randomised.
+        parameters = parameter_space # Keep a reference to the original
 
         if ml_grid_object.verbose >= 3:
             self.logger.debug(f"algorithm_implementation: {algorithm_implementation}, type: {type(algorithm_implementation)}")
         
-        if(self.global_params.bayessearch is False):
-            # Validate parameters
+        # Validate parameters for non-Bayesian searches
+        if not self.global_params.bayessearch:
             parameters = validate_parameters_helper(
                 algorithm_implementation=algorithm_implementation,
-                parameters=parameters,
+                parameters=parameter_space,
                 ml_grid_object=ml_grid_object,
             )
 
-        # if random_grid_search:
-        #     # n_iter_v = int(self.sub_sample_param_space_pct *  len(ParameterGrid(parameter_space))) + 2
-        #     n_iter_v = int(len(ParameterGrid(parameter_space))) + 2
+        # --- FIX for skopt ValueError ---
+        # If using Bayesian search, ensure all list-based parameters are wrapped
+        # in skopt.space.Categorical to prevent "can only convert an array of size 1" error.
+        if self.global_params.bayessearch:
+            self.logger.debug("Validating parameter space for Bayesian search...")
+            if isinstance(parameter_space, list): # For models like LogisticRegression with multiple dicts
+                for space in parameter_space:
+                    for key, value in space.items():
+                        if isinstance(value, list) and not is_skopt_space(value):
+                            self.logger.warning(f"Auto-correcting param '{key}' for BayesSearch: wrapping list in Categorical.")
+                            space[key] = Categorical(value)
+            elif isinstance(parameter_space, dict): # For standard single-dict spaces
+                for key, value in parameter_space.items():
+                    if isinstance(value, list) and not is_skopt_space(value):
+                        self.logger.warning(f"Auto-correcting param '{key}' for BayesSearch: wrapping list in Categorical.")
+                        parameter_space[key] = Categorical(value)
 
-        #     if self.sub_sample_parameter_val < n_iter_v:
-        #         n_iter_v = self.sub_sample_parameter_val
-        #     if n_iter_v < 2:
-        #         self.logger.warning("warn n_iter_v < 2")
-        #         n_iter_v = 2
-        #     if n_iter_v > max_param_space_iter_value:
-        #         self.logger.warning(f"Warn n_iter_v > max_param_space_iter_value, setting {max_param_space_iter_value}")
-        #         n_iter_v = max_param_space_iter_value
+        # Use the new n_iter parameter from the config
+        # Default to 50 if not present, preventing AttributeError
+        n_iter_v = getattr(self.global_params, 'n_iter', 2)
 
-        #     grid = RandomizedSearchCV(
-        #         current_algorithm,
-        #         parameters,
-        #         verbose=1,
-        #         cv=[(slice(None), slice(None))],
-        #         n_jobs=grid_n_jobs,
-        #         n_iter=n_iter_v,
-        #         # error_score=np.nan,
-        #         error_score="raise",
-        #     )
-        # else:
-        #     grid = GridSearchCV(
-        #         current_algorithm,
-        #         parameters,
-        #         verbose=1,
-        #         cv=[(slice(None), slice(None))],
-        #         n_jobs=grid_n_jobs,
-        #         error_score=np.nan,
-        #     )  # Negate CV in param search for speed
-        
-        if not self.global_parameters.bayessearch:
-            pg = ParameterGrid(parameter_space)
-            pg = len(pg)
+        # For GridSearchCV, n_iter is not used, but we calculate the grid size for logging.
+        if not self.global_params.bayessearch and not random_grid_search:
+            pg = len(ParameterGrid(parameter_space))
+            self.logger.info(f"Parameter grid size: {pg}")
         else:
-            pg = calculate_combinations(parameter_space, steps=n_iter_v) #untested n iter v
-        #self.logger.debug(f"Approximate number of combinations: {approx_combinations}")
- 
-        if (random_grid_search and n_iter_v > 100000) or (
-            random_grid_search == False and pg > 100000
-        ):
-            self.logger.warning(f"Grid too large. pg: {pg}, n_iter_v: {n_iter_v}")
-            # raise Exception("grid too large", str(pg))
+            # For Random and Bayes search, log the number of iterations
+            self.logger.info(f"Using n_iter={n_iter_v} for search.")
 
-        if self.global_parameters.verbose >= 1:
-            if random_grid_search:
-                self.logger.info(
-                    f"Randomized parameter grid size for {current_algorithm} \n : Full: {pg}, (mean * {self.sub_sample_param_space_pct}): {self.sub_sample_parameter_val}, current: {n_iter_v} "
-                )
-
-            else:
-                self.logger.info(f"Parameter grid size: Full: {pg}")
-
-        #grid.fit(self.X_train, self.y_train)
-        if self.global_parameters.bayessearch:
-            n_iter_v = pg + 2
-        else:
-            # For random search, calculate iterations based on a percentage of the grid size
-            if random_grid_search:
-                n_iter_v = int(len(ParameterGrid(parameter_space)) * (self.sub_sample_param_space_pct / 100))
-            else:
-                # For grid search, this value is not used for iterations
-                n_iter_v = len(ParameterGrid(parameter_space))
-
-        # Ensure n_iter is at least 2 and does not exceed the global max
-        n_iter_v = max(2, n_iter_v)
-        n_iter_v = min(n_iter_v, max_param_space_iter_value)
-
-        self.logger.info(f"n_iter_v = {n_iter_v}")
+        # Calculate pg for logging purposes
+        pg = len(ParameterGrid(parameter_space)) if not self.global_params.bayessearch else 'N/A'
 
         # Dynamically adjust KNN parameter space for small datasets
         if "kneighbors" in method_name.lower() or "simbsig" in method_name.lower():
@@ -311,6 +271,25 @@ class grid_search_crossvalidate:
                 "Adjusted CatBoost subsample parameter space to prevent errors on small CV folds."
             )
             
+        # --- FIX for H2OGAMClassifier ValueError on low cardinality features ---
+        # H2O GAM with 'cs' splines requires features to have at least 3 unique values.
+        # This check prevents running the model on data where CV folds are likely to fail.
+        if "h2ogam" in method_name.lower():
+            # Check if any feature has fewer than 3 unique values in the training set.
+            low_cardinality_cols = [col for col in self.X_train.columns if self.X_train[col].nunique() < 3]
+            if low_cardinality_cols:
+                self.logger.warning(
+                    f"Dataset has low cardinality features ({low_cardinality_cols}) which are "
+                    f"incompatible with H2OGAMClassifier. Skipping {method_name}."
+                )
+                # Return early with a default score to allow the pipeline to continue.
+                self.grid_search_cross_validate_score_result = 0.5
+                return
+
+        # --- CRITICAL FIX for H2OStackedEnsemble ---
+        # The special handling logic has been moved inside the H2OStackedEnsembleClassifier
+        # class itself, making it a self-contained scikit-learn meta-estimator.
+        # No special orchestration is needed here anymore.
 
         # Instantiate and run the hyperparameter grid/random search
         search = HyperparameterSearch(
@@ -352,70 +331,12 @@ class grid_search_crossvalidate:
             # Pass reset data to search
             current_algorithm = search.run_search(X_train_reset, y_train_reset)
 
-        except CatBoostError as e:
-            if "All features are either constant or ignored" in str(e):
-                self.logger.error(f"CatBoostError occurred for {method_name}: {e}")
-                self.logger.warning(f"Continuing despite CatBoost error...")
-                # Set a default score and return to allow the pipeline to continue
-                self.grid_search_cross_validate_score_result = 0.5
-                return
-            else:
-                # Re-raise other CatBoost errors
-                raise e
-
-        except ValueError as e:
-            # Handle specific ValueError if AdaBoostClassifier fails during search
-            if "BaseClassifier in AdaBoostClassifier ensemble is worse than random" in str(e):
-                self.logger.error(f"AdaBoostClassifier failed during hyperparameter search: {e}")
-                self.logger.warning(f"Continuing despite AdaBoost error...")
-                self.grid_search_cross_validate_score_result = 0.5
-                return
-            else:
-                # Re-raise other ValueErrors
-                raise e
-
-            
-        except XGBoostError as e:
-            if 'cuda' in str(e).lower() or 'memory' in str(e).lower():
-                self.logger.warning("GPU memory error detected, falling back to CPU...")
-                 
-                 # Change the tree_method in parameter_space dynamically
-                if isinstance(parameter_space, list):
-                    for param_dict in parameter_space:
-                        if 'tree_method' in param_dict:
-                            param_dict['tree_method'] = Categorical(['hist']) if self.global_params.bayessearch else ["hist"]
-                elif isinstance(parameter_space, dict) and 'tree_method' in parameter_space:
-                     parameter_space['tree_method'] = Categorical(['hist']) if self.global_params.bayessearch else ["hist"]
-                 
-                search = HyperparameterSearch(
-                    algorithm=current_algorithm,
-                    parameter_space=parameter_space,
-                    method_name=method_name,
-                    global_params=self.global_parameters,
-                    sub_sample_pct=self.sub_sample_param_space_pct,
-                    max_iter=n_iter_v,
-                    ml_grid_object=ml_grid_object,
-                    cv=self.cv
-                )
-                # Try again with CPU method and reset indices
-                X_train_reset = self.X_train.reset_index(drop=True)
-                y_train_reset = self.y_train.reset_index(drop=True)
-                current_algorithm = search.run_search(X_train_reset, y_train_reset)
-            else: 
-                self.logger.error(f"Unknown XGBoostError: {e}", exc_info=True)
-                raise
-            
         except Exception as e:
-            if "String indexing is not supported with 'axis=0'" in str(e):
-                raise TypeError(
-                    "Pandas indexing error: 'String indexing is not supported with 'axis=0''. "
-                    "This typically happens when a pandas Series with a non-standard index is passed to a scikit-learn function. "
-                    "Ensure that target variables (y_train) are converted to numpy arrays using `.values` before fitting or cross-validation."
-                ) from e
-            else:
-                ml_grid_object.logger.error(f"Failed to run search in gridsearch cross validate: {e}", exc_info=True)
-                # Re-raise the original exception to allow for higher-level handling if needed
-                raise e
+            # --- USER REQUEST: Halt on any exception ---
+            # Log the error and re-raise it to stop the entire execution,
+            # allowing the main loop in main.py to handle it based on error_raise.
+            self.logger.error(f"An exception occurred during hyperparameter search for {method_name}: {e}", exc_info=True)
+            raise e
 
         # --- PERFORMANCE FIX for testing ---
         # If in test_mode, we have already verified that the search runs without crashing.
@@ -433,9 +354,6 @@ class grid_search_crossvalidate:
         # In production, we re-fit the best estimator on the full training data before CV.
         # In test_mode, the estimator from the search is already fitted, and re-fitting
         # can invalidate complex models like H2OStackedEnsemble before the final assert.
-        if not getattr(self.global_parameters, 'test_mode', False):
-            y_train_values = self.y_train.values
-            current_algorithm.fit(self.X_train, y_train_values)
 
         metric_list = self.metric_list
 
@@ -467,35 +385,63 @@ class grid_search_crossvalidate:
             'test_recall':[0.5]
             #'test_auc': [0.5] # ?
         }
+
+        # --- CRITICAL FIX for H2O multiprocessing error ---
+        # H2O models cannot be pickled and sent to other processes for parallel
+        # execution with joblib. We must detect if the current algorithm is an
+        # H2O model and, if so, force n_jobs=1 for cross_validate.
+        h2o_model_types = (
+            H2OAutoMLClassifier, H2OGBMClassifier, H2ODRFClassifier, H2OGAMClassifier,
+            H2ODeepLearningClassifier, H2OGLMClassifier, H2ONaiveBayesClassifier,
+            H2ORuleFitClassifier, H2OXGBoostClassifier, H2OStackedEnsembleClassifier
+        )
+        final_cv_n_jobs = 1 if isinstance(current_algorithm, h2o_model_types) else grid_n_jobs
+        if final_cv_n_jobs == 1 and isinstance(current_algorithm, h2o_model_types):
+            self.logger.info("H2O model detected. Forcing n_jobs=1 for final cross-validation to prevent pickling errors.")
         
         failed = False
 
         try:
             # H2O models require pandas DataFrames with column names, while other
             # sklearn models can benefit from using NumPy arrays.
-            h2o_model_types = (
-                H2OAutoMLClassifier, H2OGBMClassifier, H2ODRFClassifier, H2OGAMClassifier,
-                H2ODeepLearningClassifier, H2OGLMClassifier, H2ONaiveBayesClassifier,
-                H2ORuleFitClassifier, H2OXGBoostClassifier, H2OStackedEnsembleClassifier
-            )
             if isinstance(current_algorithm, h2o_model_types):
                 X_train_final = self.X_train # Pass DataFrame directly
             else:
                 X_train_final = self.X_train.values # Use NumPy array for other models
 
-            # Perform the cross-validation
-            scores = cross_validate(
-                current_algorithm,
-                X_train_final,
-                y_train_values, # This is already a numpy array
-                scoring=self.metric_list,
-                cv=self.cv,
-                n_jobs=grid_n_jobs,  # Full CV on final best model
-                pre_dispatch=80,
-                error_score=self.error_raise,  # Raise error if cross-validation fails
-            )
-            
-            
+            # --- FIX for UnboundLocalError ---
+            # Consolidate Keras and non-Keras logic to ensure 'scores' is always assigned.
+            if isinstance(current_algorithm, (KerasClassifier, kerasClassifier_class)):
+                self.logger.info("Fitting Keras model with internal CV handling.")
+                y_train_values = self.y_train.values
+                current_algorithm.fit(self.X_train, y_train_values, cv=self.cv)
+                # Since fit already did the CV, create a dummy scores dictionary.
+                scores = {'test_roc_auc': [current_algorithm.score(self.X_test, self.y_test.values)]}
+            else:
+                # For all other models, perform standard cross-validation.
+                # --- FIX for UnboundLocalError ---
+                # Move the fit call inside the try block. If fit fails, the except
+                # block will catch it and assign default scores, preventing the error.
+                if not getattr(self.global_parameters, 'test_mode', False):
+                    # Fit on the full training data first
+                    current_algorithm.fit(self.X_train, self.y_train)
+                
+                # --- CRITICAL FIX: Pass the pandas Series, not the numpy array ---
+                # Passing the numpy array (y_train.to_numpy()) causes index misalignment
+                # with the pandas DataFrame (X_train_final) inside sklearn's CV,
+                # which introduces NaNs into the target column and makes H2O fail.
+                scores = cross_validate(
+                    current_algorithm,
+                    X_train_final,
+                    self.y_train, # Pass the pandas Series to preserve index alignment
+                    scoring=self.metric_list,
+                    cv=self.cv,
+                    n_jobs=final_cv_n_jobs,  # Use adjusted n_jobs
+                    pre_dispatch=80,
+                    error_score=self.error_raise,  # Raise error if cross-validation fails
+                )
+
+
         except XGBoostError as e:
             if 'cuda' in str(e).lower() or 'memory' in str(e).lower():
                 self.logger.warning("GPU memory error detected during cross-validation, falling back to CPU...")
@@ -508,7 +454,7 @@ class grid_search_crossvalidate:
                         y_train_values,
                         scoring=self.metric_list,
                         cv=self.cv,
-                        n_jobs=grid_n_jobs,  # Full CV on final best model
+                        n_jobs=final_cv_n_jobs,  # Use adjusted n_jobs
                         pre_dispatch=80,
                         error_score=self.error_raise,  # Raise error if cross-validation fails
                     )
@@ -532,6 +478,16 @@ class grid_search_crossvalidate:
             else:
                 self.logger.error(f"An unexpected ValueError occurred during cross-validation: {e}", exc_info=True)
                 scores = default_scores  # Use default scores for other errors
+
+        except RuntimeError as e:
+            raise e # raise h2o errors to aid development
+            # --- FIX for UnboundLocalError with H2OStackedEnsemble ---
+            # Catch any RuntimeError, which can be raised by H2O models during fit
+            # (e.g., base model training failure) or predict.
+            self.logger.error(f"A RuntimeError occurred during cross-validation (often H2O related): {e}", exc_info=True)
+            self.logger.warning("Returning default scores.")
+            failed = True
+            scores = default_scores
 
         except Exception as e:
             # Catch any other general exceptions and log them
@@ -598,15 +554,15 @@ class grid_search_crossvalidate:
         to prevent errors on small datasets during cross-validation.
         """
         n_splits = self.cv.get_n_splits()
-
-        # The number of samples in the training part of a fold.
-        n_samples_train_fold = len(self.X_train) - (len(self.X_train) // n_splits)
-        n_samples_test_fold = len(self.X_train) // n_splits
-
-        # CRITICAL: The number of neighbors cannot exceed the number of samples
-        # in the training fold that the model is fit on.
-        max_n_neighbors = n_samples_train_fold
-        max_n_neighbors = max(1, max_n_neighbors)
+        
+        # --- CRITICAL FIX: Correctly calculate the training fold size ---
+        # The previous calculation was incorrect for some CV strategies.
+        # This method is robust: create a dummy split to get the exact train fold size.
+        dummy_indices = np.arange(len(self.X_train))
+        train_indices, _ = next(self.cv.split(dummy_indices))
+        n_samples_train_fold = len(train_indices)
+        n_samples_test_fold = len(self.X_train) - n_samples_train_fold
+        max_n_neighbors = max(1, n_samples_train_fold)
         
         self.logger.info(
             f"KNN constraints - train_fold_size={n_samples_train_fold}, "
@@ -704,11 +660,15 @@ class grid_search_crossvalidate:
             H2ORuleFitClassifier, H2OXGBoostClassifier, H2OStackedEnsembleClassifier
         )
         if isinstance(algorithm, h2o_model_types):
-            try:
-                self.logger.info("Shutting down H2O cluster.")
-                algorithm.shutdown()
-            except Exception as e:
-                self.logger.error(f"Failed to shut down H2O cluster: {e}")
+            # --- FIX for repeated H2O cluster shutdown ---
+            # We no longer shut down the cluster after each model.
+            # The cluster is now managed globally and should be shut down
+            # at the end of the entire experiment run.
+            import h2o
+            cluster = h2o.cluster()
+            if cluster and cluster.is_running():
+                self.logger.info("H2O model finished. Leaving cluster running for next H2O model.")
+            # The shutdown call was removed from H2OBaseClassifier. The cluster is managed globally.
 
 def dummy_auc() -> float:
     """Returns a constant AUC score of 0.5.

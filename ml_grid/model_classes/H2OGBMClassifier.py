@@ -21,22 +21,22 @@ class H2OGBMClassifier(H2OBaseClassifier):
         # Pass estimator_class as a keyword argument
         super().__init__(estimator_class=H2OGradientBoostingEstimator, **kwargs)
 
-    def fit(self, X: pd.DataFrame, y: pd.Series) -> "H2OGBMClassifier":
-        """Fits the H2O GBM model with specific robustness checks."""
-        if self._handle_small_data_fallback(X, y):
-            return self
+    def _prepare_fit(self, X: pd.DataFrame, y: pd.Series):
+        """
+        Overrides the base _prepare_fit to add GBM-specific parameter validation.
+        """
+        # Call the base class's _prepare_fit to get the initial setup
+        train_h2o, x_vars, outcome_var, model_params = super()._prepare_fit(X, y)
 
-        train_h2o, x_vars, outcome_var, model_params = self._prepare_fit(X, y)
-        
         n_samples = len(train_h2o)
         max_allowed_min_rows = max(1.0, n_samples / 2.0) if n_samples > 0 else 1.0
 
         current_min_rows = model_params.get('min_rows', 10.0)
 
         if current_min_rows > max_allowed_min_rows:
+            self.logger.warning(f"Adjusting 'min_rows' from {current_min_rows} to {max_allowed_min_rows} to prevent H2O error.")
             model_params['min_rows'] = max_allowed_min_rows
 
-        # Train with the (potentially adjusted) parameters if no fallback was triggered
-        self.model = self.estimator_class(**model_params)
-        self.model.train(y=outcome_var, x=x_vars, training_frame=train_h2o)
-        return self
+        return train_h2o, x_vars, outcome_var, model_params
+
+    # The fit() method is now inherited from H2OBaseClassifier.
