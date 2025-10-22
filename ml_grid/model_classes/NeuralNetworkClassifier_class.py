@@ -6,7 +6,7 @@ import pandas as pd
 from ml_grid.util import param_space
 
 # from ml_grid.model_classes.nni_sklearn_wrapper import *
-from ml_grid.model_classes.nni_sklearn_wrapper import NeuralNetworkClassifier
+from ml_grid.model_classes.NeuralNetworkKerasClassifier import NeuralNetworkClassifier
 import logging
 
 logging.getLogger('ml_grid').debug("Imported NeuralNetworkClassifier class")
@@ -42,16 +42,19 @@ class NeuralNetworkClassifier_class:
 
         self.parameter_space = [
             {
-                "hidden_units_1": [1, 2, 3],
-                "hidden_units_2": [1, 2, 3],
+                # Updated to use hidden_layer_sizes with tuples for architecture
+                "hidden_layer_sizes": [
+                    (8, 8),
+                    (16, 8),
+                    (32, 16, 8),
+                    (64, 32),
+                ],
                 "dropout_rate": [0.2, 0.3, 0.4],
                 "learning_rate": [1e-4, 1e-3, 1e-2],
                 "activation_func": ["relu", "tanh", "sigmoid"],
                 "epochs": [5, 10, 15],
-                "batch_size": [1],
+                "batch_size": [16, 32, 64],
             }
         ]
-
-        return None
 
         # print("init log reg class ", self.parameter_space)

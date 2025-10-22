@@ -1,10 +1,9 @@
 from typing import Optional
-
 import numpy as np
+import tensorflow as tf
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.metrics import accuracy_score
-import tensorflow as tf
-from tensorflow.keras.models import Sequential
+from tensorflow.keras.models import Sequential, clone_model
 from tensorflow.keras.layers import Dense, Dropout
 
 
@@ -19,34 +18,35 @@ class NeuralNetworkClassifier(BaseEstimator, ClassifierMixin):
 
     def __init__(
         self,
-        hidden_units_1: int = 64,
-        hidden_units_2: int = 64,
+        hidden_layer_sizes: tuple[int, ...] = (64, 64),
         dropout_rate: float = 0.3,
         learning_rate: float = 0.001,
         activation_func: str = "relu",
         epochs: int = 10,
         batch_size: int = 32,
+        early_stopping_patience: int = 3,
         random_state: Optional[int] = None,
     ):
         """Initializes the NeuralNetworkClassifier.
 
         Args:
-            hidden_units_1 (int): Number of units in the first hidden layer.
-            hidden_units_2 (int): Number of units in the second hidden layer.
+            hidden_layer_sizes (tuple[int, ...]): The number of units per hidden layer.
             dropout_rate (float): Dropout rate for the dropout layers.
             learning_rate (float): Learning rate for the Adam optimizer.
             activation_func (str): Activation function for the hidden layers.
             epochs (int): Number of epochs to train the model.
             batch_size (int): Number of samples per gradient update.
+            early_stopping_patience (int): Number of epochs with no improvement
+                on validation loss after which training will be stopped.
             random_state (Optional[int]): Seed for reproducibility. Defaults to None.
         """
-        self.hidden_units_1 = hidden_units_1
-        self.hidden_units_2 = hidden_units_2
+        self.hidden_layer_sizes = hidden_layer_sizes
         self.dropout_rate = dropout_rate
         self.learning_rate = learning_rate
         self.activation_func = activation_func
         self.epochs = epochs
         self.batch_size = batch_size
+        self.early_stopping_patience = early_stopping_patience
         self.random_state = random_state
         self.model: Optional[Sequential] = None
         self.classes_: Optional[np.ndarray] = None
@@ -66,16 +66,13 @@ class NeuralNetworkClassifier(BaseEstimator, ClassifierMixin):
             Sequential: The compiled Keras model.
         """
         model = Sequential()
-        model.add(
-            Dense(
-                units=self.hidden_units_1,
-                activation=self.activation_func,
-                input_dim=input_dim,
-            )
-        )
+        # Add input layer
+        model.add(Dense(units=self.hidden_layer_sizes[0], activation=self.activation_func, input_dim=input_dim))
         model.add(Dropout(rate=self.dropout_rate))
-        model.add(Dense(units=self.hidden_units_2, activation=self.activation_func))
-        model.add(Dropout(rate=self.dropout_rate))
+        # Add subsequent hidden layers
+        for units in self.hidden_layer_sizes[1:]:
+            model.add(Dense(units=units, activation=self.activation_func))
+            model.add(Dropout(rate=self.dropout_rate))
         model.add(Dense(units=1, activation="sigmoid"))
         optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)
         model.compile(
@@ -83,7 +80,7 @@ class NeuralNetworkClassifier(BaseEstimator, ClassifierMixin):
         )
         return model
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> "NeuralNetworkClassifier":
+    def fit(self, X: np.ndarray, y: np.ndarray, **kwargs) -> "NeuralNetworkClassifier":
         """Fits the neural network model to the training data.
 
         Args:
@@ -93,6 +90,9 @@ class NeuralNetworkClassifier(BaseEstimator, ClassifierMixin):
         Returns:
             NeuralNetworkClassifier: The fitted estimator.
         """
+        # Clear previous session to avoid layer name conflicts
+        tf.keras.backend.clear_session()
+
         # --- FIX for 'Invalid dtype: category' ---
         # Keras expects numerical labels, not pandas categoricals.
         # If y is a categorical Series, convert it to its numerical codes.
@@ -103,13 +103,29 @@ class NeuralNetworkClassifier(BaseEstimator, ClassifierMixin):
         self.classes_ = np.unique(y)
 
         # Build and train the model
+        if self.model is None:
+            self.model = self.build_model(input_dim=X.shape[1])
+        else:
+            # Re-compile the model if it's being re-fitted (e.g., in a pipeline)
+            self.model = clone_model(self.model)
+            optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)
+            self.model.compile(loss="binary_crossentropy", optimizer=optimizer, metrics=["accuracy"])
+
+        callbacks = []
+        if "validation_data" in kwargs and self.early_stopping_patience > 0:
+            callbacks.append(tf.keras.callbacks.EarlyStopping(
+                monitor='val_loss', patience=self.early_stopping_patience, restore_best_weights=True
+            ))
+
         self.model = self.build_model(input_dim=X.shape[1])
         self.model.fit(
             X,
             y,
             epochs=self.epochs,
             batch_size=self.batch_size,
+            callbacks=callbacks,
             verbose=0,
+            **kwargs
         )
         return self
 
@@ -122,6 +138,8 @@ class NeuralNetworkClassifier(BaseEstimator, ClassifierMixin):
         Returns:
             np.ndarray: The predicted class labels (0 or 1).
         """
+        if self.model is None:
+            raise RuntimeError("The model has not been fitted yet. Call fit() before predict().")
         # Predict class probabilities
         y_pred = self.model.predict(X, verbose=0)
         # Convert probabilities to class labels (0 or 1)
@@ -136,6 +154,8 @@ class NeuralNetworkClassifier(BaseEstimator, ClassifierMixin):
         Returns:
             np.ndarray: The class probabilities of the input samples.
         """
+        if self.model is None:
+            raise RuntimeError("The model has not been fitted yet. Call fit() before predict_proba().")
         # Return class probabilities
         return self.model.predict(X, verbose=0)
 
