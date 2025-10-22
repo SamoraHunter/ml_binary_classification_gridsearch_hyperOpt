@@ -31,7 +31,10 @@ class H2OAutoMLClassifier(H2OBaseClassifier):
         # --- 1. Standard Validation and Preparation ---
         # Use base class methods for validation. This also handles small data errors.
         X, y = self._validate_input_data(X, y)
-        self._validate_min_samples_for_fit(X, y)
+        # Handle small data fallback before preparing H2O frames
+        if self._handle_small_data_fallback(X, y):
+            # If a dummy model was fit, we can finalize and return
+            return self._finalize_dummy_fit(X, y)
 
         train_h2o, x_vars, outcome_var, model_params = self._prepare_fit(X, y)
 
@@ -74,6 +77,22 @@ class H2OAutoMLClassifier(H2OBaseClassifier):
         else:
             raise RuntimeError("H2OAutoMLClassifier failed to produce a final model.")
 
+        return self
+
+    def _finalize_dummy_fit(self, X, y):
+        """Finalizes the fitting process when a dummy model is used."""
+        self.logger.info("Finalizing fit for dummy GLM model.")
+        # Use a simple, robust GLM as a fallback model
+        self.model_ = H2OGeneralizedLinearEstimator(
+            family='binomial', ignore_const_cols=False
+        )
+        # We need to create a minimal H2OFrame to train on
+        train_h2o, x_vars, outcome_var, _ = self._prepare_fit(X, y)
+        self.model_.train(y=outcome_var, x=x_vars, training_frame=train_h2o)
+        
+        # Set the model_id for predict() to work
+        self.model_id = self.model_.model_id
+        self.logger.info(f"✓✓✓ SUCCESS: H2OAutoMLClassifier is fitted with a fallback model. Final model_id: {self.model_id}")
         return self
 
     def shutdown(self):

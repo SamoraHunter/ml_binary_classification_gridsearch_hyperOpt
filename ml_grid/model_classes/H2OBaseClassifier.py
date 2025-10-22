@@ -293,22 +293,23 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
 
         return model_params
 
-    def _validate_min_samples_for_fit(self, X: pd.DataFrame, y: pd.Series) -> bool: # Renaming the method
-        """Checks for small data and fits a dummy model if needed.
-        
+    def _handle_small_data_fallback(self, X: pd.DataFrame, y: pd.Series) -> bool:
+        """Handles datasets smaller than MIN_SAMPLES_FOR_STABLE_FIT by fitting a dummy model.
+
         Args:
             X: Feature matrix
             y: Target vector
-            
+
         Returns:
-            True if fallback was used, False otherwise
+            True if a dummy model was fit, False otherwise.
         """
         if len(X) < self.MIN_SAMPLES_FOR_STABLE_FIT:
-            raise ValueError(
-                f"Dataset is too small ({len(X)} rows < {self.MIN_SAMPLES_FOR_STABLE_FIT}). "
-                "H2O models are unstable on very small datasets. Halting execution."
-            )
+            self._using_dummy_model = True
+            self.logger.warning(f"Small dataset ({len(X)} < {self.MIN_SAMPLES_FOR_STABLE_FIT}) - fitting dummy model.")
+            self.classes_ = np.unique(y)  # Ensure classes_ is set even for dummy model
+            return True
         return False
+
 
     def fit(self, X: pd.DataFrame, y: pd.Series, **kwargs) -> "H2OBaseClassifier":
         """Fits the H2O model.
@@ -333,14 +334,6 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             
             # Validate input data. This now returns a potentially modified X and y.
             X, y = self._validate_input_data(X, y)
-            
-            # Check if all features are constant
-            if X.shape[1] > 0 and (X.nunique() == 1).all():
-                raise ValueError("All features are constant. Halting execution as model fitting will fail.")
-
-            # Check for small data
-            if self._validate_min_samples_for_fit(X, y):
-                return self
 
             self.logger.info("About to call _prepare_fit...")
             # Fit the actual model

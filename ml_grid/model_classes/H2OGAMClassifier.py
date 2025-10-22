@@ -138,6 +138,19 @@ class H2OGAMClassifier(H2OBaseClassifier):
     def shutdown(self):
         """Shuts down the H2O cluster using the base class's safe logic."""
         super().shutdown()
+    
+    def _validate_min_samples_for_fit(self, X: pd.DataFrame, y: pd.Series) -> bool: # Renaming the method
+        """Checks for small data and fits a dummy model if needed.
+        
+        Args:
+            X: Feature matrix
+            y: Target vector
+            
+        Returns:
+            True if fallback was used, False otherwise
+        """
+        # GAM doesn't have a hard limit, rely on base class handling
+        return False
 
     # (Optional: Add predict/predict_proba overrides if GAM needs special handling,
     # otherwise they are inherited from H2OBaseClassifier)

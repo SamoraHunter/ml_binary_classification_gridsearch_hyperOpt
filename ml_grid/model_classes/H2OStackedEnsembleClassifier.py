@@ -113,6 +113,9 @@ class H2OStackedEnsembleClassifier(H2OBaseClassifier):
         """
         try:
             # 1. Initial validation
+            # --- CRITICAL FIX: Call super's validation methods ---
+            # These handle all common validation steps (Na/Inf checks, etc.)
+            # and small data fallback, which we forgot.
             X, y = self._validate_input_data(X, y)
             if self._handle_small_data_fallback(X, y):
                 return self
@@ -125,7 +128,7 @@ class H2OStackedEnsembleClassifier(H2OBaseClassifier):
             # 2. Fit each base model
             self.logger.info(f"Fitting {len(self.base_models)} base models for StackedEnsemble...")
             base_models_list = []
-            for i, model_wrapper in enumerate(self.base_models):
+            for i, model_wrapper in enumerate(self.base_models): #type:H2OBaseClassifier
                 self.logger.debug(f"Fitting base model {i+1}: {type(model_wrapper).__name__}")
                 model_wrapper.set_params(
                     nfolds=5,  # A reasonable default for base model CV
@@ -134,7 +137,7 @@ class H2OStackedEnsembleClassifier(H2OBaseClassifier):
                 )
                 # CRITICAL FIX: Explicitly call the fit method from H2OBaseClassifier
                 # to ensure correct data handling (pandas -> H2OFrame) and avoid the
-                # 'cbind' error from the native H2O fit method.
+                # '' error from the native H2O fit method.
                 H2OBaseClassifier.fit(model_wrapper, X, y)
                 base_models_list.append(model_wrapper.model_id)
             self.logger.info("All base models fitted.")
