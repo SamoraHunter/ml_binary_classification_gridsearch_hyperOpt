@@ -50,7 +50,7 @@ def _get_score_log_columns(metric_list: List[str]) -> List[str]:
 class project_score_save_class:
     """Handles the creation and updating of the project's score log file."""
 
-    def __init__(self, base_project_dir: str):
+    def __init__(self, experiment_dir: str):
         """Initializes the score logger and creates the log file with headers.
 
         Args:
@@ -78,14 +78,17 @@ class project_score_save_class:
 
         df = pd.DataFrame(data=None, columns=self.column_list)
 
-        log_path = Path(base_project_dir) / "final_grid_score_log.csv"
-        log_path.parent.mkdir(parents=True, exist_ok=True)
+        self.experiment_dir = Path(experiment_dir)
+        self.log_path = self.experiment_dir / "final_grid_score_log.csv"
+        self.models_dir = self.experiment_dir / "models"
 
-        df.to_csv(log_path, mode="w", header=True, index=False)
+        self.log_path.parent.mkdir(parents=True, exist_ok=True)
+        self.models_dir.mkdir(parents=True, exist_ok=True)
 
-    @staticmethod
+        df.to_csv(self.log_path, mode="w", header=True, index=False)
+
     def update_score_log(
-        
+        self,
         ml_grid_object: Any,
         scores: Dict[str, np.ndarray],
         best_pred_orig: np.ndarray,
@@ -251,19 +254,15 @@ class project_score_save_class:
             # line['g_val'] = [g_val]
             # line['g'] = [g]
 
-            log_path = Path(ml_grid_object.base_project_dir) / "final_grid_score_log.csv"
-            line[column_list].to_csv(log_path, mode="a", header=False, index=True)
+            line[column_list].to_csv(self.log_path, mode="a", header=False, index=False)
 
             if store_models:
-                models_dir = Path(ml_grid_object.base_project_dir) / "models"
-                models_dir.mkdir(parents=True, exist_ok=True)
-                
                 # Check if the model is an H2O model by inspecting its base classes
                 is_h2o_model = any("h2o" in str(base_class).lower() for base_class in current_algorithm.__class__.__bases__)
 
                 if is_h2o_model and hasattr(current_algorithm, 'model') and current_algorithm.model is not None:
                     # H2O models have a .model attribute which is the actual H2O estimator
-                    model_path = models_dir / str(param_space_index)
+                    model_path = self.models_dir / str(param_space_index)
                     try:
                         h2o.save_model(model=current_algorithm.model, path=str(model_path), force=True)
                         logger.info(f"Saved H2O model to {model_path}")
@@ -271,7 +270,7 @@ class project_score_save_class:
                         logger.error(f"Failed to save H2O model {param_space_index}: {e}")
                 elif "keras" not in method_name.lower():
                     try:
-                        model_path = models_dir / f"{str(param_space_index)}.pkl"
+                        model_path = self.models_dir / f"{str(param_space_index)}.pkl"
                         with open(model_path, 'wb') as f:
                             pickle.dump(current_algorithm, f)
                     except Exception as e:
