@@ -7,6 +7,7 @@ from catboost import CatBoostError
 from ml_grid.pipeline import grid_search_cross_validate
 from ml_grid.pipeline.data import pipe
 from ml_grid.util.bayes_utils import calculate_combinations
+from ml_grid.util.project_score_save import project_score_save_class # Import the class
 from ml_grid.util.global_params import global_parameters
 from sklearn.model_selection import ParameterGrid
 
@@ -113,24 +114,33 @@ class run:
             if self.verbose >= 1:
                 self.logger.info(f"{elem.method_name} parameter space size: {pg}")
 
-            for param in elem.parameter_space:
-                
-                if self.global_params.bayessearch is False:
-                    try:
-                        if type(param) is not list:
+            # Determine if parameter_space is a list of dicts or a single dict
+            param_dicts = elem.parameter_space if isinstance(elem.parameter_space, list) else [elem.parameter_space]
+
+            for param_dict in param_dicts:
+                if not isinstance(param_dict, dict): continue
+
+                for param_key in param_dict:
+                    if self.global_params.bayessearch is False:
+                        try:
+                            param_value = param_dict.get(param_key)
                             if (
-                                isinstance(elem.parameter_space.get(param), list) is False
-                                and isinstance(elem.parameter_space.get(param), np.ndarray)
-                                is False
+                                not isinstance(param_value, list)
+                                and not isinstance(param_value, np.ndarray)
                             ):
                                 self.logger.warning("Unexpected parameter type in grid search space.")
                                 self.logger.warning(
-                                    f"{elem.method_name, param} {type(elem.parameter_space.get(param))}"
+                                    f"{elem.method_name, param_key} {type(param_value)}"
                                 )
 
-                    except Exception as e:
-                        pass
-                #validate bayes params?
+                        except (AttributeError, TypeError, KeyError) as e:
+                            self.logger.error(f"Error validating parameters for {elem.method_name}: {e}", exc_info=True)
+                            if self.error_raise:
+                                self.logger.critical("Halting execution due to parameter validation error as 'error_raise' is True.")
+                                raise
+                            else:
+                                self.logger.warning("Continuing despite parameter validation error as 'error_raise' is False.")
+                    #validate bayes params?
                         
                         
 
@@ -140,6 +150,10 @@ class run:
         self.sub_sample_parameter_val = int(
             self.sub_sample_param_space_pct * self.mean_parameter_space_val
         )
+
+        # Initialize the project_score_save_class instance once per run
+        # The ml_grid_object should have the experiment_dir set
+        self.project_score_save_class_instance = project_score_save_class(experiment_dir=self.ml_grid_object.experiment_dir)
 
         # n_iter_v = int(sub_sample_param_space_pct *  len(ParameterGrid(parameter_space)))
 
@@ -155,6 +169,7 @@ class run:
                     class_name.method_name,
                     self.ml_grid_object,
                     self.sub_sample_parameter_val,
+                    self.project_score_save_class_instance, # Pass the instance here
                 )
             )
 
@@ -202,13 +217,12 @@ class run:
             for k in range(0, len(self.arg_list)):
                 try:
                     self.logger.info(f"Starting grid search for {self.arg_list[k][2]}...")
-                    res = grid_search_cross_validate.grid_search_crossvalidate(
-                        *self.arg_list[k]
-                        # algorithm_implementation = LogisticRegression_class(parameter_space_size=self.parameter_space_size).algorithm_implementation, parameter_space = self.arg_list[k][1], method_name=self.arg_list[k][2], X = self.arg_list[k][3], y=self.arg_list[k][4]
-                    ).grid_search_cross_validate_score_result
+                    gscv_instance = grid_search_cross_validate.grid_search_crossvalidate(
+                        *self.arg_list[k] # Unpack all arguments
+                    )
                     
-                    self.highest_score = max(self.highest_score, res)
-                    self.logger.info(f"Current highest score: {self.highest_score}")
+                    self.highest_score = max(self.highest_score, gscv_instance.grid_search_cross_validate_score_result)
+                    self.logger.info(f"Current highest score: {self.highest_score:.4f}")
 
                 except Exception as e: # Catches any exception from grid_search_crossvalidate
                     self.logger.error(f"An exception occurred during grid search for {self.arg_list[k][2]}: {e}", exc_info=True)
@@ -216,10 +230,13 @@ class run:
                     self.model_error_list.append(
                         [self.arg_list[k][0], e, traceback.print_exc()]
                     ) # traceback is printed to stderr, not captured here.
-
-                    # --- USER REQUEST: Unconditionally halt on any exception ---
-                    self.logger.critical("Halting execution due to an exception during model run.")
-                    raise e
+                    
+                    # Based on the 'error_raise' flag, either halt execution or log and continue.
+                    if self.error_raise:
+                        self.logger.critical("Halting execution due to an exception during model run as 'error_raise' is True.")
+                        raise
+                    else:
+                        self.logger.warning(f"Caught exception for {self.arg_list[k][2]} and continuing as 'error_raise' is False.")
 
         self.logger.info(
             f"Model error list: nb. errors returned from func: {self.model_error_list}"
