@@ -21,6 +21,10 @@ PARAM_SPACE_GRID = {
     "small": {
         "metalearner_algorithm": ["AUTO", "glm"],
         "seed": [1, 42],
+    },
+    "medium": {
+        "metalearner_algorithm": ["AUTO", "glm", "drf"],
+        "seed": [1, 42, 123],
     }
 }
 
@@ -32,6 +36,10 @@ PARAM_SPACE_BAYES = {
     "small": {
         "metalearner_algorithm": Categorical(["AUTO", "glm", "drf", "gbm"]),
         "seed": Integer(1, 1000),
+    },
+    "medium": {
+        "metalearner_algorithm": Categorical(["AUTO", "glm", "drf", "gbm"]),
+        "seed": Integer(1, 2000),
     }
 }
 

@@ -23,6 +23,14 @@ PARAM_SPACE_GRID = {
         "sample_rate": [0.8, 1.0],
         "col_sample_rate": [0.8, 1.0],
         "seed": [1, 42],
+    },
+    "medium": {
+        "ntrees": [50, 100, 200, 300],
+        "max_depth": [3, 5, 10, 15],
+        "learn_rate": [0.01, 0.05, 0.1],
+        "sample_rate": [0.7, 0.8, 0.9, 1.0],
+        "col_sample_rate": [0.7, 0.8, 0.9, 1.0],
+        "seed": [1, 42, 123],
     }
 }
 
@@ -42,6 +50,14 @@ PARAM_SPACE_BAYES = {
         "sample_rate": Real(0.5, 1.0),
         "col_sample_rate": Real(0.5, 1.0),
         "seed": Integer(1, 1000),
+    },
+    "medium": {
+        "ntrees": Integer(50, 1000),
+        "max_depth": Integer(3, 20),
+        "learn_rate": Real(0.005, 0.2, "log-uniform"),
+        "sample_rate": Real(0.5, 1.0),
+        "col_sample_rate": Real(0.5, 1.0),
+        "seed": Integer(1, 2000),
     }
 }
 

@@ -18,6 +18,11 @@ PARAM_SPACE_GRID = {
         "alpha": [0.0, 0.2, 0.5, 0.8, 1.0],
         "lambda_": [1e-5, 1e-4, 1e-3, 1e-2, 0.1],
         "seed": [1, 42],
+    },
+    "medium": {
+        "alpha": [0.0, 0.25, 0.5, 0.75, 1.0],
+        "lambda_": [1e-5, 1e-4, 1e-3, 1e-2],
+        "seed": [1, 42, 123],
     }
 }
 
@@ -31,6 +36,11 @@ PARAM_SPACE_BAYES = {
         "alpha": Real(0.0, 1.0),  # Mix between L1 and L2
         "lambda_": Real(1e-8, 1.0, "log-uniform"),  # Regularization strength
         "seed": Integer(1, 1000),
+    },
+    "medium": {
+        "alpha": Real(0.0, 1.0),
+        "lambda_": Real(1e-8, 1.0, "log-uniform"),
+        "seed": Integer(1, 2000),
     }
 }
 

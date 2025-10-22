@@ -20,6 +20,12 @@ PARAM_SPACE_GRID = {
         "min_sdev": [0.001, 0.1],
         "eps_sdev": [0, 0.001, 0.1],
         "seed": [1, 42],
+    },
+    "medium": {
+        "laplace": [0, 0.25, 0.5, 0.75, 1.0],
+        "min_sdev": [0.001, 0.01, 0.1],
+        "eps_sdev": [0, 0.01, 0.1],
+        "seed": [1, 42, 123],
     }
 }
 
@@ -35,6 +41,12 @@ PARAM_SPACE_BAYES = {
         "min_sdev": Real(0.001, 1.0, "log-uniform"),
         "eps_sdev": Real(1e-5, 1.0, "log-uniform"),
         "seed": Integer(1, 1000),
+    },
+    "medium": {
+        "laplace": Real(0, 10),
+        "min_sdev": Real(1e-5, 1.0, "log-uniform"),
+        "eps_sdev": Real(1e-5, 1.0, "log-uniform"),
+        "seed": Integer(1, 2000),
     }
 }
 

@@ -44,6 +44,14 @@ PARAM_SPACE_BAYES = {
         "l1": Real(1e-5, 1e-3, "log-uniform"),
         "l2": Real(1e-5, 1e-3, "log-uniform"),
         "seed": Integer(1, 1000),
+    },
+    "medium": {
+        "epochs": Integer(10, 200),
+        "hidden_config": Categorical(['small', 'medium', 'large']),
+        "activation": Categorical(['Rectifier', 'Tanh', 'Maxout']),
+        "l1": Real(1e-6, 1e-2, "log-uniform"),
+        "l2": Real(1e-6, 1e-2, "log-uniform"),
+        "seed": Integer(1, 1000),
     }
 }
 

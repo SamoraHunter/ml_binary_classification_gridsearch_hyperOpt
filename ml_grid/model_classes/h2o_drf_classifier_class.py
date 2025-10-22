@@ -22,6 +22,15 @@ PARAM_SPACE_GRID = {
         "sample_rate": [0.632, 0.8, 1.0],  # 0.632 is the default
         "col_sample_rate_per_tree": [0.8, 1.0],
         "seed": [1, 42],
+    },
+    "medium": {
+        "ntrees": [50, 100, 200, 300],
+        "max_depth": [10, 20, 30],
+        "min_rows": [1, 5, 10],
+        "nbins": [20, 50, 100],
+        "sample_rate": [0.6, 0.8, 1.0],
+        "col_sample_rate_per_tree": [0.6, 0.8, 1.0],
+        "seed": [1, 42, 123],
     }
 }
 
@@ -39,6 +48,15 @@ PARAM_SPACE_BAYES = {
         "sample_rate": Real(0.5, 1.0),
         "col_sample_rate_per_tree": Real(0.5, 1.0),
         "seed": Integer(1, 1000),
+    },
+    "medium": {
+        "ntrees": Integer(50, 1000),
+        "max_depth": Integer(10, 50),
+        "min_rows": Integer(1, 20),
+        "nbins": Integer(20, 200),
+        "sample_rate": Real(0.5, 1.0),
+        "col_sample_rate_per_tree": Real(0.5, 1.0),
+        "seed": Integer(1, 2000),
     }
 }
 
