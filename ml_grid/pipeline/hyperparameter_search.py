@@ -174,16 +174,16 @@ class HyperparameterSearch:
         # H2O models are not compatible with joblib's process-based parallelism.
         # We must detect if the algorithm is an H2O model and force n_jobs=1 for the search.
         h2o_models = (
-            H2OAutoMLClassifier, H2OGBMClassifier, H2ODRFClassifier, H2OGAMClassifier, 
-            H2ODeepLearningClassifier, H2OGLMClassifier, H2ONaiveBayesClassifier, 
+            H2OAutoMLClassifier, H2OGBMClassifier, H2ODRFClassifier, H2OGAMClassifier,
+            H2ODeepLearningClassifier, H2OGLMClassifier, H2ONaiveBayesClassifier,
             H2ORuleFitClassifier, H2OXGBoostClassifier, H2OStackedEnsembleClassifier
         )
         is_h2o_model = isinstance(self.algorithm, h2o_models)
 
         # Also limit n_jobs for Bayesian search and other specific wrappers to avoid issues.
-        is_single_threaded_search = bayessearch or isinstance(self.algorithm, (KNNWrapper, kerasClassifier_class))
+        is_single_threaded_search = isinstance(self.algorithm, (KNNWrapper, kerasClassifier_class))
 
-        if is_h2o_model or is_single_threaded_search:
+        if is_h2o_model or is_single_threaded_search or bayessearch:
             if verbose > 0:
                 self.ml_grid_object.logger.info(
                     "Using n_jobs=1 to avoid pandas indexing issues in parallel processing"
