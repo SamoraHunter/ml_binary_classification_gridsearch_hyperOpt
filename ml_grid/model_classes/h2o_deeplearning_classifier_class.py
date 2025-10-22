@@ -25,6 +25,14 @@ PARAM_SPACE_GRID = {
         "l1": [0, 1e-4],
         "l2": [0, 1e-4],
         "seed": [1, 42],
+    },
+    "medium": {
+        "epochs": [10, 50, 100],
+        "hidden_config": ['small', 'medium', 'large'],
+        "activation": ['Rectifier', 'Tanh', 'Maxout'],
+        "l1": [0, 1e-4, 1e-3],
+        "l2": [0, 1e-4, 1e-3],
+        "seed": [1, 42, 123],
     }
 }
 
@@ -51,7 +59,7 @@ PARAM_SPACE_BAYES = {
         "activation": Categorical(['Rectifier', 'Tanh', 'Maxout']),
         "l1": Real(1e-6, 1e-2, "log-uniform"),
         "l2": Real(1e-6, 1e-2, "log-uniform"),
-        "seed": Integer(1, 1000),
+        "seed": Integer(1, 2000),
     }
 }
 
