@@ -15,7 +15,7 @@ experiment:
   # Base directory for storing all experiment results
   experiments_base_dir: "HFE_ML_experiments"
   # A descriptive name for this experiment batch
-  additional_naming: "HFE_ML_Hyperopt_Grid"
+  additional_naming: ""
 
 # Data settings for the hyperopt run
 data:

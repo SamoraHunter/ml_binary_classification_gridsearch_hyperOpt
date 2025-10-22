@@ -9,9 +9,10 @@ import pytest
 import yaml
 from pathlib import Path
 
-# Define paths to the configuration files
-CONFIG_SINGLE_RUN_PATH = Path("notebooks/config_single_run.yml")
-CONFIG_HYPEROPT_PATH = Path("notebooks/config_hyperopt.yml")
+# Define paths to the configuration files, assuming tests are run from the project root.
+PROJECT_ROOT = Path(__file__).parent.parent
+CONFIG_SINGLE_RUN_PATH = PROJECT_ROOT / "config_single_run.yml"
+CONFIG_HYPEROPT_PATH = PROJECT_ROOT / "config_hyperopt.yml"
 
 
 @pytest.fixture(scope="module", params=[CONFIG_SINGLE_RUN_PATH, CONFIG_HYPEROPT_PATH], ids=["single_run", "hyperopt"])
