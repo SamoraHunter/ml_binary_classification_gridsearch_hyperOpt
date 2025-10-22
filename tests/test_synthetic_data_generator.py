@@ -1,48 +1,57 @@
 import unittest
 import pandas as pd
-from ml_grid.util.synthetic_data_generator import generate_time_series, columns
+import numpy as np
+from ml_grid.util.synthetic_data_generator import SyntheticDataGenerator
 
 
-class TestGenerateTimeSeries(unittest.TestCase):
+class TestSyntheticDataGenerator(unittest.TestCase):
 
     def setUp(self):
-        """Set up a test DataFrame for all test methods."""
-        self.num_clients = 5
-        self.num_rows_per_client = 10
-        self.df = generate_time_series(self.num_clients, self.num_rows_per_client)
+        """Set up a generator and generate a test DataFrame for all test methods."""
+        self.n_rows = 100
+        self.n_features = 20
+        self.n_outcome_vars = 2
+        self.generator = SyntheticDataGenerator(
+            n_rows=self.n_rows,
+            n_features=self.n_features,
+            n_outcome_vars=self.n_outcome_vars,
+            verbose=False
+        )
+        self.df, self.feature_map = self.generator.generate()
 
     def test_output_is_dataframe(self):
         """Test that the output is a pandas DataFrame."""
         self.assertIsInstance(self.df, pd.DataFrame)
 
     def test_dataframe_shape(self):
-        """Test the shape of the generated DataFrame."""
-        expected_rows = self.num_clients * self.num_rows_per_client
-        expected_cols = len(columns)
+        """Test the shape of the generated DataFrame. It should have features + outcomes + metadata columns."""
+        expected_rows = self.n_rows
+        # n_features + n_outcome_vars + 'Unnamed: 0' + 'client_idcode'
+        expected_cols = self.n_features + self.n_outcome_vars + 2
         self.assertEqual(self.df.shape, (expected_rows, expected_cols))
 
-    def test_number_of_unique_clients(self):
-        """Test that the number of unique clients is correct."""
-        self.assertEqual(self.df['client_idcode'].nunique(), self.num_clients)
+    def test_number_of_outcome_vars(self):
+        """Test that the correct number of outcome variables are generated."""
+        outcome_cols = [col for col in self.df.columns if col.startswith('outcome_var_')]
+        self.assertEqual(len(outcome_cols), self.n_outcome_vars)
+        self.assertEqual(len(self.feature_map), self.n_outcome_vars)
 
-    def test_timestamp_column_type(self):
-        """Test that the timestamp column has the correct data type."""
-        self.assertTrue(pd.api.types.is_datetime64_any_dtype(self.df['timestamp']))
+    def test_outcome_variables_are_binary(self):
+        """Test that the outcome variables are binary (0 or 1)."""
+        for i in range(1, self.n_outcome_vars + 1):
+            outcome_col = f'outcome_var_{i}'
+            self.assertIn(outcome_col, self.df.columns)
+            unique_outcomes = self.df[outcome_col].unique()
+            # Using a set for comparison is robust to the order and presence of NaNs
+            self.assertTrue(set(unique_outcomes).issubset({0, 1}))
 
-    def test_sorting(self):
-        """Test that the DataFrame is sorted by client_idcode and timestamp."""
-        # Check if each client's timestamps are sorted
-        for client_id in self.df['client_idcode'].unique():
-            client_df = self.df[self.df['client_idcode'] == client_id]
-            self.assertTrue(client_df['timestamp'].is_monotonic_increasing)
-
-    def test_outcome_variable_is_binary(self):
-        """Test that the outcome variable is binary (0 or 1)."""
-        outcome_col = 'outcome_var_1'
-        self.assertIn(outcome_col, self.df.columns)
-        unique_outcomes = self.df[outcome_col].unique()
-        self.assertTrue(all(item in [0, 1] for item in unique_outcomes))
-
+    def test_feature_map_correctness(self):
+        """Test that the feature map contains correct keys and non-empty lists of features."""
+        for i in range(1, self.n_outcome_vars + 1):
+            outcome_col = f'outcome_var_{i}'
+            self.assertIn(outcome_col, self.feature_map)
+            self.assertIsInstance(self.feature_map[outcome_col], list)
+            self.assertGreater(len(self.feature_map[outcome_col]), 0)
 
 if __name__ == '__main__':
     unittest.main()
