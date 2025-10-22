@@ -66,6 +66,7 @@ class grid_search_crossvalidate:
         method_name: str,
         ml_grid_object: Any,
         sub_sample_parameter_val: int = 100,
+        project_score_save_class_instance: Optional[project_score_save_class] = None,
     ):
         """Initializes and runs a cross-validated hyperparameter search.
 
@@ -85,6 +86,8 @@ class grid_search_crossvalidate:
                 iteration.
             sub_sample_parameter_val (int, optional): A value used to limit
                 the number of iterations in a randomized search. Defaults to 100.
+            project_score_save_class_instance (Optional[project_score_save_class], optional):
+                An instance of the score saving class. Defaults to None.
         """
         # Set each warning filter individually for robustness
         warnings.filterwarnings("ignore", category=UserWarning)
@@ -100,6 +103,8 @@ class grid_search_crossvalidate:
         if self.verbose < 8:
             self.logger.debug("Clearing output.")
             clear_output(wait=True)
+        
+        self.project_score_save_class_instance = project_score_save_class_instance
 
         self.sub_sample_param_space_pct = self.global_params.sub_sample_param_space_pct
 
@@ -219,16 +224,27 @@ class grid_search_crossvalidate:
         if self.global_params.bayessearch:
             self.logger.debug("Validating parameter space for Bayesian search...")
             if isinstance(parameter_space, list): # For models like LogisticRegression with multiple dicts
-                for space in parameter_space:
+                # This part remains the same as it handles lists of dictionaries correctly.
+                for i, space in enumerate(parameter_space):
+                    new_space = {}
                     for key, value in space.items():
-                        if isinstance(value, list) and not is_skopt_space(value):
+                        if isinstance(value, (list, np.ndarray)) and not is_skopt_space(value):
                             self.logger.warning(f"Auto-correcting param '{key}' for BayesSearch: wrapping list in Categorical.")
-                            space[key] = Categorical(value)
+                            new_space[key] = Categorical(value)
+                        else:
+                            new_space[key] = value
+                    parameter_space[i] = new_space
             elif isinstance(parameter_space, dict): # For standard single-dict spaces
+                # This is the key change: iterate and build a new dictionary
+                # to avoid issues with modifying a dictionary while iterating.
+                new_parameter_space = {}
                 for key, value in parameter_space.items():
-                    if isinstance(value, list) and not is_skopt_space(value):
+                    if isinstance(value, (list, np.ndarray)) and not is_skopt_space(value):
                         self.logger.warning(f"Auto-correcting param '{key}' for BayesSearch: wrapping list in Categorical.")
-                        parameter_space[key] = Categorical(value)
+                        new_parameter_space[key] = Categorical(value)
+                    else:
+                        new_parameter_space[key] = value
+                parameter_space = new_parameter_space
 
         # Use the new n_iter parameter from the config
         # Default to 50 if not present, preventing AttributeError
@@ -271,20 +287,20 @@ class grid_search_crossvalidate:
                 "Adjusted CatBoost subsample parameter space to prevent errors on small CV folds."
             )
             
-        # --- FIX for H2OGAMClassifier ValueError on low cardinality features ---
-        # H2O GAM with 'cs' splines requires features to have at least 3 unique values.
-        # This check prevents running the model on data where CV folds are likely to fail.
-        if "h2ogam" in method_name.lower():
-            # Check if any feature has fewer than 3 unique values in the training set.
-            low_cardinality_cols = [col for col in self.X_train.columns if self.X_train[col].nunique() < 3]
-            if low_cardinality_cols:
-                self.logger.warning(
-                    f"Dataset has low cardinality features ({low_cardinality_cols}) which are "
-                    f"incompatible with H2OGAMClassifier. Skipping {method_name}."
-                )
-                # Return early with a default score to allow the pipeline to continue.
-                self.grid_search_cross_validate_score_result = 0.5
-                return
+        # # --- FIX for H2OGAMClassifier ValueError on low cardinality features ---
+        # # H2O GAM with 'cs' splines requires features to have at least 3 unique values.
+        # # This check prevents running the model on data where CV folds are likely to fail.
+        # if "h2ogam" in method_name.lower():
+        #     # Check if any feature has fewer than 3 unique values in the training set.
+        #     low_cardinality_cols = [col for col in self.X_train.columns if self.X_train[col].nunique() < 3]
+        #     if low_cardinality_cols:
+        #         self.logger.warning(
+        #             f"Dataset has low cardinality features ({low_cardinality_cols}) which are "
+        #             f"incompatible with H2OGAMClassifier. Skipping {method_name}."
+        #         )
+        #         # Return early with a default score to allow the pipeline to continue.
+        #         self.grid_search_cross_validate_score_result = 0.5
+        #         return
 
         # --- CRITICAL FIX for H2OStackedEnsemble ---
         # The special handling logic has been moved inside the H2OStackedEnsembleClassifier
@@ -451,7 +467,7 @@ class grid_search_crossvalidate:
                     scores = cross_validate(
                         current_algorithm,
                         X_train_final,
-                        y_train_values,
+                        self.y_train, # Use pandas Series for consistency
                         scoring=self.metric_list,
                         cv=self.cv,
                         n_jobs=final_cv_n_jobs,  # Use adjusted n_jobs
@@ -527,19 +543,21 @@ class grid_search_crossvalidate:
         best_pred_orig = current_algorithm.predict(self.X_test)  # exp
         
         
-
-        project_score_save_class.update_score_log(
-            
-            ml_grid_object=ml_grid_object,
-            scores=scores,
-            best_pred_orig=best_pred_orig,
-            current_algorithm=current_algorithm,
-            method_name=method_name,
-            pg=pg,
-            start=start,
-            n_iter_v=n_iter_v,
-            failed=failed
-        )
+        # Call the update_score_log method on the provided instance
+        if self.project_score_save_class_instance:
+            self.project_score_save_class_instance.update_score_log(
+                ml_grid_object=ml_grid_object,
+                scores=scores,
+                best_pred_orig=best_pred_orig,
+                current_algorithm=current_algorithm,
+                method_name=method_name,
+                pg=pg,
+                start=start,
+                n_iter_v=n_iter_v,
+                failed=failed
+            )
+        else:
+            self.logger.warning("No project_score_save_class_instance provided. Skipping score logging.")
         
         # calculate metric for optimisation
         auc = metrics.roc_auc_score(self.y_test, best_pred_orig)
