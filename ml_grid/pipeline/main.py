@@ -99,13 +99,12 @@ class run:
         for elem in self.model_class_list:
             
             if not self.global_params.bayessearch:
+                # ParameterGrid can now be called directly, as the model class
+                # provides a grid-search-compatible parameter space.
                 pg = ParameterGrid(elem.parameter_space)
                 pg = len(pg)
             else:
-                # Handle list of parameter spaces , example log reg
-
                 pg = calculate_combinations(elem.parameter_space, steps=10)
-                
 
             #pg = ParameterGrid(elem.parameter_space)
 
