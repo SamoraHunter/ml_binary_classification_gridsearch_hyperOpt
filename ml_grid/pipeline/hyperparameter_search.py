@@ -26,6 +26,7 @@ from ml_grid.model_classes.H2ONaiveBayesClassifier import H2ONaiveBayesClassifie
 from ml_grid.model_classes.H2ORuleFitClassifier import H2ORuleFitClassifier
 from ml_grid.model_classes.H2OXGBoostClassifier import H2OXGBoostClassifier
 from ml_grid.model_classes.H2OStackedEnsembleClassifier import H2OStackedEnsembleClassifier
+from ml_grid.model_classes.NeuralNetworkKerasClassifier import NeuralNetworkClassifier
 
 
 class HyperparameterSearch:
@@ -110,6 +111,7 @@ class HyperparameterSearch:
             H2ORuleFitClassifier,
             H2OXGBoostClassifier,
             H2OStackedEnsembleClassifier,
+            NeuralNetworkClassifier,
             kerasClassifier_class,
         )
 
@@ -181,7 +183,7 @@ class HyperparameterSearch:
         is_h2o_model = isinstance(self.algorithm, h2o_models)
 
         # Also limit n_jobs for Bayesian search and other specific wrappers to avoid issues.
-        is_single_threaded_search = isinstance(self.algorithm, (KNNWrapper, kerasClassifier_class))
+        is_single_threaded_search = isinstance(self.algorithm, (KNNWrapper, kerasClassifier_class, NeuralNetworkClassifier))
 
         if is_h2o_model or is_single_threaded_search or bayessearch:
             if verbose > 0:

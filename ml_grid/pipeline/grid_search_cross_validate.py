@@ -27,6 +27,7 @@ from ml_grid.model_classes.H2ONaiveBayesClassifier import H2ONaiveBayesClassifie
 from ml_grid.model_classes.H2ORuleFitClassifier import H2ORuleFitClassifier
 from ml_grid.model_classes.H2OXGBoostClassifier import H2OXGBoostClassifier
 from ml_grid.model_classes.H2OStackedEnsembleClassifier import H2OStackedEnsembleClassifier
+from ml_grid.model_classes.NeuralNetworkKerasClassifier import NeuralNetworkClassifier
 
 # from sklearn.utils.testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
@@ -228,10 +229,16 @@ class grid_search_crossvalidate:
                 for i, space in enumerate(parameter_space):
                     new_space = {}
                     for key, value in space.items():
-                        if isinstance(value, (list, np.ndarray)) and not is_skopt_space(value):
-                            self.logger.warning(f"Auto-correcting param '{key}' for BayesSearch: wrapping list in Categorical.")
-                            new_space[key] = Categorical(value)
-                        else:
+                        # --- REFINED FIX for skopt ValueError ---
+                        # Check if the value is a list of potential choices that needs wrapping.
+                        # This is true if it's a list/array, not already a skopt space,
+                        # and its elements are not lists themselves (e.g., for H2O's 'hidden' param).
+                        is_list_of_choices = isinstance(value, (list, np.ndarray)) and \
+                                             value and not isinstance(value[0], list)
+                        if is_list_of_choices and not is_skopt_space(value):
+                           self.logger.warning(f"Auto-correcting param '{key}' for BayesSearch: wrapping list in Categorical.")
+                           new_space[key] = Categorical(value)
+                        else: # It's a skopt object, a single value, or a list of lists (like for 'hidden')
                             new_space[key] = value
                     parameter_space[i] = new_space
             elif isinstance(parameter_space, dict): # For standard single-dict spaces
@@ -239,10 +246,13 @@ class grid_search_crossvalidate:
                 # to avoid issues with modifying a dictionary while iterating.
                 new_parameter_space = {}
                 for key, value in parameter_space.items():
-                    if isinstance(value, (list, np.ndarray)) and not is_skopt_space(value):
-                        self.logger.warning(f"Auto-correcting param '{key}' for BayesSearch: wrapping list in Categorical.")
-                        new_parameter_space[key] = Categorical(value)
-                    else:
+                    # --- REFINED FIX for skopt ValueError ---
+                    is_list_of_choices = isinstance(value, (list, np.ndarray)) and \
+                                         value and not isinstance(value[0], list)
+                    if is_list_of_choices and not is_skopt_space(value):
+                       self.logger.warning(f"Auto-correcting param '{key}' for BayesSearch: wrapping list in Categorical.")
+                       new_parameter_space[key] = Categorical(value)
+                    else: # It's a skopt object, a single value, or a list of lists (like for 'hidden')
                         new_parameter_space[key] = value
                 parameter_space = new_parameter_space
 
@@ -287,21 +297,6 @@ class grid_search_crossvalidate:
                 "Adjusted CatBoost subsample parameter space to prevent errors on small CV folds."
             )
             
-        # # --- FIX for H2OGAMClassifier ValueError on low cardinality features ---
-        # # H2O GAM with 'cs' splines requires features to have at least 3 unique values.
-        # # This check prevents running the model on data where CV folds are likely to fail.
-        # if "h2ogam" in method_name.lower():
-        #     # Check if any feature has fewer than 3 unique values in the training set.
-        #     low_cardinality_cols = [col for col in self.X_train.columns if self.X_train[col].nunique() < 3]
-        #     if low_cardinality_cols:
-        #         self.logger.warning(
-        #             f"Dataset has low cardinality features ({low_cardinality_cols}) which are "
-        #             f"incompatible with H2OGAMClassifier. Skipping {method_name}."
-        #         )
-        #         # Return early with a default score to allow the pipeline to continue.
-        #         self.grid_search_cross_validate_score_result = 0.5
-        #         return
-
         # --- CRITICAL FIX for H2OStackedEnsemble ---
         # The special handling logic has been moved inside the H2OStackedEnsembleClassifier
         # class itself, making it a self-contained scikit-learn meta-estimator.
@@ -411,8 +406,15 @@ class grid_search_crossvalidate:
             H2ODeepLearningClassifier, H2OGLMClassifier, H2ONaiveBayesClassifier,
             H2ORuleFitClassifier, H2OXGBoostClassifier, H2OStackedEnsembleClassifier
         )
-        final_cv_n_jobs = 1 if isinstance(current_algorithm, h2o_model_types) else grid_n_jobs
-        if final_cv_n_jobs == 1 and isinstance(current_algorithm, h2o_model_types):
+        
+        # Keras/TensorFlow models also require single-threaded execution.
+        keras_model_types = (NeuralNetworkClassifier, kerasClassifier_class)
+
+        is_h2o_model = isinstance(current_algorithm, h2o_model_types)
+        is_keras_model = isinstance(current_algorithm, keras_model_types)
+
+        final_cv_n_jobs = 1 if is_h2o_model or is_keras_model else grid_n_jobs
+        if final_cv_n_jobs == 1:
             self.logger.info("H2O model detected. Forcing n_jobs=1 for final cross-validation to prevent pickling errors.")
         
         failed = False
