@@ -136,30 +136,40 @@ class SVC_class:
             
         else:
             # Traditional Grid Search: Define parameter space using lists
-            self.parameter_space = {
-                "C": list(self.parameter_vector_space.param_dict.get("log_small")),
-                "break_ties": list(
-                    self.parameter_vector_space.param_dict.get("bool_param")
-                ),
-                # 'cache_size': [200],  # Uncomment if needed
-                # 'class_weight': [None, "balanced"]
-                # + [{0: w} for w in [1, 2, 4, 6, 10]],  # Enumerate class weights
-                "coef0": list(self.parameter_vector_space.param_dict.get("log_small")),
-                "decision_function_shape": ["ovr", "ovo"],
-                "degree": list(self.parameter_vector_space.param_dict.get("log_med")),
+            # Split into two dictionaries to handle the 'ovo' and 'break_ties' constraint.
+            base_params = {
+                "C": self.parameter_vector_space.param_dict.get("log_small"),
+                "coef0": self.parameter_vector_space.param_dict.get("log_small"),
+                "degree": self.parameter_vector_space.param_dict.get("log_med"),
                 "gamma": ["scale", "auto"],
                 "kernel": ["rbf", "linear", "poly", "sigmoid"],
-                "max_iter": list(
-                    self.parameter_vector_space.param_dict.get("log_large_long")
-                ),
-                # 'probability': [False],  # Uncomment if needed
-                # 'random_state': [None],  # Example for random state
-                "shrinking": list(
-                    self.parameter_vector_space.param_dict.get("bool_param")
-                ),
-                "tol": list(self.parameter_vector_space.param_dict.get("log_small")),
+                "max_iter": self.parameter_vector_space.param_dict.get("log_large_long"),
+                "shrinking": self.parameter_vector_space.param_dict.get("bool_param"),
+                "tol": self.parameter_vector_space.param_dict.get("log_small"),
                 "verbose": [False],
             }
+
+            # Dictionary 1: For 'ovr', break_ties can be True or False
+            params_ovr = base_params.copy()
+            params_ovr.update({
+                "decision_function_shape": ["ovr"],
+                "break_ties": self.parameter_vector_space.param_dict.get("bool_param"),
+            })
+
+            # Dictionary 2: For 'ovo', break_ties MUST be False
+            params_ovo = base_params.copy()
+            params_ovo.update({
+                "decision_function_shape": ["ovo"],
+                "break_ties": [False],
+            })
+
+            # Convert all skopt spaces to lists for GridSearchCV
+            for p in [params_ovr, params_ovo]:
+                for k, v in p.items():
+                    if not isinstance(v, list):
+                        p[k] = list(v)
+
+            self.parameter_space = [params_ovr, params_ovo]
 
         return None
 

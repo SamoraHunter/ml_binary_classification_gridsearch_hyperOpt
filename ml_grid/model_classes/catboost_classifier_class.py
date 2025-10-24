@@ -64,7 +64,8 @@ class CatBoost_class:
             }
             logging.getLogger('ml_grid').debug(f"Bayesian Parameter Space for CatBoost: {self.parameter_space}")
         else:
-            self.parameter_space = {
+            # Grid search parameter space must be a list of dicts
+            self.parameter_space = [{
                 "iterations": [100, 200, 500, 1000],
                 "learning_rate": [0.01, 0.05, 0.1, 0.3],
                 "depth": [4, 6, 8, 10],
@@ -85,7 +86,7 @@ class CatBoost_class:
                 "od_wait": [10, 20, 30],
                 "verbose": [0],
                 "allow_const_label": [True],
-            }
+            }]
             logging.getLogger('ml_grid').debug(f"Traditional Parameter Space for CatBoost: {self.parameter_space}")
 
         return None

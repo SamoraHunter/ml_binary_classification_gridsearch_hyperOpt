@@ -45,9 +45,6 @@ class LightGBMClassifier(BaseEstimator, ClassifierMixin):
                 Defaults to None.
             verbosity (int): Controls the level of LightGBM's verbosity.
         """
-
-        if num_leaves <= 1:
-            num_leaves = 2
         self.boosting_type = boosting_type
         self.num_leaves = num_leaves
         self.learning_rate = learning_rate
@@ -77,9 +74,14 @@ class LightGBMClassifier(BaseEstimator, ClassifierMixin):
         Returns:
             LightGBMClassifier: The fitted estimator.
         """
+        # --- ROBUSTNESS FIX for num_leaves > 1 constraint ---
+        # This check is moved from __init__ to fit to ensure that values set by
+        # hyperparameter search tools (which use set_params) are also validated.
+        num_leaves = self.num_leaves if self.num_leaves > 1 else 2
+
         self.model = lgb.LGBMClassifier(
             boosting_type=self.boosting_type,
-            num_leaves=self.num_leaves,
+            num_leaves=num_leaves,
             learning_rate=self.learning_rate,
             n_estimators=self.n_estimators,
             objective=self.objective,
