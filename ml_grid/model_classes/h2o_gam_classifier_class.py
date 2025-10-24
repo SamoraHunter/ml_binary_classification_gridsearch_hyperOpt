@@ -29,24 +29,28 @@ class H2O_GAM_class:
         # Define the available columns for the hyperparameter search to choose from.
         gam_cols = list(X.columns) if X is not None else []
             
-        if global_parameters.bayessearch:
-            self.parameter_space = [
-                {
-                    # --- DEFINITIVE FIX for skopt ValueError ---
-                    # `gam_columns` cannot be part of the search space as skopt cannot handle list/tuple types.
-                    # It will be set to all features by default inside the H2OGAMClassifier.fit() method.
-                    "num_knots": Integer(5, 20),
-                    "bs": Categorical(['cs', 'tp']), # Use cubic regression splines or thin plate regression splines
-                    "scale": Real(0.001, 1.0, "log-uniform"),
-                    "seed": Integer(1, 1000),
-                }
-            ]
+        # Conditionally define the parameter space based on the search method.
+        is_bayes_search = global_parameters.bayessearch
+
+        if is_bayes_search:
+            # For Bayesian search, use skopt distribution objects.
+            current_param_space = {
+                "num_knots": Integer(5, 15),
+                "bs": Categorical(['cs', 'tp']),
+                "scale": Real(0.01, 1.0, "log-uniform"),
+                "seed": Integer(1, 1000),
+            }
+            if gam_cols:
+                current_param_space["gam_columns"] = Categorical(gam_cols)
+            self.parameter_space = [current_param_space]
         else:
-            self.parameter_space = [
-                {
-                    "num_knots": [5, 10, 15],
-                    "bs": ['cs', 'tp'],
-                    "scale": [0.01, 0.1, 1.0],
-                    "seed": [1, 42],
-                }
-            ]
+            # For Grid/Random search, use standard lists.
+            current_param_space = {
+                "num_knots": [5, 8, 10, 12, 15],
+                "bs": ['cs', 'tp'],
+                "scale": [0.01, 0.1, 0.5, 1.0],
+                "seed": [1, 42, 123, 500, 1000],
+            }
+            if gam_cols:
+                current_param_space["gam_columns"] = gam_cols
+            self.parameter_space = [current_param_space]
