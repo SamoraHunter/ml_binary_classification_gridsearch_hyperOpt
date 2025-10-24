@@ -51,13 +51,14 @@ run_params:
   outcome_var_n: 1
   param_space_size: 'xsmall'
   scale: true
-  feature_n: 90
+  feature_n: 70
   use_embedding: false
   embedding_method: 'pca'
   embedding_dim: 10
   scale_features_before_embedding: true
-  percent_missing: 98
-  correlation_threshold: 0.95
+  percent_missing: 80
+  corr: 0.9
+  feature_selection_method: 'anova'
   test_size: 0.2
   random_state: 42
   # The 'data' sub-dictionary toggles feature groups on and off.
