@@ -214,6 +214,9 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         Returns:
             Tuple of (train_h2o, x_vars, outcome_var, model_params)
         """
+        if X.empty:
+            raise ValueError("Input data (X) is empty. This can happen during cross-validation with very small datasets. "
+                             "H2O models cannot be fitted on empty data.")
         if not isinstance(y, pd.Series):
             y = pd.Series(y, name="outcome")
 
@@ -325,8 +328,8 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             ValueError: If input data is invalid
         """
         try:
-            self.logger.info(f"=== fit() ENTRY on instance {id(self)} ===")
-            self.logger.info(f"Current attributes: {[k for k in self.__dict__.keys() if not k.startswith('_')]}")
+            self.logger.debug(f"=== fit() ENTRY on instance {id(self)} ===")
+            self.logger.debug(f"Current attributes: {[k for k in self.__dict__.keys() if not k.startswith('_')]}")
             
             if not hasattr(self, 'estimator_class') or not self.estimator_class:
                 raise AttributeError("H2OBaseClassifier is missing the 'estimator_class' attribute. "
@@ -335,28 +338,28 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             # Validate input data. This now returns a potentially modified X and y.
             X, y = self._validate_input_data(X, y)
 
-            self.logger.info("About to call _prepare_fit...")
+            self.logger.debug("About to call _prepare_fit...")
             # Fit the actual model
             train_h2o, x_vars, outcome_var, model_params = self._prepare_fit(X, y)
             
-            self.logger.info(f"After _prepare_fit, classes_={getattr(self, 'classes_', 'MISSING')}, feature_names_={getattr(self, 'feature_names_', 'MISSING')}")
+            self.logger.debug(f"After _prepare_fit, classes_={getattr(self, 'classes_', 'MISSING')}, feature_names_={getattr(self, 'feature_names_', 'MISSING')}")
             
             # Instantiate the H2O model with all the hyperparameters
-            self.logger.info(f"Creating H2O model with params: {model_params}")
+            self.logger.debug(f"Creating H2O model with params: {model_params}")
             self.model_ = self.estimator_class(**model_params)
             
             # Call the train() method with ONLY the data-related arguments
-            self.logger.info("Calling H2O model.train()...")
+            self.logger.debug("Calling H2O model.train()...")
             self.model_.train(x=x_vars, y=outcome_var, training_frame=train_h2o)
 
             # Store model_id for recovery - THIS IS CRITICAL for predict() to work
-            self.logger.info(f"H2O train complete, extracting model_id from {self.model_}")
+            self.logger.debug(f"H2O train complete, extracting model_id from {self.model_}")
             self.model_id = self.model_.model_id
             
             # Log for debugging
             self.logger.info(f"✓✓✓ SUCCESS: Fitted {self.estimator_class.__name__} with model_id: {self.model_id}")
-            self.logger.info(f"✓ Instance id: {id(self)}, has model_id: {hasattr(self, 'model_id')}, value: {getattr(self, 'model_id', 'MISSING')}")
-            self.logger.info(f"✓ Final attributes: {[k for k in self.__dict__.keys() if not k.startswith('_')]}")
+            self.logger.debug(f"✓ Instance id: {id(self)}, has model_id: {hasattr(self, 'model_id')}, value: {getattr(self, 'model_id', 'MISSING')}")
+            self.logger.debug(f"✓ Final attributes: {[k for k in self.__dict__.keys() if not k.startswith('_')]}")
             
             return self
             
