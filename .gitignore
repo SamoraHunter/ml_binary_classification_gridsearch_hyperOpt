@@ -109,3 +109,6 @@ packages.txt
 notebooks/synthetic_data_generated.csv
 notebooks/percent_missing_synthetic_data_generated.pkl
 .gitignore
+percent_missing_synthetic_data_generated.pkl
+synthetic_data_generated.csv
+synthetic_data_generated.csv
