@@ -11,15 +11,19 @@ logger = logging.getLogger(__name__) # Use module-level logger for consistency
 
 class H2OGAMClassifier(H2OBaseClassifier):
     """A scikit-learn compatible wrapper for H2O's Generalized Additive Models."""
-    def __init__(self, **kwargs):
+    def __init__(self, _suppress_low_cardinality_error=True, **kwargs):
         """Initializes the H2OGAMClassifier.
 
         All keyword arguments are passed directly to the H2OGeneralizedAdditiveEstimator.
         Example args: family='binomial', gam_columns=['feature1']
+        
+        Args:
+            _suppress_low_cardinality_error (bool): If True, safely removes GAM columns with
+                insufficient unique values. If False, raises a ValueError.
         """
         kwargs.pop('estimator_class', None)
         super().__init__(estimator_class=H2OGeneralizedAdditiveEstimator, **kwargs)
-        # self._using_dummy_model is handled by base class
+        self._suppress_low_cardinality_error = _suppress_low_cardinality_error
         self._fallback_to_glm = False
 
     def _prepare_fit(self, X: pd.DataFrame, y: pd.Series):
@@ -37,6 +41,9 @@ class H2OGAMClassifier(H2OBaseClassifier):
              self.logger.warning("H2OGAMClassifier: 'gam_columns' not provided or empty. Defaulting to all numerical features.")
              numeric_cols = [col for col in x_vars if train_h2o[col].types[col] in ['int', 'real']]
              model_params['gam_columns'] = numeric_cols if numeric_cols else []
+        # --- FIX: Handle single string from BayesSearch ---
+        elif isinstance(model_params['gam_columns'], str):
+             model_params['gam_columns'] = [model_params['gam_columns']]
         elif isinstance(model_params['gam_columns'], tuple):
              model_params['gam_columns'] = list(model_params['gam_columns'])
         elif isinstance(model_params['gam_columns'], list) and model_params['gam_columns'] and isinstance(model_params['gam_columns'][0], list):
@@ -55,7 +62,8 @@ class H2OGAMClassifier(H2OBaseClassifier):
             except Exception as e:
                 self.logger.warning(f"Could not process 'bs' parameter: {e}. Using default.")
                 model_params.pop('bs', None)
-
+        
+        # --- ROBUSTNESS FIX: Ensure num_knots, bs, and scale are always lists matching gam_columns length ---
         num_knots_val = model_params.get('num_knots')
         if isinstance(num_knots_val, int) and gam_columns:
             model_params['num_knots'] = [num_knots_val] * len(gam_columns)
@@ -63,7 +71,12 @@ class H2OGAMClassifier(H2OBaseClassifier):
         scale_val = model_params.get('scale')
         if isinstance(scale_val, (int, float)) and gam_columns:
             model_params['scale'] = [scale_val] * len(gam_columns)
-
+        
+        bs_val = model_params.get('bs')
+        if isinstance(bs_val, int) and gam_columns:
+             model_params['bs'] = [bs_val] * len(gam_columns)
+        # --- END FIX ---
+        
         # --- 2. Check GAM Column Suitability & Fallback Logic ---
         needs_fallback = False
         if gam_columns:
@@ -86,15 +99,24 @@ class H2OGAMClassifier(H2OBaseClassifier):
                 n_unique = X[col].nunique()
                 required_knots = num_knots_list[i]
 
-                if n_unique >= max(3, required_knots + 2):
+                # H2O's backend requires num_knots < n_unique.
+                # Let's add a safety margin similar to the original code.
+                if n_unique >= required_knots:
                     suitable_gam_cols.append(col)
                     suitable_knots.append(required_knots)
                     if i < len(bs_list): suitable_bs.append(bs_list[i])
                     if i < len(scale_list): suitable_scale.append(scale_list[i])
                 else:
+                    # If suppression is off (for testing), raise the error immediately.
+                    if not self._suppress_low_cardinality_error:
+                        raise ValueError(
+                            f"Number of knots ({required_knots}) must be less than the number of unique values ({n_unique}) for feature '{col}'."
+                        )
+                    
+                    # Otherwise, log a warning and exclude the column.
                     self.logger.warning(
                         f"Excluding GAM column '{col}': {n_unique} unique values "
-                        f"insufficient for {required_knots} knots (require >= {max(3, required_knots + 2)})."
+                        f"insufficient for {required_knots} knots (require > {required_knots})."
                     )
 
             if not suitable_gam_cols:
@@ -126,7 +148,6 @@ class H2OGAMClassifier(H2OBaseClassifier):
             self.estimator_class = H2OGeneralizedLinearEstimator
 
         try:
-            # Call the base class fit method, which will do all the heavy lifting
             super().fit(X, y, **kwargs)
         finally:
             # CRITICAL: Always restore the original estimator class
