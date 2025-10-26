@@ -4,7 +4,7 @@ import pandas as pd
 from ml_grid.util import param_space
 from ml_grid.util.global_params import global_parameters
 from sklearn.neighbors import KNeighborsClassifier
-from skopt.space import Real, Integer, Categorical
+from skopt.space import Integer, Categorical, Real
 import logging
 
 logging.getLogger('ml_grid').debug("Imported KNeighborsClassifier class")
@@ -46,7 +46,7 @@ class knn_classifiers_class:
                 "algorithm": Categorical(["auto", "ball_tree", "kd_tree", "brute"]),
                 "leaf_size": Integer(10, 100),  # Integer range for leaf_size
                 "metric": Categorical(["minkowski"]),  # Categorical choice for metric
-                "metric_params": [None],  # No parameter for the metric
+                "metric_params": Categorical([None]),  # No parameter for the metric
                 "n_jobs": Categorical([knn_n_jobs]),  # Set the number of jobs to the global param
                 "n_neighbors": Integer(1, self.X.shape[0] - 1),  # Integer range for n_neighbors
                 "p": Integer(1, 5),  # Integer range for p (distance metric parameter)

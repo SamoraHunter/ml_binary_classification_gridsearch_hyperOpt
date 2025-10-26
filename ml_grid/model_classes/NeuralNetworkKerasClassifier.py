@@ -41,6 +41,12 @@ class NeuralNetworkClassifier(BaseEstimator, ClassifierMixin):
             random_state (Optional[int]): Seed for reproducibility. Defaults to None.
         """
         self.hidden_layer_sizes = hidden_layer_sizes
+        print(f"Before conversion: hidden_layer_sizes: {self.hidden_layer_sizes}, type: {type(self.hidden_layer_sizes)}")
+        if isinstance(self.hidden_layer_sizes, str):
+            import ast
+            self.hidden_layer_sizes = ast.literal_eval(self.hidden_layer_sizes)
+        print(f"After conversion: hidden_layer_sizes: {self.hidden_layer_sizes}, type: {type(self.hidden_layer_sizes)}")
+        print(f"hidden_layer_sizes: {self.hidden_layer_sizes}, type: {type(self.hidden_layer_sizes)}")
         self.dropout_rate = dropout_rate
         self.learning_rate = learning_rate
         self.activation_func = activation_func
@@ -50,6 +56,10 @@ class NeuralNetworkClassifier(BaseEstimator, ClassifierMixin):
         self.random_state = random_state
         self.model: Optional[Sequential] = None
         self.classes_: Optional[np.ndarray] = None
+
+        if isinstance(self.hidden_layer_sizes, str):
+            import ast
+            self.hidden_layer_sizes = ast.literal_eval(self.hidden_layer_sizes)
 
         # Set random seed for reproducibility
         if self.random_state is not None:

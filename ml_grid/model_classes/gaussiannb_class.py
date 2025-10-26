@@ -8,7 +8,7 @@ import pandas as pd
 from ml_grid.util import param_space
 from ml_grid.util.global_params import global_parameters
 from sklearn.naive_bayes import GaussianNB
-from skopt.space import Categorical
+from skopt.space import Categorical, Real
 
 logging.getLogger('ml_grid').debug("Imported gaussiannb class")
 
@@ -87,7 +87,7 @@ class GaussianNB_class:
         if global_params.bayessearch:
             # For BayesSearchCV, use distributions from skopt.space
             self.parameter_space = {
-                'var_smoothing': self.parameter_vector_space.param_dict.get("log_small"),
+                'var_smoothing': Real(1e-9, 1e-2, prior='log-uniform'),
                 'priors': Categorical([0, 1, 2])  # Integer mapping
             }
 

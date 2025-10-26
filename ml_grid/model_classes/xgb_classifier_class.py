@@ -67,51 +67,25 @@ class XGB_class_class:
         # Set up the parameter space based on the selected optimization method
         if global_parameters.bayessearch:
             # Bayesian Optimization: Define parameter space using Real and Categorical
-            self.parameter_space = [{
+            self.parameter_space = {
                 "objective": Categorical(["binary:logistic"]),  # Objective function for binary classification
                 "booster": Categorical(["gbtree", "gblinear", "dart"]),  # Type of boosting model
-                "gamma": self.parameter_vector_space.param_dict.get("log_small"),  # Regularization parameter
+                "gamma": Real(1e-5, 1e-2, prior="log-uniform"),  # Regularization parameter
                 "grow_policy": Categorical(["depthwise", "lossguide"]),  # Tree growth policy
-                "learning_rate": self.parameter_vector_space.param_dict.get("log_small"),  # Learning rate
-                "max_bin": patch_max_bin(self.parameter_vector_space.param_dict.get("log_large_long")),  # Max bins for discretization
-                "max_depth": self.parameter_vector_space.param_dict.get("log_large_long"),  # Max depth of tree
-                "max_leaves": self.parameter_vector_space.param_dict.get("log_large_long"),  # Max number of leaves
-                "min_child_weight": self.parameter_vector_space.param_dict.get("log_small"),  # Minimum sum of instance weight in a child
-                "n_estimators": self.parameter_vector_space.param_dict.get("log_large_long"),  # Number of boosting rounds
+                "learning_rate": Real(1e-5, 1e-2, prior="log-uniform"),  # Learning rate
+                "max_bin": Integer(2, 100),
+                "max_depth": Integer(2, 50),
+                "max_leaves": Integer(2, 100),
+                "min_child_weight": Real(1e-5, 1e-2, prior="log-uniform"),
+                "n_estimators": Integer(50, 500),
                 "n_jobs": Categorical([-1]),  # Number of parallel threads to use for training
                 "random_state": Categorical([None]),  # Random state for reproducibility
-                "reg_alpha": self.parameter_vector_space.param_dict.get("log_small"),  # L1 regularization term
-                "reg_lambda": self.parameter_vector_space.param_dict.get("log_small"),  # L2 regularization term
+                "reg_alpha": Real(1e-5, 1e-2, prior="log-uniform"),
+                "reg_lambda": Real(1e-5, 1e-2, prior="log-uniform"),
                 "sampling_method": Categorical(["uniform"]),  # Sampling method during training
                 "verbosity": Categorical([0]),  # Verbosity level during training
                 "tree_method": Categorical(["auto"])
-                
-
-                },{
-                    "objective": Categorical(["binary:logistic"]),  # Objective function for binary classification
-                "booster": Categorical(["gbtree", "gblinear", "dart"]),  # Type of boosting model
-                "gamma": self.parameter_vector_space.param_dict.get("log_small"),  # Regularization parameter
-                "grow_policy": Categorical(["depthwise", "lossguide"]),  # Tree growth policy
-                "learning_rate": self.parameter_vector_space.param_dict.get("log_small"),  # Learning rate
-                "max_bin": patch_max_bin(self.parameter_vector_space.param_dict.get("log_large_long")),  # Max bins for discretization
-                "max_depth": self.parameter_vector_space.param_dict.get("log_large_long"),  # Max depth of tree
-                "max_leaves": self.parameter_vector_space.param_dict.get("log_large_long"),  # Max number of leaves
-                "min_child_weight": self.parameter_vector_space.param_dict.get("log_small"),  # Minimum sum of instance weight in a child
-                "n_estimators": self.parameter_vector_space.param_dict.get("log_large_long"),  # Number of boosting rounds
-                "n_jobs": Categorical([-1]),  # Number of parallel threads to use for training
-                "random_state": Categorical([None]),  # Random state for reproducibility
-                "reg_alpha": self.parameter_vector_space.param_dict.get("log_small"),  # L1 regularization term
-                "reg_lambda": self.parameter_vector_space.param_dict.get("log_small"),  # L2 regularization term
-                "sampling_method": Categorical(["uniform"]),  # Sampling method during training
-                "verbosity": Categorical([0]),  # Verbosity level during training
-                "tree_method": Categorical(["auto"])
-
-                #value 1 for Parameter max_bin should be greater equal to 2
-                #max_bin: if using histogram-based algorithm, maximum number of bins per feature
-                    
-                    
-                }]
-
+            }
 
                 # Future use parameters for Bayesian optimization
                 # "use_label_encoder": Categorical([True, False]),  # Use label encoder

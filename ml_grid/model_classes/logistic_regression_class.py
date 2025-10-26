@@ -4,7 +4,7 @@ import pandas as pd
 from ml_grid.util import param_space
 from sklearn.linear_model import LogisticRegression
 from ml_grid.util.global_params import global_parameters
-from skopt.space import Categorical, Real
+from skopt.space import Categorical, Real, Integer
 import logging
 
 logging.getLogger('ml_grid').debug("Imported logistic regression class")
@@ -44,52 +44,52 @@ class LogisticRegression_class:
             self.parameter_space = [
                 # ElasticNet penalty: solver must be 'saga'
                 {
-                    "C": self.parameter_vector_space.param_dict.get("log_small"),
+                    "C": Real(1e-5, 1e-2, prior="log-uniform"),
                     "class_weight": Categorical([None, "balanced"]),
                     "dual": Categorical([False]),
                     "fit_intercept": Categorical([True]),
                     "intercept_scaling": Real(0.1, 10.0, prior="log-uniform"),
-                    "l1_ratio": Real(0, 1),  # For elasticnet penalty only
-                    "max_iter": self.parameter_vector_space.param_dict.get("log_large_long"),
+                    "l1_ratio": Real(0.0, 1.0, prior="uniform"),  # For elasticnet penalty only
+                    "max_iter": Integer(100, 1000),
                     "multi_class": Categorical(["auto", "ovr", "multinomial"]),
                     "n_jobs": Categorical([None, -1]),
                     "penalty": Categorical(["elasticnet"]),
-                    "solver": Categorical(["saga"]),  # Only 'saga' solver for elasticnet
-                    "tol": self.parameter_vector_space.param_dict.get("log_small"),
+                    "solver": Categorical(["saga"]),
+                    "tol": Real(1e-5, 1e-2, prior="log-uniform"),
                     "verbose": Categorical([0]),
                     "warm_start": Categorical([False]),
                 },
                 # L1 penalty: solver must be 'saga'
                 {
-                    "C": self.parameter_vector_space.param_dict.get("log_small"),
+                    "C": Real(1e-5, 1e-2, prior="log-uniform"),
                     "class_weight": Categorical([None, "balanced"]),
                     "dual": Categorical([False]),
                     "fit_intercept": Categorical([True]),
                     "intercept_scaling": Real(0.1, 10.0, prior="log-uniform"),
                     "l1_ratio": Categorical([None]),  # No l1_ratio for l1 penalty
-                    "max_iter": self.parameter_vector_space.param_dict.get("log_large_long"),
+                    "max_iter": Integer(100, 1000),
                     "multi_class": Categorical(["auto", "ovr", "multinomial"]),
                     "n_jobs": Categorical([None, -1]),
                     "penalty": Categorical(["l1"]),
-                    "solver": Categorical(["saga"]),  # Only 'saga' solver for l1 penalty
-                    "tol": self.parameter_vector_space.param_dict.get("log_small"),
+                    "solver": Categorical(["saga"]),
+                    "tol": Real(1e-5, 1e-2, prior="log-uniform"),
                     "verbose": Categorical([0]),
                     "warm_start": Categorical([False]),
                 },
                 # L2 penalty: solver can be 'saga', 'newton-cg', or 'lbfgs'
                 {
-                    "C": self.parameter_vector_space.param_dict.get("log_small"),
+                    "C": Real(1e-5, 1e-2, prior="log-uniform"),
                     "class_weight": Categorical([None, "balanced"]),
                     "dual": Categorical([False]),
                     "fit_intercept": Categorical([True]),
                     "intercept_scaling": Real(0.1, 10.0, prior="log-uniform"),
                     "l1_ratio": Categorical([None]),  # No l1_ratio for l2 penalty
-                    "max_iter": self.parameter_vector_space.param_dict.get("log_large_long"),
+                    "max_iter": Integer(100, 1000),
                     "multi_class": Categorical(["auto", "ovr", "multinomial"]),
                     "n_jobs": Categorical([None, -1]),
                     "penalty": Categorical(["l2"]),
-                    "solver": Categorical(["newton-cg", "lbfgs", "saga"]),  # All solvers work for l2
-                    "tol": self.parameter_vector_space.param_dict.get("log_small"),
+                    "solver": Categorical(["newton-cg", "lbfgs", "saga"]),
+                    "tol": Real(1e-5, 1e-2, prior="log-uniform"),
                     "verbose": Categorical([0]),
                     "warm_start": Categorical([False]),
                 },

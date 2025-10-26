@@ -6,7 +6,7 @@ from sklearn.svm import SVC
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 import logging
-from skopt.space import Real, Categorical
+from skopt.space import Real, Categorical, Integer
 
 logging.getLogger('ml_grid').debug("Imported SVC class")
 
@@ -98,37 +98,37 @@ class SVC_class:
             # Bayesian Optimization: Define parameter space using pre-defined schemes
             self.parameter_space = [{
                 
-                "C": self.parameter_vector_space.param_dict.get("log_small"),
+                "C": Real(1e-5, 1e-2, prior="log-uniform"),
                 "break_ties": Categorical([False]),
                 # 'cache_size': self.parameter_vector_space.param_dict.get("log_large"),  # Uncomment if needed
                 # 'class_weight': self.parameter_vector_space.param_dict.get("enum_class_weights"),  # Example for enumerating class weights
-                "coef0": self.parameter_vector_space.param_dict.get("log_small"),
+                "coef0": Real(1e-5, 1e-2, prior="log-uniform"),
                 "decision_function_shape": Categorical(["ovo"]),
-                "degree": self.parameter_vector_space.param_dict.get("log_med"),
+                "degree": Integer(2, 5),
                 "gamma": Categorical(["scale", "auto"]),
                 "kernel": Categorical(["rbf", "linear", "poly", "sigmoid"]),
-                "max_iter": self.parameter_vector_space.param_dict.get("log_large_long"),
+                "max_iter": Integer(100, 1000),
                 # 'probability': Categorical([True, False]),  # Uncomment if needed
                 # 'random_state': Categorical([None]),  # Example for random state
-                "shrinking": self.parameter_vector_space.param_dict.get("bool_param"),
-                "tol": self.parameter_vector_space.param_dict.get("log_small"),
+                "shrinking": Categorical([True, False]),
+                "tol": Real(1e-5, 1e-2, prior="log-uniform"),
                 "verbose": Categorical([True, False]),
             },{
                 
-                "C": self.parameter_vector_space.param_dict.get("log_small"),
+                "C": Real(1e-5, 1e-2, prior="log-uniform"),
                 "break_ties": Categorical([True, False]),
                 # 'cache_size': self.parameter_vector_space.param_dict.get("log_large"),  # Uncomment if needed
                 # 'class_weight': self.parameter_vector_space.param_dict.get("enum_class_weights"),  # Example for enumerating class weights
-                "coef0": self.parameter_vector_space.param_dict.get("log_small"),
+                "coef0": Real(1e-5, 1e-2, prior="log-uniform"),
                 "decision_function_shape": Categorical(["ovr"]),
-                "degree": self.parameter_vector_space.param_dict.get("log_med"),
+                "degree": Integer(2, 5),
                 "gamma": Categorical(["scale", "auto"]),
                 "kernel": Categorical(["rbf", "linear", "poly", "sigmoid"]),
-                "max_iter": self.parameter_vector_space.param_dict.get("log_large_long"),
+                "max_iter": Integer(100, 1000),
                 # 'probability': Categorical([True, False]),  # Uncomment if needed
                 # 'random_state': Categorical([None]),  # Example for random state
-                "shrinking": self.parameter_vector_space.param_dict.get("bool_param"),
-                "tol": self.parameter_vector_space.param_dict.get("log_small"),
+                "shrinking": Categorical([True, False]),
+                "tol": Real(1e-5, 1e-2, prior="log-uniform"),
                 "verbose": Categorical([True, False]),
             }
                                     

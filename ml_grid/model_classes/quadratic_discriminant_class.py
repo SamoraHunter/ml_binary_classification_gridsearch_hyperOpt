@@ -6,7 +6,7 @@ import pandas as pd
 from ml_grid.util import param_space
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from ml_grid.util.global_params import global_parameters
-from skopt.space import Categorical
+from skopt.space import Categorical, Real
 import logging
 
 logging.getLogger('ml_grid').debug("Imported QuadraticDiscriminantAnalysis class")
@@ -43,9 +43,9 @@ class quadratic_discriminant_analysis_class:
         if global_params.bayessearch:
             self.parameter_space = {
                 "priors": Categorical([None]),  # Categorical: single option, None
-                "reg_param": self.parameter_vector_space.param_dict.get("log_small"),  # Log-uniform between 1e-5 and 1e-2
+                "reg_param": Real(1e-5, 1e-2, prior="log-uniform"),
                 "store_covariance": Categorical([False]),  # Categorical: single option, False
-                "tol": self.parameter_vector_space.param_dict.get("log_small"),  # Log-uniform between 1e-5 and 1e-2
+                "tol": Real(1e-5, 1e-2, prior="log-uniform"),
             }
 
         else:

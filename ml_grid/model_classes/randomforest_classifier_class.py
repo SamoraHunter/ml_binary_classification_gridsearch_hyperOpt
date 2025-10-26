@@ -42,14 +42,14 @@ class RandomForestClassifier_class:
             # Bayesian Optimization: Adjust parameters if traditional doesn't use param_dict
             self.parameter_space = {
                 "bootstrap": Categorical([True, False]),
-                "ccp_alpha": self.parameter_vector_space.param_dict.get("lin_zero_one"),
+                "ccp_alpha": Real(0.0, 1.0, prior="uniform"),
                 "criterion": Categorical(["gini", "entropy", "log_loss"]),
-                "max_depth": self.parameter_vector_space.param_dict.get("log_med"),
+                "max_depth": Integer(2, 50),
                 "max_features": Categorical(["sqrt", "log2"]),
                 "max_samples": Categorical([None]),
-                "min_samples_leaf": self.parameter_vector_space.param_dict.get("log_med"),
-                "min_samples_split": self._valid_min_samples_split(self.parameter_vector_space.param_dict.get("log_med")),  # patched line
-                "n_estimators": self.parameter_vector_space.param_dict.get("log_large_long"),
+                "min_samples_leaf": Integer(1, 20),
+                "min_samples_split": Integer(2, 20),
+                "n_estimators": Integer(50, 500),
                 "n_jobs": Categorical([None]),
                 "oob_score": Categorical([False]),
                 "random_state": Categorical([None]),

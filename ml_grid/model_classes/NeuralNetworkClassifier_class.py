@@ -1,5 +1,3 @@
-"""Defines the NeuralNetworkClassifier model class."""
-
 from typing import Optional
 
 import pandas as pd
@@ -40,21 +38,38 @@ class NeuralNetworkClassifier_class:
 
         self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
 
-        self.parameter_space = [
-            {
-                # Updated to use hidden_layer_sizes with tuples for architecture
-                "hidden_layer_sizes": [
-                    (8, 8),
-                    (16, 8),
-                    (32, 16, 8),
-                    (64, 32),
-                ],
-                "dropout_rate": [0.2, 0.3, 0.4],
-                "learning_rate": [1e-4, 1e-3, 1e-2],
-                "activation_func": ["relu", "tanh", "sigmoid"],
-                "epochs": [5, 10, 15],
-                "batch_size": [16, 32, 64],
-            }
-        ]
+        from ml_grid.util.global_params import global_parameters
+        import logging
+        logging.warning(f"########## BAYESSEARCH FLAG IS: {global_parameters.bayessearch} ##########")
 
-        # print("init log reg class ", self.parameter_space)
+        if global_parameters.bayessearch:
+            from skopt.space import Categorical, Integer, Real
+
+            self.parameter_space = [
+                {
+                    "hidden_layer_sizes": Categorical(
+                        ["(8, 8)", "(16, 8)", "(32, 16, 8)", "(64, 32)"]
+                    ),
+                    "dropout_rate": Real(0.2, 0.4),
+                    "learning_rate": Real(1e-4, 1e-2, prior='log-uniform'),
+                    "activation_func": Categorical(["relu", "tanh", "sigmoid"]),
+                    "epochs": Integer(5, 15),
+                    "batch_size": Categorical([16, 32, 64]),
+                }
+            ]
+        else:
+            self.parameter_space = [
+                {
+                    "hidden_layer_sizes": [
+                        (8, 8),
+                        (16, 8),
+                        (32, 16, 8),
+                        (64, 32),
+                    ],
+                    "dropout_rate": [0.2, 0.3, 0.4],
+                    "learning_rate": [1e-4, 1e-3, 1e-2],
+                    "activation_func": ["relu", "tanh", "sigmoid"],
+                    "epochs": [5, 10, 15],
+                    "batch_size": [16, 32, 64],
+                }
+            ]

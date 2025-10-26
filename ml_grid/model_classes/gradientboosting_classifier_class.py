@@ -40,20 +40,20 @@ class GradientBoostingClassifier_class:
         if global_params.bayessearch:
             # Define the parameter space for Bayesian optimization
             self.parameter_space = {
-                "ccp_alpha": Real(1e-5, 1e-1, prior="log-uniform"),
+                "ccp_alpha": Real(0.0, 1.0, prior="uniform"),
                 "criterion": Categorical(["friedman_mse"]),
                 "init": Categorical([None]),
                 "learning_rate": Real(1e-5, 1e-1, prior="log-uniform"),
                 "loss": Categorical(["log_loss", "exponential"]),
-                # "max_depth": Integer(2, 10),  # Uncomment if needed
+                "max_depth": Integer(2, 10),
                 "max_features": Categorical(["sqrt", "log2"]),
-                # "max_leaf_nodes": Integer(10, 1000),  # Uncomment if needed
-                # "min_impurity_decrease": Real(1e-5, 1e-1, prior="log-uniform"),  # Uncomment if needed
-                # "min_samples_leaf": Integer(1, 10),  # Uncomment if needed
-                # "min_samples_split": Integer(2, 20),  # Uncomment if needed
-                # "min_weight_fraction_leaf": Real(0.0, 0.5, prior="uniform"),  # Uncomment if needed
+                "max_leaf_nodes": Integer(10, 100),
+                "min_impurity_decrease": Real(0.0, 0.5, prior="uniform"),
+                "min_samples_leaf": Integer(1, 20),
+                "min_samples_split": Integer(2, 20),
+                "min_weight_fraction_leaf": Real(0.0, 0.5, prior="uniform"),
                 "n_estimators": Integer(50, 500),
-                # "n_iter_no_change": Integer(5, 50),  # Uncomment if needed
+                "n_iter_no_change": Integer(5, 20),
                 "subsample": Real(0.1, 1.0, prior="uniform"),
                 "tol": Real(1e-5, 1e-1, prior="log-uniform"),
                 "validation_fraction": Real(0.1, 0.3, prior="uniform"),

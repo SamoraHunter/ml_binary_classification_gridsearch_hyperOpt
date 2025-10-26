@@ -44,8 +44,8 @@ class knn__gpu_wrapper_class:
             # Bayesian Optimization: Use skopt's Integer and Categorical for the parameter space
             self.parameter_space = {
                 "algorithm": Categorical(["auto", "ball_tree", "kd_tree", "brute"]),
-                "metric": Categorical(["minkowski"]),
-                "metric_params": [None],
+                "metric": Categorical(["minkowski"]),  # Categorical choice for metric
+                "metric_params": Categorical([None]),  # No parameter for the metric
                 "n_jobs": Categorical([knn_n_jobs]),  # Number of jobs from global parameters
                 "n_neighbors": Integer(1, self.X.shape[0] - 1),  # Integer range for n_neighbors
                 "p": Integer(1, 5),  # Integer range for p

@@ -357,7 +357,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             self.model_id = self.model_.model_id
             
             # Log for debugging
-            self.logger.info(f"Successfully fitted {self.estimator_class.__name__} with model_id: {self.model_id}")
+            self.logger.debug(f"Successfully fitted {self.estimator_class.__name__} with model_id: {self.model_id}")
             self.logger.debug(f"Instance id: {id(self)}, has model_id: {hasattr(self, 'model_id')}, value: {getattr(self, 'model_id', 'MISSING')}")
             self.logger.debug(f"Final attributes: {[k for k in self.__dict__.keys() if not k.startswith('_')]}")
             

@@ -2,6 +2,62 @@ from h2o.estimators import H2ODeepLearningEstimator
 from .H2OBaseClassifier import H2OBaseClassifier
 import pandas as pd
 import logging
+from skopt.space import Categorical, Real, Integer
+from ml_grid.util.global_params import global_parameters
+
+PARAM_SPACE_GRID = {
+    "xsmall": {
+        "epochs": [5],
+        "hidden_config": ['small'],
+        "activation": ['Rectifier'],
+        "l1": [0],
+        "l2": [0],
+        "seed": [1],
+    },
+    "small": {
+        "epochs": [5, 10],
+        "hidden_config": ['small', 'medium'],
+        "activation": ['Rectifier', 'Tanh'],
+        "l1": [0, 1e-4],
+        "l2": [0, 1e-4],
+        "seed": [1, 42],
+    },
+    "medium": {
+        "epochs": [10, 50, 100],
+        "hidden_config": ['small', 'medium', 'large'],
+        "activation": ['Rectifier', 'Tanh', 'Maxout'],
+        "l1": [0, 1e-4, 1e-3],
+        "l2": [0, 1e-4, 1e-3],
+        "seed": [1, 42, 123],
+    }
+}
+
+PARAM_SPACE_BAYES = {
+    "xsmall": {
+        "epochs": Integer(5, 10),
+        "hidden_config": Categorical(['small']),
+        "activation": Categorical(['Rectifier']),
+        "l1": Real(1e-5, 1e-4, "log-uniform"),
+        "l2": Real(1e-5, 1e-4, "log-uniform"),
+        "seed": Integer(1, 100),
+    },
+    "small": {
+        "epochs": Integer(5, 20),
+        "hidden_config": Categorical(['small', 'medium', 'large']),
+        "activation": Categorical(['Rectifier', 'Tanh']),
+        "l1": Real(1e-5, 1e-3, "log-uniform"),
+        "l2": Real(1e-5, 1e-3, "log-uniform"),
+        "seed": Integer(1, 1000),
+    },
+    "medium": {
+        "epochs": Integer(10, 200),
+        "hidden_config": Categorical(['small', 'medium', 'large']),
+        "activation": Categorical(['Rectifier', 'Tanh', 'Maxout']),
+        "l1": Real(1e-6, 1e-2, "log-uniform"),
+        "l2": Real(1e-6, 1e-2, "log-uniform"),
+        "seed": Integer(1, 2000),
+    }
+}
 
 class H2ODeepLearningClassifier(H2OBaseClassifier):
     """A scikit-learn compatible wrapper for H2O's Deep Learning models.
@@ -9,7 +65,7 @@ class H2ODeepLearningClassifier(H2OBaseClassifier):
     This class handles special logic for the 'hidden' layer configuration.
     """
 
-    def __init__(self, hidden=None, hidden_config=None, **kwargs):
+    def __init__(self, hidden=None, hidden_config=None, parameter_space_size='small', **kwargs):
         """Initializes the H2ODeepLearningClassifier.
 
         It allows specifying hidden layers either directly via 'hidden' or
@@ -25,6 +81,7 @@ class H2ODeepLearningClassifier(H2OBaseClassifier):
         # Set these as instance attributes for scikit-learn compatibility
         self.hidden = hidden
         self.hidden_config = hidden_config
+        self.parameter_space_size = parameter_space_size
 
         # Remove estimator_class from kwargs if present (happens during sklearn clone)
         kwargs.pop('estimator_class', None)
@@ -32,6 +89,16 @@ class H2ODeepLearningClassifier(H2OBaseClassifier):
         # Add our specific parameters to kwargs to be handled by the base class
         kwargs['hidden'] = self.hidden
         kwargs['hidden_config'] = self.hidden_config
+        
+        if parameter_space_size not in PARAM_SPACE_GRID:
+            raise ValueError(f"Invalid parameter_space_size: '{parameter_space_size}'. Must be one of {list(PARAM_SPACE_GRID.keys())}")
+
+        if global_parameters.bayessearch:
+            # For Bayesian search, the parameter space is a single dictionary
+            self.parameter_space = PARAM_SPACE_BAYES[parameter_space_size]
+        else:
+            # For Grid search, the parameter space is a list of dictionaries
+            self.parameter_space = [PARAM_SPACE_GRID[parameter_space_size]]
 
         # Pass all parameters to the super constructor
         super().__init__(

@@ -43,11 +43,11 @@ class mlp_classifier_class:
             # Bayesian Optimization: Define parameter space using skopt.space
             self.parameter_space = {
                 "activation": Categorical(["relu"]),  # Fixed value as per the original
-                "alpha": self.parameter_vector_space.param_dict.get("log_small"),  # Logarithmic scale (param_dict)
+                "alpha": Real(1e-5, 1e-2, prior="log-uniform"),
                 "batch_size": Categorical(["auto"]),  # Fixed value as per the original
-                "hidden_layer_sizes": self.parameter_vector_space.param_dict.get("log_large_long"),  # Log scale for large long sizes (param_dict)
+                "hidden_layer_sizes": Integer(10, 500),
                 "learning_rate": Categorical(["adaptive"]),  # Fixed value as per the original
-                "momentum": self.parameter_vector_space.param_dict.get("lin_zero_one"),  # Linear scale from 0 to 1 (param_dict)
+                "momentum": Real(0.0, 1.0, prior="uniform"),
                 "random_state": Categorical([None]),  # Fixed value as per the original
                 "validation_fraction": Real(0.05, 0.2),  # Real value in a small range [0.1, 0.2]
                 "verbose": Categorical([False]),  # Fixed value as per the original

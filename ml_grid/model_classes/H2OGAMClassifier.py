@@ -100,24 +100,34 @@ class H2OGAMClassifier(H2OBaseClassifier):
                 required_knots = num_knots_list[i]
 
                 # H2O's backend requires num_knots < n_unique.
-                # Let's add a safety margin similar to the original code.
-                if n_unique >= required_knots:
-                    suitable_gam_cols.append(col)
-                    suitable_knots.append(required_knots)
-                    if i < len(bs_list): suitable_bs.append(bs_list[i])
-                    if i < len(scale_list): suitable_scale.append(scale_list[i])
-                else:
-                    # If suppression is off (for testing), raise the error immediately.
+                if n_unique <= required_knots:
                     if not self._suppress_low_cardinality_error:
                         raise ValueError(
-                            f"Number of knots ({required_knots}) must be less than the number of unique values ({n_unique}) for feature '{col}'."
+                            f"Number of knots ({required_knots}) must be at least one less than the number of unique values ({n_unique}) for feature '{col}'."
                         )
-                    
-                    # Otherwise, log a warning and exclude the column.
                     self.logger.warning(
                         f"Excluding GAM column '{col}': {n_unique} unique values "
-                        f"insufficient for {required_knots} knots (require > {required_knots})."
+                        f"insufficient for {required_knots} knots (require >= {required_knots + 1})."
                     )
+                    continue
+
+                # Pre-check for well-defined knots
+                try:
+                    quantiles = np.linspace(0, 1, required_knots)
+                    knot_values = X[col].quantile(quantiles)
+                    if knot_values.nunique() < required_knots:
+                        self.logger.warning(
+                            f"Excluding GAM column '{col}': Not enough unique values to generate distinct knots."
+                        )
+                        continue
+                except Exception as e:
+                    self.logger.warning(f"Excluding GAM column '{col}' due to an error during knot pre-check: {e}")
+                    continue
+                
+                suitable_gam_cols.append(col)
+                suitable_knots.append(required_knots)
+                if i < len(bs_list): suitable_bs.append(bs_list[i])
+                if i < len(scale_list): suitable_scale.append(scale_list[i])
 
             if not suitable_gam_cols:
                 self.logger.warning("No suitable GAM columns found after checking cardinality. Falling back to GLM.")
