@@ -56,7 +56,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         for key, value in kwargs.items():
             # CRITICAL: Never allow 'model' as a parameter - it conflicts with 'model_'
             if key == 'model':
-                self.logger.warning(f"!!! Rejecting 'model' parameter in __init__ - this conflicts with fitted attribute 'model_'")
+                self.logger.warning(f"Rejecting 'model' parameter in __init__ - this conflicts with fitted attribute 'model_'")
                 continue
             setattr(self, key, value)
 
@@ -198,7 +198,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                         f"Expected: {self.feature_names_}, got: {list(X.columns)}"
                     )
                 X = X[self.feature_names_]
-                logger.info("Reordered features to match training order")
+                logger.debug("Reordered features to match training order")
         
         # Check for NaN values
         if X.isnull().any().any():
@@ -357,15 +357,15 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             self.model_id = self.model_.model_id
             
             # Log for debugging
-            self.logger.info(f"✓✓✓ SUCCESS: Fitted {self.estimator_class.__name__} with model_id: {self.model_id}")
-            self.logger.debug(f"✓ Instance id: {id(self)}, has model_id: {hasattr(self, 'model_id')}, value: {getattr(self, 'model_id', 'MISSING')}")
-            self.logger.debug(f"✓ Final attributes: {[k for k in self.__dict__.keys() if not k.startswith('_')]}")
+            self.logger.info(f"Successfully fitted {self.estimator_class.__name__} with model_id: {self.model_id}")
+            self.logger.debug(f"Instance id: {id(self)}, has model_id: {hasattr(self, 'model_id')}, value: {getattr(self, 'model_id', 'MISSING')}")
+            self.logger.debug(f"Final attributes: {[k for k in self.__dict__.keys() if not k.startswith('_')]}")
             
             return self
             
         except Exception as e:
-            self.logger.error(f"!!! EXCEPTION in fit() on instance {id(self)}: {e}", exc_info=True)
-            self.logger.error(f"!!! Attributes at exception: {[k for k in self.__dict__.keys() if not k.startswith('_')]}")
+            self.logger.error(f"EXCEPTION in fit() on instance {id(self)}: {e}", exc_info=True)
+            self.logger.error(f"Attributes at exception: {[k for k in self.__dict__.keys() if not k.startswith('_')]}")
             raise
 
     def predict(self, X: pd.DataFrame) -> np.ndarray:
@@ -520,7 +520,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         
         # If not in cluster, try to reload from checkpoint
         checkpoint_path = os.path.join(self._checkpoint_dir, self.model_id)
-        self.logger.info(f"Attempting to reload model from checkpoint: {checkpoint_path}")
+        self.logger.debug(f"Attempting to reload model from checkpoint: {checkpoint_path}")
         
         if os.path.exists(checkpoint_path):
             try:
@@ -622,14 +622,14 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         for attr in ['model_', 'classes_', 'feature_names_', 'model_id']:
             if hasattr(self, attr):
                 fitted_attributes[attr] = getattr(self, attr)
-                self.logger.debug(f">>> Preserving fitted attribute: {attr}")
+                self.logger.debug(f"Preserving fitted attribute: {attr}")
 
         # CRITICAL: Reject any attempts to set 'model' or other fitted-like attributes
         # These should never come from get_params()
         forbidden_keys = ['model', 'model_', 'classes_', 'feature_names_', 'model_id']
         for key in list(kwargs.keys()):
             if key in forbidden_keys:
-                self.logger.warning(f">>> Rejecting forbidden key in set_params: '{key}'")
+                self.logger.warning(f"Rejecting forbidden key in set_params: '{key}'")
                 kwargs.pop(key)
 
         # Set each parameter as an attribute
@@ -643,7 +643,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         # Restore fitted attributes
         for attr, value in fitted_attributes.items():
             setattr(self, attr, value)
-            self.logger.debug(f">>> Restored fitted attribute: {attr}")
+            self.logger.debug(f"Restored fitted attribute: {attr}")
         
         self.logger.debug(f">>> set_params() complete. Final keys: {list(self.__dict__.keys())}")
         return self
