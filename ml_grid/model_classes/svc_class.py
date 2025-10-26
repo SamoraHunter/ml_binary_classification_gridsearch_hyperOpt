@@ -112,7 +112,7 @@ class SVC_class:
                 # 'random_state': Categorical([None]),  # Example for random state
                 "shrinking": Categorical([True, False]),
                 "tol": Real(1e-5, 1e-2, prior="log-uniform"),
-                "verbose": Categorical([True, False]),
+                "verbose": Categorical([False]),
             },{
                 
                 "C": Real(1e-5, 1e-2, prior="log-uniform"),
@@ -129,7 +129,7 @@ class SVC_class:
                 # 'random_state': Categorical([None]),  # Example for random state
                 "shrinking": Categorical([True, False]),
                 "tol": Real(1e-5, 1e-2, prior="log-uniform"),
-                "verbose": Categorical([True, False]),
+                "verbose": Categorical([False]),
             }
                                     
                                     ]

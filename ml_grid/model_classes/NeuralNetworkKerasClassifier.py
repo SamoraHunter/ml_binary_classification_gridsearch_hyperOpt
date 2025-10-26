@@ -40,13 +40,14 @@ class NeuralNetworkClassifier(BaseEstimator, ClassifierMixin):
                 on validation loss after which training will be stopped.
             random_state (Optional[int]): Seed for reproducibility. Defaults to None.
         """
+        # CRITICAL FIX: Handle tuple parameter that may come as string from skopt
+        # During sklearn's cross-validation, estimators are cloned and parameters 
+        # may be converted to/from strings. We need to handle both cases robustly.
+        
+        # Store the raw parameter first
         self.hidden_layer_sizes = hidden_layer_sizes
-        print(f"Before conversion: hidden_layer_sizes: {self.hidden_layer_sizes}, type: {type(self.hidden_layer_sizes)}")
-        if isinstance(self.hidden_layer_sizes, str):
-            import ast
-            self.hidden_layer_sizes = ast.literal_eval(self.hidden_layer_sizes)
-        print(f"After conversion: hidden_layer_sizes: {self.hidden_layer_sizes}, type: {type(self.hidden_layer_sizes)}")
-        print(f"hidden_layer_sizes: {self.hidden_layer_sizes}, type: {type(self.hidden_layer_sizes)}")
+        
+        # Set random seed for reproducibility
         self.dropout_rate = dropout_rate
         self.learning_rate = learning_rate
         self.activation_func = activation_func
@@ -57,14 +58,47 @@ class NeuralNetworkClassifier(BaseEstimator, ClassifierMixin):
         self.model: Optional[Sequential] = None
         self.classes_: Optional[np.ndarray] = None
 
-        if isinstance(self.hidden_layer_sizes, str):
-            import ast
-            self.hidden_layer_sizes = ast.literal_eval(self.hidden_layer_sizes)
-
-        # Set random seed for reproducibility
         if self.random_state is not None:
             np.random.seed(self.random_state)
             tf.random.set_seed(self.random_state)
+
+    def _normalize_hidden_layer_sizes(self):
+        """Convert hidden_layer_sizes to a tuple regardless of input format.
+        
+        This method handles three cases:
+        1. Already a tuple: return as-is
+        2. String representation from skopt: parse with ast.literal_eval
+        3. List: convert to tuple
+        
+        Returns:
+            tuple: Normalized hidden layer sizes as tuple of integers
+        """
+        if isinstance(self.hidden_layer_sizes, tuple):
+            # Already a tuple, use it directly
+            return self.hidden_layer_sizes
+        elif isinstance(self.hidden_layer_sizes, str):
+            # String from skopt - need to parse it
+            import ast
+            try:
+                parsed = ast.literal_eval(self.hidden_layer_sizes)
+                # Ensure it's a tuple (could be parsed as list)
+                if isinstance(parsed, (list, tuple)):
+                    return tuple(parsed)
+                else:
+                    raise ValueError(f"Parsed hidden_layer_sizes is not a sequence: {parsed}")
+            except (ValueError, SyntaxError) as e:
+                raise ValueError(
+                    f"Could not parse hidden_layer_sizes string: '{self.hidden_layer_sizes}'. "
+                    f"Expected format like '(64, 32)'. Error: {e}"
+                )
+        elif isinstance(self.hidden_layer_sizes, list):
+            # Convert list to tuple
+            return tuple(self.hidden_layer_sizes)
+        else:
+            raise ValueError(
+                f"hidden_layer_sizes must be a tuple, list, or string, "
+                f"got {type(self.hidden_layer_sizes)}: {self.hidden_layer_sizes}"
+            )
 
     def build_model(self, input_dim: int) -> Sequential:
         """Builds and compiles the Keras Sequential model.
@@ -75,12 +109,16 @@ class NeuralNetworkClassifier(BaseEstimator, ClassifierMixin):
         Returns:
             Sequential: The compiled Keras model.
         """
+        # CRITICAL: Normalize hidden_layer_sizes here, right before use
+        # This ensures it's always a proper tuple when building the model
+        hidden_sizes = self._normalize_hidden_layer_sizes()
+        
         model = Sequential()
         # Add input layer
-        model.add(Dense(units=self.hidden_layer_sizes[0], activation=self.activation_func, input_dim=input_dim))
+        model.add(Dense(units=hidden_sizes[0], activation=self.activation_func, input_dim=input_dim))
         model.add(Dropout(rate=self.dropout_rate))
         # Add subsequent hidden layers
-        for units in self.hidden_layer_sizes[1:]:
+        for units in hidden_sizes[1:]:
             model.add(Dense(units=units, activation=self.activation_func))
             model.add(Dropout(rate=self.dropout_rate))
         model.add(Dense(units=1, activation="sigmoid"))

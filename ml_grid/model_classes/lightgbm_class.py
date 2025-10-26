@@ -164,3 +164,38 @@ class LightGBMClassifier(BaseEstimator, ClassifierMixin):
                 "Model has not been fitted yet. Call 'fit' before 'score'."
             )
         return self.model.score(X, y)
+
+    def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
+        """Predicts class probabilities for samples in X.
+
+        This method sanitizes the feature names in `X` to match those used
+        during training.
+
+        Args:
+            X (pd.DataFrame): The input samples to predict.
+
+        Raises:
+            ValueError: If the model has not been fitted yet.
+
+        Returns:
+            np.ndarray: The predicted class probabilities.
+        """
+        if self.model is None:
+            raise ValueError(
+                "Model has not been fitted yet. Call 'fit' before 'predict_proba'."
+            )
+
+        X_pred = X
+        if isinstance(X, pd.DataFrame):
+            # Change columns names ([LightGBM] Do not support special JSON characters in feature name.)
+            new_names = {
+                col: re.sub(r"[^A-Za-z0-9_]+", "", col) for col in X.columns
+            }
+            new_n_list = list(new_names.values())
+            # [LightGBM] Feature appears more than one time.
+            new_names = {
+                col: f"{new_col}_{i}" if new_col in new_n_list[:i] else new_col
+                for i, (col, new_col) in enumerate(new_names.items())
+            }
+            X_pred = X.rename(columns=new_names)
+        return self.model.predict_proba(X_pred)

@@ -1,9 +1,6 @@
 from typing import Optional
-
 import pandas as pd
 from ml_grid.util import param_space
-
-# from ml_grid.model_classes.nni_sklearn_wrapper import *
 from ml_grid.model_classes.NeuralNetworkKerasClassifier import NeuralNetworkClassifier
 import logging
 
@@ -40,16 +37,20 @@ class NeuralNetworkClassifier_class:
 
         from ml_grid.util.global_params import global_parameters
         import logging
-        logging.warning(f"########## BAYESSEARCH FLAG IS: {global_parameters.bayessearch} ##########")
-
         if global_parameters.bayessearch:
             from skopt.space import Categorical, Integer, Real
 
             self.parameter_space = [
                 {
-                    "hidden_layer_sizes": Categorical(
-                        ["(8, 8)", "(16, 8)", "(32, 16, 8)", "(64, 32)"]
-                    ),
+                    # Changed from: Categorical([(8, 8), (16, 8), ...])
+                    # To: Categorical(["(8, 8)", "(16, 8)", ...])
+                    # Tuples encoded as strings to avoid skopt's .item() error
+                    "hidden_layer_sizes": Categorical([
+                        "(8, 8)",
+                        "(16, 8)", 
+                        "(32, 16, 8)",
+                        "(64, 32)"
+                    ]),
                     "dropout_rate": Real(0.2, 0.4),
                     "learning_rate": Real(1e-4, 1e-2, prior='log-uniform'),
                     "activation_func": Categorical(["relu", "tanh", "sigmoid"]),
