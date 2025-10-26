@@ -204,7 +204,7 @@ class grid_search_crossvalidate:
             else:
                 self.logger.info("CUDA GPU detected. Allowing simbsig model to use GPU.")
         
-        self.logger.info(f"Algorithm implementation: {algorithm_implementation}")
+        self.logger.debug(f"Algorithm implementation: {algorithm_implementation}")
 
         parameters = parameter_space # Keep a reference to the original
 
@@ -274,7 +274,7 @@ class grid_search_crossvalidate:
         # Dynamically adjust KNN parameter space for small datasets
         if "kneighbors" in method_name.lower() or "simbsig" in method_name.lower():
             self._adjust_knn_parameters(parameter_space)
-            self.logger.info(
+            self.logger.debug(
                 "Adjusted KNN n_neighbors parameter space to prevent errors on small CV folds."
             )
             
@@ -293,7 +293,7 @@ class grid_search_crossvalidate:
         # Dynamically adjust CatBoost subsample parameter for small datasets
         if "catboost" in method_name.lower():
             self._adjust_catboost_parameters(parameter_space)
-            self.logger.info(
+            self.logger.debug(
                 "Adjusted CatBoost subsample parameter space to prevent errors on small CV folds."
             )
             
@@ -343,7 +343,6 @@ class grid_search_crossvalidate:
             current_algorithm = search.run_search(X_train_reset, y_train_reset)
 
         except Exception as e:
-            # --- USER REQUEST: Halt on any exception ---
             # Log the error and re-raise it to stop the entire execution,
             # allowing the main loop in main.py to handle it based on error_raise.
             self.logger.error(f"An exception occurred during hyperparameter search for {method_name}: {e}", exc_info=True)
@@ -376,8 +375,8 @@ class grid_search_crossvalidate:
 
         if self.global_parameters.verbose >= 1:
             self.logger.info("Getting cross validation scores")
-            self.logger.info(f"X_train shape: {self.X_train.shape}, y_train shape: {self.y_train.shape}")
-            self.logger.info(f"y_train value counts:\n{self.y_train.value_counts()}")
+            self.logger.debug(f"X_train shape: {self.X_train.shape}, y_train shape: {self.y_train.shape}")
+            self.logger.debug(f"y_train value counts:\n{self.y_train.value_counts()}")
 
         # Set a time threshold in seconds
         time_threshold = 60  # For example, 60 seconds
@@ -415,7 +414,7 @@ class grid_search_crossvalidate:
 
         final_cv_n_jobs = 1 if is_h2o_model or is_keras_model else grid_n_jobs
         if final_cv_n_jobs == 1:
-            self.logger.info("H2O model detected. Forcing n_jobs=1 for final cross-validation to prevent pickling errors.")
+            self.logger.debug("H2O or Keras model detected. Forcing n_jobs=1 for final cross-validation.")
         
         failed = False
 
@@ -430,7 +429,7 @@ class grid_search_crossvalidate:
             # --- FIX for UnboundLocalError ---
             # Consolidate Keras and non-Keras logic to ensure 'scores' is always assigned.
             if isinstance(current_algorithm, (KerasClassifier, kerasClassifier_class)):
-                self.logger.info("Fitting Keras model with internal CV handling.")
+                self.logger.debug("Fitting Keras model with internal CV handling.")
                 y_train_values = self.y_train.values
                 current_algorithm.fit(self.X_train, y_train_values, cv=self.cv)
                 # Since fit already did the CV, create a dummy scores dictionary.
@@ -584,7 +583,7 @@ class grid_search_crossvalidate:
         n_samples_test_fold = len(self.X_train) - n_samples_train_fold
         max_n_neighbors = max(1, n_samples_train_fold)
         
-        self.logger.info(
+        self.logger.debug(
             f"KNN constraints - train_fold_size={n_samples_train_fold}, "
             f"test_fold_size={n_samples_test_fold}, max_n_neighbors={max_n_neighbors}"
         )
