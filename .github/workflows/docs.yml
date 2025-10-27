@@ -20,14 +20,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # This job handles the entire build and deploy process for GitHub Pages
-  build-and-deploy-github:
-    # This job runs on GitHub Actions, which is the default. We exclude Gitea.
-    if: ${{ !env.GITEA_ACTIONS }}
+  # Build job: builds the documentation and uploads it as an artifact.
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -44,39 +39,39 @@ jobs:
       - name: Build documentation
         run: sphinx-build -b html docs/source docs/build
 
-      - name: Upload artifact for GitHub Pages
-        uses: actions/upload-pages-artifact@v1
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
           path: ./docs/build
 
+  # Deploy job for GitHub Pages
+  deploy-github:
+    needs: build
+    if: ${{ vars.IS_GITEA != 'true' }}
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
 
-  # This job handles the entire build and deploy process for Gitea
-  build-and-deploy-gitea:
-    # This job only runs on Gitea Actions
-    if: ${{ env.GITEA_ACTIONS == 'true' }}
+  # Deploy job for Gitea
+  deploy-gitea:
+    needs: build
+    if: ${{ vars.IS_GITEA == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Download artifact
+        uses: actions/download-artifact@v4
         with:
-          python-version: '3.10'
-          cache: 'pip'
-
-      - name: Install dependencies
-        run: pip install -e .[docs]
-
-      - name: Build documentation
-        run: sphinx-build -b html docs/source docs/build
+          name: github-pages # This is the default artifact name for upload-pages-artifact
+          path: ./docs-site
 
       - name: Deploy to Gitea docs location
         run: |
           echo "Deploying documentation to Gitea's special directory..."
           # The '/pages' directory is a mounted volume on the Gitea runner for serving static content.
           sudo mkdir -p /pages/
-          sudo cp -r ./docs/build/* /pages/
+          sudo cp -r ./docs-site/* /pages/
