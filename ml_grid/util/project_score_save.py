@@ -208,7 +208,7 @@ class project_score_save_class:
             end = time.time()
             
             logger.debug(f"Cross-validation scores: {scores}")
-            line["run_time"] = int((end - start) / 60)
+            line["run_time"] = (end - start)
             line["t_fits"] = pg
             line["n_fits"] = n_iter_v
             line["i"] = param_space_index  # 0 # should be index of the iterator

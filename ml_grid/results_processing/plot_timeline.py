@@ -105,24 +105,22 @@ class TimelineAnalysisPlotter:
         
         plt.figure(figsize=figsize)
         
+        # Convert index to datetime
+        timeline_df.index = pd.to_datetime(timeline_df.index, errors='coerce')
+
         # Plot each algorithm
         for algo in timeline_df.columns:
             algo_data = timeline_df[algo].dropna()
             if len(algo_data) > 0:
-                x_positions = range(len(algo_data))
-                plt.plot(x_positions, algo_data, marker='o', linewidth=2, 
+                plt.plot(algo_data.index, algo_data, marker='o', linewidth=2, 
                         markersize=6, label=algo)
         
-        plt.xlabel('Run Index (Chronological Order)', fontsize=12)
+        plt.xlabel('Run Timestamp', fontsize=12)
         plt.ylabel(f'{aggregation.title()} {metric.upper()}', fontsize=12)
         plt.title(f'{aggregation.title()} {metric.upper()} Performance Timeline - All Outcomes', 
                  fontsize=14, fontweight='bold')
         
-        # Set x-tick labels to show actual timestamps (abbreviated)
-        run_timestamps = timeline_df.index.tolist()
-        tick_positions = range(0, len(run_timestamps), max(1, len(run_timestamps) // 10))
-        tick_labels = [run_timestamps[i][:10] + '...' for i in tick_positions]
-        plt.xticks(tick_positions, tick_labels, rotation=45, ha='right')
+        plt.xticks(rotation=45, ha='right')
         
         plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
         plt.grid(True, alpha=0.3)
