@@ -5,19 +5,22 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:
-      # Conditionally set thread limits only for Gitea runners to prevent resource exhaustion.
-      # These are set to '1' if the IS_GITEA var is true, otherwise they are empty and have no effect.
-      OMP_NUM_THREADS: ${{ vars.IS_GITEA == 'true' && '1' || '' }}
-      MKL_NUM_THREADS: ${{ vars.IS_GITEA == 'true' && '1' || '' }}
-      OPENBLAS_NUM_THREADS: ${{ vars.IS_GITEA == 'true' && '1' || '' }}
-      VECLIB_MAXIMUM_THREADS: ${{ vars.IS_GITEA == 'true' && '1' || '' }}
-      NUMEXPR_NUM_THREADS: ${{ vars.IS_GITEA == 'true' && '1' || '' }}
-      DEBIAN_FRONTEND: noninteractive
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Set environment variables
+        run: |
+          echo "DEBIAN_FRONTEND=noninteractive" >> $GITHUB_ENV
+          if [[ "${{ vars.IS_GITEA }}" == "true" ]]; then
+            echo "Setting thread limits for Gitea runner"
+            echo "OMP_NUM_THREADS=1" >> $GITHUB_ENV
+            echo "MKL_NUM_THREADS=1" >> $GITHUB_ENV
+            echo "OPENBLAS_NUM_THREADS=1" >> $GITHUB_ENV
+            echo "VECLIB_MAXIMUM_THREADS=1" >> $GITHUB_ENV
+            echo "NUMEXPR_NUM_THREADS=1" >> $GITHUB_ENV
+          fi
 
       - name: Install Act dependencies 
         if: ${{ env.ACT }} 
@@ -89,6 +92,11 @@ jobs:
           source "$VENV_PATH/bin/activate"
           which python
           python --version
+
+      - name: Prepare test configuration file
+        run: |
+          echo "Copying config_single_run.yml to notebooks/ directory for test..."
+          cp config_single_run.yml notebooks/
 
       - name: Run tests
         run: |
