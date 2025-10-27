@@ -22,7 +22,8 @@ concurrency:
 jobs:
   # This job handles the entire build and deploy process for GitHub Pages
   build-and-deploy-github:
-    if: env.GITHUB_ACTIONS == 'true'
+    # This job runs on GitHub Actions, which is the default. We exclude Gitea.
+    if: ${{ !env.GITEA_ACTIONS }}
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -55,7 +56,7 @@ jobs:
   # This job handles the entire build and deploy process for Gitea
   build-and-deploy-gitea:
     # This job only runs on Gitea Actions
-    if: env.GITEA_ACTIONS == 'true'
+    if: ${{ env.GITEA_ACTIONS == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
