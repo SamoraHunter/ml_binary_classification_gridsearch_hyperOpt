@@ -7,12 +7,12 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Conditionally set thread limits only for Gitea runners to prevent resource exhaustion.
-      # These are set to '1' if on Gitea, otherwise they are empty and have no effect.
-      OMP_NUM_THREADS: ${{ env.GITEA_ACTIONS == 'true' && '1' || '' }}
-      MKL_NUM_THREADS: ${{ env.GITEA_ACTIONS == 'true' && '1' || '' }}
-      OPENBLAS_NUM_THREADS: ${{ env.GITEA_ACTIONS == 'true' && '1' || '' }}
-      VECLIB_MAXIMUM_THREADS: ${{ env.GITEA_ACTIONS == 'true' && '1' || '' }}
-      NUMEXPR_NUM_THREADS: ${{ env.GITEA_ACTIONS == 'true' && '1' || '' }}
+      # These are set to '1' if the IS_GITEA var is true, otherwise they are empty and have no effect.
+      OMP_NUM_THREADS: ${{ vars.IS_GITEA == 'true' && '1' || '' }}
+      MKL_NUM_THREADS: ${{ vars.IS_GITEA == 'true' && '1' || '' }}
+      OPENBLAS_NUM_THREADS: ${{ vars.IS_GITEA == 'true' && '1' || '' }}
+      VECLIB_MAXIMUM_THREADS: ${{ vars.IS_GITEA == 'true' && '1' || '' }}
+      NUMEXPR_NUM_THREADS: ${{ vars.IS_GITEA == 'true' && '1' || '' }}
       DEBIAN_FRONTEND: noninteractive
 
     steps:
