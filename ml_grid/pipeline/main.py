@@ -61,19 +61,22 @@ class run:
 
 
 
-    def __init__(self, ml_grid_object: pipe, local_param_dict: Dict[str, Any]):
+    def __init__(self, local_param_dict: Dict[str, Any], **kwargs):
         """Initializes the run class.
 
         This class takes the main data pipeline object and a dictionary of local
         parameters to set up and prepare for executing a series of hyperparameter
         searches across multiple machine learning models.
 
+        For hyperopt, this constructor can also accept keyword arguments to
+        create the `pipe` object internally.
+
         Args:
-            ml_grid_object (pipe): The main data pipeline object, which contains
-                the data (X_train, y_train, etc.) and a list of model classes
-                to be evaluated.
             local_param_dict (Dict[str, Any]): A dictionary of parameters for the
                 current experimental run, such as `param_space_size`.
+            **kwargs: Keyword arguments to be passed to the `pipe` constructor.
+                Expected keys include `file_name`, `drop_term_list`, `model_class_dict`,
+                `base_project_dir`, `experiment_dir`, and `outcome_var`.
         """
         self.global_params = global_parameters
         
@@ -81,15 +84,29 @@ class run:
 
         self.verbose = self.global_params.verbose
 
-        self.error_raise = self.global_params.error_raise
+        if 'ml_grid_object' in kwargs:
+            self.ml_grid_object = kwargs['ml_grid_object']
+        else:
+            # Create the pipe object from the provided kwargs
+            pipe_kwargs = {
+                'file_name': kwargs.get('file_name'),
+                'drop_term_list': kwargs.get('drop_term_list'),
+                'model_class_dict': kwargs.get('model_class_dict'),
+                'local_param_dict': local_param_dict,
+                'base_project_dir': kwargs.get('base_project_dir'),
+                'experiment_dir': kwargs.get('experiment_dir'),
+                'outcome_var': kwargs.get('outcome_var'),
+                'param_space_index': kwargs.get('param_space_index', 0)
+            }
+            self.ml_grid_object = pipe(**pipe_kwargs)
 
-        self.ml_grid_object = ml_grid_object
+        self.error_raise = self.global_params.error_raise
 
         self.sub_sample_param_space_pct = self.global_params.sub_sample_param_space_pct
 
         self.parameter_space_size = local_param_dict.get("param_space_size")
 
-        self.model_class_list = ml_grid_object.model_class_list
+        self.model_class_list = self.ml_grid_object.model_class_list
 
         if self.verbose >= 2:
             self.logger.info(f"{len(self.model_class_list)} models loaded")
@@ -104,6 +121,7 @@ class run:
                 pg = ParameterGrid(elem.parameter_space)
                 pg = len(pg)
             else:
+                
                 pg = calculate_combinations(elem.parameter_space, steps=10)
 
             #pg = ParameterGrid(elem.parameter_space)
@@ -179,6 +197,44 @@ class run:
         if self.verbose >= 2:
             self.logger.info(f"Passed main init, len(arg_list): {len(self.arg_list)}")
 
+    def _prepare_run(self, model_class):
+        """Prepares a single model run by creating the necessary arguments."""
+        return (
+            model_class.algorithm_implementation,
+            model_class.parameter_space,
+            model_class.method_name,
+            self.ml_grid_object,
+            self.sub_sample_parameter_val,
+            self.project_score_save_class_instance,
+        )
+
+    def execute_single_model(self, args: Tuple) -> float:
+        """
+        Executes the grid search for a single model and returns its score.
+        This method is designed to be called within a hyperopt objective function.
+        """
+        try:
+            self.logger.info(f"Starting grid search for {args[2]}...")
+            gscv_instance = grid_search_cross_validate.grid_search_crossvalidate(
+                *args
+            )
+            score = gscv_instance.grid_search_cross_validate_score_result
+            self.logger.info(f"Score for {args[2]}: {score:.4f}")
+            return score
+
+        except Exception as e:
+            self.logger.error(
+                f"An exception occurred during grid search for {args[2]}: {e}",
+                exc_info=True,
+            )
+            self.model_error_list.append([args[0], e, traceback.format_exc()])
+            if self.error_raise:
+                self.logger.critical("Halting due to 'error_raise' flag.")
+                raise
+            else:
+                self.logger.warning("Continuing as 'error_raise' is False.")
+                return 0.0  # Return a poor score on failure
+
     def execute(self) -> Tuple[List[List[Any]], float]:
         """Executes the grid search for each model in the list.
 
@@ -223,7 +279,7 @@ class run:
                     self.highest_score = max(self.highest_score, gscv_instance.grid_search_cross_validate_score_result)
                     self.logger.info(f"Current highest score: {self.highest_score:.4f}")
 
-                except Exception as e: # Catches any exception from grid_search_crossvalidate
+                except Exception as e:  # Catches any exception from grid_search_crossvalidate
                     self.logger.error(f"An exception occurred during grid search for {self.arg_list[k][2]}: {e}", exc_info=True)
                     
                     self.model_error_list.append(
