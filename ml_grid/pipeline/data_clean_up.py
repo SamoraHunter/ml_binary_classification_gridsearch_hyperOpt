@@ -1,9 +1,7 @@
 import re
 from typing import List
 import logging
-
 import pandas as pd
-
 from ml_grid.util.global_params import global_parameters
 
 
@@ -83,28 +81,12 @@ class clean_up_class:
             pd.DataFrame: A copy of X with renamed columns if applicable.
         """
         if self.rename_cols:
-            # define a regular expression that matches "[", "]", "<" in the
-            # column name
             regex = re.compile(r"\[|\]|<", re.IGNORECASE)
-
-            # create a new list of column names
             new_col_names: List[str] = []
-
-            # loop through all the column names in X
             for col in X.columns.values:
-                # check if the column name contains any of the characters "[", "]",
-                # "<" using the any() function
                 if any(char in str(col) for char in {"[", "]", "<"}):
-                    # if it does, rename the column by replacing the characters
-                    # "[", "]", "<" with "_"
                     new_col_names.append(regex.sub("_", col))
-                # if the column name does not contain any of the characters "[", "]",
-                # "<", keep the original column name
                 else:
                     new_col_names.append(col)
-
-            # set the column names of X to be the new list of names created above
             X.columns = new_col_names
-
-        # return a copy of X with the new column names
         return X
