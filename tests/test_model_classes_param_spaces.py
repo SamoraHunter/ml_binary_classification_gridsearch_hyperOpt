@@ -85,7 +85,16 @@ class TestAllClassifierParamSpaces(unittest.TestCase):
             kwargs['num_continuous'] = 2
             
         valid_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
-        return classifier_class_def(**valid_kwargs)
+        
+        class_instance = classifier_class_def(**valid_kwargs)
+
+        # For wrappers around estimators that take an 'estimator' parameter (like AdaBoost),
+        # set it on the underlying algorithm implementation directly.
+        if 'estimator' in kwargs and hasattr(class_instance.algorithm_implementation, 'estimator'):
+            # This ensures the base estimator is correctly configured before validation.
+            setattr(class_instance.algorithm_implementation, 'estimator', kwargs['estimator'])
+            
+        return class_instance
 
 
     def _validate_parameter_space(self, classifier_class_def, module_name, is_bayes):
@@ -131,7 +140,9 @@ class TestAllClassifierParamSpaces(unittest.TestCase):
                                 skopt_dimensions.append(values)
                             else:
                                 # Otherwise, interpret as a list of categorical choices
-                                skopt_dimensions.append(Categorical(values, name=param_name))
+                                # Convert numpy arrays and lists to tuples to make them hashable for skopt
+                                processed_values = [tuple(v) if isinstance(v, (np.ndarray, list)) else v for v in values]
+                                skopt_dimensions.append(Categorical(processed_values, name=param_name))
 
                         if not skopt_dimensions:
                             continue
@@ -143,8 +154,13 @@ class TestAllClassifierParamSpaces(unittest.TestCase):
                             sampled_point = optimizer.ask()
                             params = dict(zip([dim.name for dim in skopt_dimensions], sampled_point))
 
-                            class_instance = self._instantiate_classifier(classifier_class_def, parameter_space_size='small')
+                            init_kwargs = {'parameter_space_size': 'small'}
+                            if 'estimator' in params:
+                                init_kwargs['estimator'] = params['estimator']
+                            
+                            class_instance = self._instantiate_classifier(classifier_class_def, **init_kwargs)
                             base_estimator = class_instance.algorithm_implementation
+                            
                             with self.subTest(sample_num=i, params=params):
                                 self._apply_and_validate_params(base_estimator, params)
             else:

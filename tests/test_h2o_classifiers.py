@@ -22,27 +22,6 @@ from ml_grid.model_classes.h2o_stackedensemble_classifier_class import H2O_Stack
 from ml_grid.model_classes.h2o_classifier_class import H2OAutoMLConfig as H2O_class # This is the AutoML class
 
 
-# A session-scoped fixture to initialize H2O once for all tests
-@pytest.fixture(scope="session", autouse=True)
-def h2o_session_fixture():
-    """Initializes H2O at the beginning of the test session and shuts it down at the end."""
-    h2o.init(nthreads=1, log_level="FATA") # Use 1 thread for faster, more stable test runs
-    yield
-    h2o.shutdown(prompt=False)
-
-
-# A pytest fixture to create synthetic data for tests
-@pytest.fixture
-def synthetic_data():
-    """Provides a simple dataset for testing classifiers."""
-    X = pd.DataFrame({
-        'feature1': np.random.rand(50),
-        'feature2': np.random.rand(50),
-        'feature3': np.random.randint(0, 4, 50)
-    })
-    y = pd.Series(np.random.randint(0, 2, 50), name="outcome")
-    return X, y
-
 @pytest.fixture
 def tiny_problematic_data():
     """
@@ -98,11 +77,14 @@ def h2o_model_instance(request, synthetic_data):
     return instance.algorithm_implementation
 
 # Use pytest.mark.parametrize to run the same test for all classifiers
-def test_h2o_classifier_fit_predict(h2o_model_instance, synthetic_data):
+def test_h2o_classifier_fit_predict(h2o_model_instance, synthetic_data, h2o_session_fixture):
     """
     Tests the basic fit and predict functionality of each H2O wrapper.
     """
     X, y = synthetic_data
+    # Clean up frames from any previous test runs to avoid conflicts
+    h2o.remove_all()
+
     estimator = h2o_model_instance
     
     # 1. Fit the model
@@ -134,6 +116,10 @@ def test_h2o_classifiers_with_cross_validation(model_class, tiny_problematic_dat
     """
     X, y = tiny_problematic_data
 
+    # Clean up frames from any previous test runs to avoid conflicts
+    if h2o.cluster().is_running():
+        h2o.remove_all()
+
     # Handle special instantiation for AutoML class
     if model_class == H2O_class:
         instance = model_class(parameter_space_size="small")
@@ -149,10 +135,6 @@ def test_h2o_classifiers_with_cross_validation(model_class, tiny_problematic_dat
     # Use 5-fold CV. On 10 samples, this creates 8-sample training folds.
     cv = KFold(n_splits=5, shuffle=True, random_state=42)
     
-    # Clean up frames from any previous test runs to avoid conflicts
-    if h2o.cluster().is_running():
-        h2o.remove_all()
-
     # The tiny_problematic_data can cause folds with constant features.
     # The H2OBaseClassifier wrapper correctly raises a RuntimeError in this case.
     # We expect this test to either complete successfully OR fail gracefully with
@@ -164,11 +146,15 @@ def test_h2o_classifiers_with_cross_validation(model_class, tiny_problematic_dat
         assert "fit on a single constant feature" in str(e), f"Caught unexpected RuntimeError: {e}"
 
 
-def test_h2o_gam_knot_cardinality_error():
+def test_h2o_gam_knot_cardinality_error(h2o_session_fixture):
     """
     Tests that H2OGAMClassifier raises a specific ValueError when a feature
     in a CV fold has fewer unique values than the number of knots.
     """
+    # The h2o_session_fixture ensures the cluster is running.
+    # Clean up frames from any previous test runs to avoid conflicts
+    h2o.remove_all()
+
     # Create data where 'feature2' has low cardinality
     X = pd.DataFrame({
         'feature1': np.random.rand(20),

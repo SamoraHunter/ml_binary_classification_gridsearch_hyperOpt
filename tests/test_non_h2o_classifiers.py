@@ -23,18 +23,6 @@ from ml_grid.model_classes.light_gbm_class import LightGBMClassifierWrapper
 from ml_grid.model_classes.xgb_classifier_class import XGB_class_class
 
 
-# A pytest fixture to create synthetic data for tests
-@pytest.fixture
-def synthetic_data():
-    """Provides a simple dataset for testing classifiers."""
-    X = pd.DataFrame({
-        'feature1': np.random.rand(50),
-        'feature2': np.random.rand(50),
-        'feature3': np.random.randint(0, 4, 50)
-    })
-    y = pd.Series(np.random.randint(0, 2, 50), name="outcome")
-    return X, y
-
 @pytest.fixture
 def tiny_problematic_data():
     """
