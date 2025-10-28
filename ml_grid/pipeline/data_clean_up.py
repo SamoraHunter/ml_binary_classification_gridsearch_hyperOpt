@@ -1,7 +1,9 @@
 import re
 from typing import List
 import logging
+
 import pandas as pd
+
 from ml_grid.util.global_params import global_parameters
 
 
@@ -31,9 +33,6 @@ class clean_up_class:
             AssertionError: If X is None before or after processing.
         """
         try:
-            if self.verbose > 1:
-                self.logger.info("Dropping duplicated columns")
-
             assert X is not None, "Null pointer exception: X cannot be None."
 
             X = X.loc[:, ~X.columns.duplicated()].copy()
@@ -60,7 +59,6 @@ class clean_up_class:
             X (pd.DataFrame): The DataFrame to screen.
         """
         if self.verbose > 1:
-            self.logger.info("Screening for non float data types:")
             for col in X.columns:
                 if X[col].dtype != int and X[col].dtype != float:
                     self.logger.info(col)
