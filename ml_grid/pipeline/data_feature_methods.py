@@ -110,7 +110,7 @@ class feature_methods:
             svc_kernel (str): The kernel to be used by the SVC model.
                 Defaults to "rbf".
             suppress_print (bool): If True, suppresses stdout from the fit method.
-                Defaults to "rbf".
+                Defaults to True.
 
         Raises:
             TypeError: If X_train is not a pandas DataFrame.
@@ -119,6 +119,9 @@ class feature_methods:
             List[str]: A list containing the names of the top n features from
             the Markov Blanket.
         """
+        import os
+        import sys
+        
         # Ensure input is a pandas DataFrame to access column names
         if not isinstance(X_train, pd.DataFrame):
             raise TypeError(
@@ -131,53 +134,86 @@ class feature_methods:
         stratified_kfold = StratifiedKFold(n_splits=cv, shuffle=True, random_state=27)
 
         # Use the provided classifier, or default to SVC if none is given.
-        model_to_use = classifier if classifier is not None else SVC(random_state=27, class_weight="balanced", kernel=svc_kernel)
-
-        # Initialize the PyImpetus object with desired parameters
-        model = PPIMBC(model=model_to_use,
-                    p_val_thresh=0.05, 
-                    num_simul=num_simul,
-                    simul_size=0.2, 
-                    simul_type=0, 
-                    sig_test_type="non-parametric",
-                    cv=stratified_kfold,
-                    random_state=27,
-                    n_jobs=-1,
-                    # Set verbose to 0 to prevent calls to the problematic
-                    # progress printing function in joblib, which causes the
-                    # 'AttributeError: ... _pre_dispatch_amount'.
-                    verbose=0)
+        # CRITICAL: Set verbose=False for SVC to prevent LibSVM output
+        model_to_use = classifier if classifier is not None else SVC(
+            random_state=27, 
+            class_weight="balanced", 
+            kernel=svc_kernel,
+            verbose=False  # This is the key parameter for LibSVM
+        )
         
-        import os
-        import sys
+        # Ensure verbose is set to False at multiple levels
+        if hasattr(model_to_use, 'set_params'):
+            try:
+                model_to_use.set_params(verbose=False)
+            except:
+                pass
+        if hasattr(model_to_use, 'verbose'):
+            model_to_use.verbose = False
 
-        # Fit and transform the training data
-        # PyImpetus works with numpy arrays and returns feature indices in model.MB
+        # Suppress output at the OS level BEFORE creating any model objects
+        devnull_fd = None
+        old_stdout_fd = None
+        old_stderr_fd = None
+        
+        if suppress_print:
+            try:
+                # Save original file descriptors
+                old_stdout_fd = os.dup(1)
+                old_stderr_fd = os.dup(2)
+                
+                # Open devnull and redirect stdout/stderr to it
+                devnull_fd = os.open(os.devnull, os.O_RDWR)
+                os.dup2(devnull_fd, 1)
+                os.dup2(devnull_fd, 2)
+            except Exception as e:
+                # If suppression fails, just continue without it
+                logging.getLogger('ml_grid').warning(f"Could not suppress output: {e}")
+                suppress_print = False
+
         try:
-            if suppress_print:
-                # Use OS-level redirection to silence C-level libraries like LibSVM
-                devnull = os.open(os.devnull, os.O_WRONLY)
-                old_stdout = os.dup(1)
-                old_stderr = os.dup(2)
-                os.dup2(devnull, 1)
-                os.dup2(devnull, 2)
-                try:
-                    model.fit(X_train.values, y_train)
-                finally:
-                    # Restore original stdout and stderr
-                    os.dup2(old_stdout, 1)
-                    os.dup2(old_stderr, 2)
-                    os.close(devnull)
-                    os.close(old_stdout)
-                    os.close(old_stderr)
-            else:
-                model.fit(X_train.values, y_train)
+            # Initialize the PyImpetus object with desired parameters
+            model = PPIMBC(model=model_to_use,
+                        p_val_thresh=0.05, 
+                        num_simul=num_simul,
+                        simul_size=0.2, 
+                        simul_type=0, 
+                        sig_test_type="non-parametric",
+                        cv=stratified_kfold,
+                        random_state=27,
+                        n_jobs=-1,
+                        verbose=0)
+            
+            # Fit the model (this is where LibSVM prints)
+            model.fit(X_train.values, y_train)
+            
         except ValueError as e:
+            # Restore output before logging
+            if suppress_print and old_stdout_fd is not None:
+                os.dup2(old_stdout_fd, 1)
+                os.dup2(old_stderr_fd, 2)
+                if devnull_fd is not None:
+                    os.close(devnull_fd)
+                os.close(old_stdout_fd)
+                os.close(old_stderr_fd)
+                
             # This handles cases where PyImpetus fails due to numerical precision
             # issues (e.g., y_prob > 1). We'll log the error and fall back to
             # using all original features for this trial.
             logging.getLogger('ml_grid').error(f"PyImpetus failed during fit: {e}. Using all features as a fallback.")
             return list(original_columns)
+        finally:
+            # Always restore stdout/stderr
+            if suppress_print and old_stdout_fd is not None:
+                try:
+                    os.dup2(old_stdout_fd, 1)
+                    os.dup2(old_stderr_fd, 2)
+                    if devnull_fd is not None:
+                        os.close(devnull_fd)
+                    os.close(old_stdout_fd)
+                    os.close(old_stderr_fd)
+                except:
+                    pass  # Silently fail if restoration doesn't work
         
         # Get the feature indices from the Markov blanket (MB)
         selected_features = model.MB
