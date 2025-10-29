@@ -8,8 +8,13 @@ from skopt.space import Categorical, Real, Integer
 
 import logging
 
-class adaboost_class:
-    """AdaBoostClassifier with support for Bayesian and grid search parameter spaces."""
+class AdaBoostClassifierClass:
+    """A class for AdaBoostClassifier that handles both Bayesian and grid search.
+
+    This class encapsulates the AdaBoostClassifier, providing a flexible way to
+    define parameter spaces for hyperparameter tuning. It supports both Bayesian
+    optimization using `skopt` and traditional grid/random search.
+    """
 
     def __init__(
         self,
@@ -17,6 +22,13 @@ class adaboost_class:
         y: Optional[pd.Series] = None,
         parameter_space_size: Optional[str] = None,
     ):
+        """Initializes the AdaBoostClassifierClass.
+
+        Args:
+            X: The input features, not used in this class.
+            y: The target variable, not used in this class.
+            parameter_space_size: The size of the parameter space, not used.
+        """
         self.X = X
         self.y = y
         

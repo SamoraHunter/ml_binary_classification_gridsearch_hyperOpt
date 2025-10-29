@@ -1,4 +1,4 @@
-"""Defines the GaussianNB model class."""
+"""Defines the GaussianNB model class.."""
 
 from typing import Any, Dict, List, Optional
 
@@ -14,7 +14,12 @@ logging.getLogger('ml_grid').debug("Imported gaussiannb class")
 
 
 class GaussianNBWrapper(GaussianNB):
-    """A wrapper for GaussianNB to handle integer-mapped priors for Bayesian search."""
+    """A wrapper for GaussianNB to handle integer-mapped priors for Bayesian search.
+
+    This wrapper allows for the use of integer-based categorical variables for the
+    'priors' parameter in Bayesian optimization, which is then mapped to the
+    actual list of prior probabilities.
+    """
 
     def set_params(self, **params: Any) -> "GaussianNBWrapper":
         """Sets the parameters of the estimator.
@@ -24,10 +29,10 @@ class GaussianNBWrapper(GaussianNB):
         passing it to the parent's set_params method.
 
         Args:
-            **params (Any): Estimator parameters.
+            **params: Estimator parameters.
 
         Returns:
-            GaussianNBWrapper: The instance with updated parameters.
+            The instance with updated parameters.
         """
         prior_mapping: Dict[int, Optional[List[float]]] = {
             0: None,  # Default priors (based on the class distribution in the dataset)
@@ -48,31 +53,33 @@ class GaussianNBWrapper(GaussianNB):
         return super().set_params(**params)
 
 
-class GaussianNB_class:
-    """GaussianNB classifier with hyperparameter tuning support."""
+class GaussianNBClassifierClass:
+    """A GaussianNB classifier with support for hyperparameter tuning.
+
+    This class defines the parameter space for the GaussianNB classifier and
+    initializes it with either a standard implementation or a wrapper for
+
+    Bayesian search.
+    """
 
     def __init__(
         self,
         X: Optional[pd.DataFrame] = None,
         y: Optional[pd.Series] = None,
         parameter_space_size: Optional[str] = None,
-    ):
-        """Initializes the GaussianNB_class.
+    ) -> None:
+        """Initializes the GaussianNBClassifierClass.
 
         Args:
-            X (Optional[pd.DataFrame]): Feature matrix for training.
-                Defaults to None.
-            y (Optional[pd.Series]): Target vector for training.
-                Defaults to None.
-            parameter_space_size (Optional[str]): Size of the parameter space for
-                optimization. Defaults to None.
+            X (Optional[pd.DataFrame]): The input features. Defaults to None.
+            y (Optional[pd.Series]): The target variable. Defaults to None.
+            parameter_space_size (Optional[str]): The size of the parameter
+              space. Defaults to None.
         """
-
-        global_params = global_parameters
         self.X = X
         self.y = y
 
-        if global_params.bayessearch is False:
+        if not global_parameters.bayessearch:
             self.algorithm_implementation = GaussianNB()
         else:
             self.algorithm_implementation = (
@@ -81,10 +88,7 @@ class GaussianNB_class:
 
         self.method_name = "GaussianNB"
 
-        self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
-        # print(self.parameter_vector_space)
-
-        if global_params.bayessearch:
+        if global_parameters.bayessearch:
             # For BayesSearchCV, use distributions from skopt.space
             self.parameter_space = {
                 'var_smoothing': Real(1e-9, 1e-2, prior='log-uniform'),
@@ -96,10 +100,6 @@ class GaussianNB_class:
 
         else:
             # For traditional grid search, use lists
-            self.new_list = list(
-                self.parameter_vector_space.param_dict.get("log_small")
-            ).copy()
-            self.new_list.append(1e-9)  # Add the small value explicitly
             self.parameter_space = {
                 "priors": [
                     None,
@@ -111,9 +111,5 @@ class GaussianNB_class:
                     [0.6, 0.4],
                     [0.4, 0.6],
                 ],  # Enumerates possible values as a list
-                "var_smoothing": self.new_list,
+                "var_smoothing": list(param_space.ParamSpace(parameter_space_size).param_dict.get("log_small")) + [1e-9],
             }
-
-        return None
-
-        # print("init log reg class ", self.parameter_space)

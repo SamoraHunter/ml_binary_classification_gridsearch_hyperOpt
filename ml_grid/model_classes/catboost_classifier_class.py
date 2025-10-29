@@ -8,26 +8,28 @@ from ml_grid.util import param_space
 from ml_grid.util.global_params import global_parameters
 import logging
 
-class CatBoost_class:
-    """CatBoost Classifier with hyperparameter tuning."""
+class CatBoostClassifierClass:
+    """A class for the CatBoost Classifier.
+
+    This class encapsulates the CatBoostClassifier, providing a flexible way to
+    define parameter spaces for hyperparameter tuning. It supports both Bayesian
+    optimization using `skopt` and traditional grid/random search.
+    """
 
     def __init__(
         self,
         X: Optional[pd.DataFrame] = None,
         y: Optional[pd.Series] = None,
         parameter_space_size: Optional[str] = None,
-    ):
-        """Initializes the CatBoost_class.
+    ) -> None:
+        """Initializes the CatBoostClassifierClass.
 
         Args:
-            X (Optional[pd.DataFrame]): Feature matrix for training.
-                Defaults to None.
-            y (Optional[pd.Series]): Target vector for training.
-                Defaults to None.
-            parameter_space_size (Optional[str]): Size of the parameter space for
-                optimization. Defaults to None.
+            X (Optional[pd.DataFrame]): The input features. Defaults to None.
+            y (Optional[pd.Series]): The target variable. Defaults to None.
+            parameter_space_size (Optional[str]): The size of the parameter
+              space. Defaults to None.
         """
-        global_params = global_parameters  # Fetch global parameters
         self.X = X
         self.y = y
 
@@ -35,11 +37,8 @@ class CatBoost_class:
         self.algorithm_implementation = CatBoostClassifier()
         self.method_name = "CatBoostClassifier"
 
-        # Initialize parameter vector space
-        self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
-
         # Define parameter space for Bayesian search or traditional grid search
-        if global_params.bayessearch:
+        if global_parameters.bayessearch:
             self.parameter_space = {
                 "iterations": Integer(100, 1000),
                 "learning_rate": Real(0.01, 0.3, prior="uniform"),
@@ -88,5 +87,3 @@ class CatBoost_class:
                 "allow_const_label": [True],
             }]
             logging.getLogger('ml_grid').debug(f"Traditional Parameter Space for CatBoost: {self.parameter_space}")
-
-        return None
