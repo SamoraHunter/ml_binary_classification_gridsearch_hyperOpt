@@ -153,10 +153,20 @@ class grid_search_crossvalidate:
 
         self.y_test_orig = self.ml_grid_object_iter.y_test_orig
 
-        # --- DEFINITIVE FIX for H2O data type error in CV ---
-        # Convert the target variable to a categorical type *before* it's passed
-        # to any H2O or search function. This ensures H2OFrame correctly infers
-        # the type, even in complex nested pipelines like BayesSearchCV.
+        # --- ROBUST DATA TYPE HANDLING ---
+        # Ensure X_train is a pandas DataFrame and y_train is a pandas Series
+        # with aligned indices. This handles inputs being numpy arrays (from tests)
+        # or pandas objects, preventing AttributeError and ensuring consistency.
+
+        # 1. Ensure X_train is a DataFrame.
+        if not isinstance(self.X_train, pd.DataFrame):
+            self.X_train = pd.DataFrame(self.X_train).rename(columns=str)
+
+        # 2. Ensure y_train is a Series, using X_train's index for alignment.
+        if not isinstance(self.y_train, (pd.Series, pd.DataFrame)):
+            self.y_train = pd.Series(self.y_train, index=self.X_train.index)
+
+        # 3. Ensure target is categorical for classification models (especially H2O).
         self.y_train = self.y_train.astype('category')
 
         # --- CRITICAL FIX for H2O Stacked Ensemble response column mismatch ---
