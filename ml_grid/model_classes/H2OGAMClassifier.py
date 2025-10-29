@@ -123,9 +123,15 @@ class H2OGAMClassifier(H2OBaseClassifier):
                 try:
                     quantiles = np.linspace(0, 1, required_knots)
                     knot_values = X[col].quantile(quantiles)
-                    if knot_values.nunique() < required_knots:
+                    # Check for enough unique values AND that they are monotonically increasing
+                    # The diff() will be > 0 for all elements in a strictly increasing series.
+                    are_knots_valid = (knot_values.nunique() >= required_knots) and \
+                                      (np.all(np.diff(knot_values.to_numpy()) > 0))
+
+                    if not are_knots_valid:
                         self.logger.warning(
-                            f"Excluding GAM column '{col}': Not enough unique values to generate distinct knots."
+                            f"Excluding GAM column '{col}': Not enough unique values to generate distinct, "
+                            f"monotonically increasing knots."
                         )
                         continue
                 except Exception as e:

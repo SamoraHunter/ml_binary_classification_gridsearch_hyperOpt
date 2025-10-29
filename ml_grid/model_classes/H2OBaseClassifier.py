@@ -427,17 +427,22 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         # Ensure the model is loaded (critical for cross-validation)
         self._ensure_model_is_loaded()
 
-        # Create H2O frame with explicit column names
-        # --- ROBUSTNESS FIX for java.lang.NullPointerException ---
-        # Instead of creating the frame directly, upload the data and then assign it.
-        # This seems to create a more 'stable' frame in the H2O cluster, preventing
-        # internal errors during prediction with some models like GLM.
         try:
-            # Create a temporary H2OFrame by uploading the pandas DataFrame
-            tmp_frame = h2o.H2OFrame(X, column_names=self.feature_names_, column_types=self.feature_types_)
+            # --- ROBUSTNESS FIX for java.lang.NullPointerException ---
+            # Instead of creating the frame directly, upload the data and then assign it.
+            # This seems to create a more 'stable' frame in the H2O cluster, preventing
+            # internal errors during prediction with some models like GLM.
+            
+            # Create a temporary H2OFrame by uploading the pandas DataFrame.
+            # We ensure column names and types match what the model was trained on.
+            tmp_frame = h2o.H2OFrame(
+                X, 
+                column_names=self.feature_names_, 
+                column_types=self.feature_types_
+            )
             
             # Assign it to a unique key in the H2O cluster. This is more reliable.
-            frame_id = f"predict_frame_{self.model_id}_{pd.Timestamp.now().strftime('%Y%m%d%H%M%S%f')}"
+            frame_id = f"predict_frame_{self.model_id}_{pd.Timestamp.now().strftime('%Y%m%d%H%M%S%f')}" # noqa
             h2o.assign(tmp_frame, frame_id)
             
             # Get a handle to the newly created frame

@@ -162,11 +162,17 @@ class run:
                         
 
         # sample from mean of all param space n
-        self.mean_parameter_space_val = np.mean(self.pg_list)
-
-        self.sub_sample_parameter_val = int(
-            self.sub_sample_param_space_pct * self.mean_parameter_space_val
-        )
+        if self.pg_list:
+            self.mean_parameter_space_val = np.mean(self.pg_list)
+            self.sub_sample_parameter_val = int(
+                self.sub_sample_param_space_pct * self.mean_parameter_space_val
+            )
+        else:
+            self.logger.warning(
+                "Parameter grid list is empty; no models were loaded. Setting parameter space values to 0."
+            )
+            self.mean_parameter_space_val = 0
+            self.sub_sample_parameter_val = 0
 
         # Initialize the project_score_save_class instance once per run
         # The ml_grid_object should have the experiment_dir set
@@ -283,8 +289,8 @@ class run:
                     self.logger.error(f"An exception occurred during grid search for {self.arg_list[k][2]}: {e}", exc_info=True)
                     
                     self.model_error_list.append(
-                        [self.arg_list[k][0], e, traceback.print_exc()]
-                    ) # traceback is printed to stderr, not captured here.
+                        [self.arg_list[k][0], e, traceback.format_exc()]
+                    )
                     
                     # Based on the 'error_raise' flag, either halt execution or log and continue.
                     if self.error_raise:

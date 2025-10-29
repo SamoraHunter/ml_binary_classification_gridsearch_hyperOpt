@@ -452,21 +452,6 @@ class grid_search_crossvalidate:
                 if not getattr(self.global_parameters, 'test_mode', False):
                     # Fit on the full training data first
                     current_algorithm.fit(self.X_train, self.y_train)
-                
-                # --- TENSORFLOW PERFORMANCE FIX (Corrected Position) ---
-                # Pre-compile the predict function for Keras/TF models to avoid retracing warnings.
-                # This is done AFTER fitting and before cross-validation.
-                if isinstance(current_algorithm, (KerasClassifier, kerasClassifier_class, NeuralNetworkClassifier)):
-                    try:
-                        self.logger.debug("Pre-compiling TensorFlow predict function to avoid retracing.")
-                        n_features = self.X_train.shape[1]
-                        # Define an input signature that allows for variable batch size.
-                        input_signature = [tf.TensorSpec(shape=(None, n_features), dtype=tf.float32)]
-                        # Access the underlying Keras model via .model_
-                        current_algorithm.model_.predict.get_concrete_function(input_signature)
-                    except Exception as e:
-                        self.logger.warning(f"Could not pre-compile TF function. Performance may be impacted. Error: {e}")
-                
                 # --- CRITICAL FIX: Pass the pandas Series, not the numpy array ---
                 # Passing the numpy array (y_train.to_numpy()) causes index misalignment
                 # with the pandas DataFrame (X_train_final) inside sklearn's CV,
@@ -481,6 +466,21 @@ class grid_search_crossvalidate:
                     pre_dispatch=80,
                     error_score=self.error_raise,  # Raise error if cross-validation fails
                 )
+                
+                # --- TENSORFLOW PERFORMANCE FIX (Corrected Position) ---
+                # Pre-compile the predict function for Keras/TF models to avoid retracing warnings.
+                # This is done AFTER fitting and before cross-validation.
+                if isinstance(current_algorithm, (KerasClassifier, kerasClassifier_class, NeuralNetworkClassifier)):
+                    try:
+                        self.logger.debug("Pre-compiling TensorFlow predict function to avoid retracing.")
+                        n_features = self.X_train.shape[1]
+                        # Define an input signature that allows for variable batch size.
+                        input_signature = [tf.TensorSpec(shape=(None, n_features), dtype=tf.float32)]
+                        # Access the underlying Keras model via .model_
+                        current_algorithm.model_.predict.get_concrete_function(input_signature)
+                    except Exception as e:
+                        self.logger.warning(f"Could not pre-compile TF function. Performance may be impacted. Error: {e}")
+
 
 
         except XGBoostError as e:
