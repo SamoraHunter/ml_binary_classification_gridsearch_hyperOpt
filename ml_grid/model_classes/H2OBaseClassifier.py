@@ -272,8 +272,8 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                 model_params.setdefault('ignore_const_cols', False)
 
         # --- ROBUSTNESS FIX: Save checkpoints for model recovery ---
-        if 'export_checkpoints_dir' in estimator_params:
-            model_params["export_checkpoints_dir"] = self._checkpoint_dir
+        # Unconditionally add checkpoint directory. All H2O estimators support this.
+        model_params["export_checkpoints_dir"] = self._checkpoint_dir
 
         return train_h2o, x_vars, outcome_var, model_params
 
