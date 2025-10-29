@@ -88,8 +88,8 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
     def __del__(self):
         """Cleans up the shared checkpoint directory if this is the last instance."""
         # This is a best-effort cleanup. In multi-process scenarios,
-        # the directory might be in use by other processes.
-        if os.path.exists(self._checkpoint_dir) and not os.listdir(self._checkpoint_dir):
+        # the directory might be in use by other processes. Add hasattr check for partial init.
+        if hasattr(self, '_checkpoint_dir') and os.path.exists(self._checkpoint_dir) and not os.listdir(self._checkpoint_dir):
             shutil.rmtree(self._checkpoint_dir, ignore_errors=True)
             logger.debug(f"Cleaned up empty shared checkpoint directory: {self._checkpoint_dir}")
 
@@ -132,7 +132,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         Raises:
             ValueError: If data is invalid
         """
-        # Convert to DataFrame if needed
+        # Convert to DataFrame if needed and ensure columns are strings
         if not isinstance(X, pd.DataFrame):
             if self.feature_names_ is not None:
                 X = pd.DataFrame(X, columns=self.feature_names_)
@@ -142,8 +142,14 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                         f"Input data (X) has {X.shape[1]} columns, but expected {len(self.feature_names_)} "
                         f"based on training features. Please ensure column count matches."
                     ) # This was the syntax error fix
-            else: # This else block should be aligned with the outer 'if self.feature_names_ is not None:'
+            else:
+                # If X is a numpy array, convert it to a DataFrame and ensure
+                # its columns are strings to prevent KeyErrors with H2O.
                 X = pd.DataFrame(X)
+                X.columns = X.columns.astype(str)
+        else:
+            # If it's already a DataFrame, still ensure columns are strings.
+            X.columns = X.columns.astype(str)
         
         # Reset index to avoid sklearn CV indexing issues
         # CRITICAL: If we reset X, we MUST also reset y to maintain alignment.
@@ -272,8 +278,9 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                 model_params.setdefault('ignore_const_cols', False)
 
         # --- ROBUSTNESS FIX: Save checkpoints for model recovery ---
-        # Unconditionally add checkpoint directory. All H2O estimators support this.
-        model_params["export_checkpoints_dir"] = self._checkpoint_dir
+        # Conditionally add checkpoint directory, as not all estimators (e.g., RuleFit) support it.
+        if 'export_checkpoints_dir' in estimator_params:
+            model_params["export_checkpoints_dir"] = self._checkpoint_dir
 
         return train_h2o, x_vars, outcome_var, model_params
 
@@ -293,6 +300,15 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             for key, value in all_params.items()
             if key in valid_param_keys
         }
+
+        # --- FIX for H2OTypeError (e.g., max_depth, sample_rate, learn_rate) ---
+        # Scikit-learn's ParameterGrid/RandomizedSearchCV can pass single-element numpy arrays or lists.
+        # H2O expects native Python types (int, float), so we convert them.
+        for key, value in model_params.items():
+            if isinstance(value, np.ndarray) and value.size == 1:
+                model_params[key] = value.item()
+            elif isinstance(value, list) and len(value) == 1:
+                model_params[key] = value[0]
 
         return model_params
 
@@ -575,31 +591,28 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         self.logger.debug(f"__sklearn_clone__ called: original instance {id(self)}, clone instance {id(cloned)}")
         return cloned # Removing dead code
 
-    @classmethod
-    def _get_param_names(cls):
+    def _get_param_names(self):
         """Get parameter names for the estimator.
         
         This override is necessary because we use **kwargs in __init__.
+        It's an instance method to access parameters stored on self.
         
         CRITICAL: This should ONLY return parameter names, NOT fitted attribute names.
         """
-        init_signature = inspect.signature(cls.__init__)
+        init_signature = inspect.signature(self.__class__.__init__)
         init_params = [p.name for p in init_signature.parameters.values() 
                       if p.name not in ('self', 'args', 'kwargs')]
 
-        # For instances, also include kwargs that were set
-        if not isinstance(cls, type):
-            extra_params = [
-                key for key in cls.__dict__
-                if not key.startswith('_')  # Exclude private attributes
-                and not key.endswith('_')    # CRITICAL: Exclude fitted attributes
-                and key not in init_params
-                and key not in ['estimator_class', 'logger']  # Exclude special attributes
-                and key not in ['model', 'model_', 'classes_', 'feature_names_', 'model_id']  # Exclude fitted
-            ]
-            return sorted(init_params + extra_params)
+        extra_params = [
+            key for key in self.__dict__
+            if not key.startswith('_')
+            and not (key.endswith('_') and key != 'lambda_') # Allow lambda_
+            and key not in init_params
+            and key not in ['estimator_class', 'logger']
+            and key not in ['model', 'model_', 'classes_', 'feature_names_', 'model_id']
+        ]
         
-        return sorted(init_params)
+        return sorted(init_params + extra_params)
 
     def set_params(self: "H2OBaseClassifier", **kwargs: Any) -> "H2OBaseClassifier":
         """Sets the parameters of this estimator.

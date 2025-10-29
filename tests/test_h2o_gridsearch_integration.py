@@ -1,3 +1,5 @@
+import pandas as pd
+import pandas as pd
 import pytest
 import numpy as np
 import h2o
@@ -150,22 +152,21 @@ def test_h2o_search_integrations(model_class, search_strategy, synthetic_data, h
     maximum isolation between test runs, which is more stable for H2O.
     """
     X, y = synthetic_data
+    X_df = pd.DataFrame(X)
+    y_series = pd.Series(y)
     
     if model_class == H2O_class:
         instance = model_class(parameter_space_size="small")
     else:
-        instance = model_class(X=X, y=y, parameter_space_size="small")
+        instance = model_class(X=X_df, y=y_series, parameter_space_size="small")
 
-    mock_ml_grid_object = MockMlGridObject(X, y, search_strategy=search_strategy)
+    mock_ml_grid_object = MockMlGridObject(X_df, y_series, search_strategy=search_strategy)
 
     param_space = _prepare_h2o_param_space(
         instance=instance,
         model_class=model_class,
         search_strategy=search_strategy
     )
-
-    # Clean H2O state before each test
-    h2o.remove_all()
 
     result = grid_search_crossvalidate(
         algorithm_implementation=instance.algorithm_implementation,
@@ -176,9 +177,6 @@ def test_h2o_search_integrations(model_class, search_strategy, synthetic_data, h
     
     assert isinstance(result.grid_search_cross_validate_score_result, float)
     
-    # Additional cleanup
-    h2o.remove_all()
-
 
 @pytest.mark.slow
 @pytest.mark.parametrize("search_strategy", ["random"])  # Only test one strategy for slow models
@@ -189,16 +187,16 @@ def test_h2o_slow_models(model_class, search_strategy, synthetic_data, h2o_sessi
     """
     X, y = synthetic_data
     
-    instance = model_class(X=X, y=y, parameter_space_size="small")
-    mock_ml_grid_object = MockMlGridObject(X, y, search_strategy=search_strategy)
+    X_df = pd.DataFrame(X)
+    y_series = pd.Series(y)
+    instance = model_class(X=X_df, y=y_series, parameter_space_size="small")
+    mock_ml_grid_object = MockMlGridObject(X_df, y_series, search_strategy=search_strategy)
 
     param_space = _prepare_h2o_param_space(
         instance=instance,
         model_class=model_class,
         search_strategy=search_strategy
     )
-
-    h2o.remove_all()
 
     result = grid_search_crossvalidate(
         algorithm_implementation=instance.algorithm_implementation,
@@ -208,4 +206,3 @@ def test_h2o_slow_models(model_class, search_strategy, synthetic_data, h2o_sessi
     )
     
     assert isinstance(result.grid_search_cross_validate_score_result, float)
-    h2o.remove_all()

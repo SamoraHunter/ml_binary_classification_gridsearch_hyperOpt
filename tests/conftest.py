@@ -1,30 +1,76 @@
-"""
-Pytest configuration file for shared fixtures.
-
-This file makes fixtures available to all test files in this directory
-and its subdirectories without needing to import them.
-"""
+# tests/conftest.py
 
 import pytest
-import pandas as pd
-import numpy as np
 import h2o
-
-# Add the project root directory to the Python path
-import sys
+import logging
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+# --- Tame TensorFlow ---
+# Set log level to suppress info/warnings before importing
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+try:
+    import tensorflow as tf
+    # Explicitly prevent TF from allocating any GPU memory.
+    # This stops it from conflicting with H2O's Java VM.
+    tf.config.set_visible_devices([], 'GPU') 
+    print("\n--- [Fixture Config] TensorFlow GPU explicitly disabled. ---")
+except ImportError:
+    print("\n--- [Fixture Config] TensorFlow not found, skipping GPU disable. ---")
+    pass
+# --- End Tame TensorFlow ---
+
 
 @pytest.fixture(scope="session")
 def h2o_session_fixture():
-    """Initializes H2O once per test session for stability and speed."""
-    h2o.init(nthreads=1, log_level="FATA")
-    yield
-    h2o.shutdown(prompt=False)
+    """
+    Session-scoped fixture to initialize and shut down the H2O cluster.
+    This ensures h2o.init() is called only ONCE for the entire test session.
+    """
+    print("\n--- [H2O Fixture] Initializing H2O cluster... ---")
+    
+    # Stop h2o from printing progress bars, which can hang in pytest
+    h2o.no_progress()
+    
+    # Set up logging
+    logging.getLogger('h2o').setLevel(logging.DEBUG)
+
+    try:
+        # Start the H2O cluster. 
+        h2o.init(
+            nthreads=-1,  # Use all available cores
+            max_mem_size="4g", # Adjust as needed
+            log_level="DEBUG" 
+        )
+        print("--- [H2O Fixture] H2O cluster initialized successfully. ---")
+        
+        # Yield to let the tests run
+        yield
+        
+    finally:
+        # This code runs *after* all tests in the session are complete
+        print("\n--- [H2O Fixture] Shutting down H2O cluster... ---")
+        
+        # Call remove_all() BEFORE shutdown() to avoid ConnectionError
+        h2o.remove_all()
+        h2o.cluster().shutdown()
+        
+        print("--- [H2O Fixture] H2O cluster shutdown complete. ---")
 
 @pytest.fixture(scope="session")
 def synthetic_data():
-    """Provides a simple, reusable dataset for testing classifiers."""
-    X = pd.DataFrame(np.random.rand(50, 3), columns=['f1', 'f2', 'f3'])
-    y = pd.Series(np.random.randint(0, 2, 50), name="outcome")
-    return X, y
+    """Generates simple synthetic data for classification."""
+    try:
+        from sklearn.datasets import make_classification
+        
+        # Keep n_samples large as a safety precaution
+        X, y = make_classification(
+            n_samples=1000,
+            n_features=10,
+            n_informative=5,
+            n_redundant=0,
+            n_classes=2,
+            random_state=42
+        )
+        return X, y
+    except ImportError:
+        pytest.skip("sklearn not installed, skipping synthetic_data generation")

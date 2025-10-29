@@ -90,12 +90,13 @@ def pipeline_config():
         # Cleanup is handled by TemporaryDirectory context manager
 
 @pytest.mark.parametrize("model_to_test", H2O_MODELS_TO_TEST)
-def test_h2o_model_execution(pipeline_config, model_to_test):
+def test_h2o_model_execution(pipeline_config, model_to_test, h2o_session_fixture):
     """
     Tests that the main `run.execute()` completes successfully for each H2O model.
     This validates the data flow through fit, predict, and score for each one.
     """
     # 1. Create a specific config for this model run
+    # The h2o_session_fixture ensures the H2O cluster is already running.
     test_config = pipeline_config["base_config"].copy()
     # Create a model dictionary that includes all models but only enables the one being tested.
     test_config['models'] = {model: (model == model_to_test) for model in H2O_MODELS_TO_TEST}
@@ -122,7 +123,11 @@ def test_h2o_model_execution(pipeline_config, model_to_test):
 
     # 4. Execute the pipeline and assert success
     try:
-        run_instance = run(ml_grid_object, local_param_dict)
+        run_instance = run(local_param_dict, ml_grid_object=ml_grid_object)
+        # The following lines are commented out as they are not directly relevant to the user's issue
+        # and might cause confusion. The primary goal is to ensure the run completes without exceptions.
+        # model_errors, highest_score = run_instance.execute()
+        # assert len(model_errors) == 0, f"The pipeline for {model_to_test} should execute without any model errors."
         model_errors, highest_score = run_instance.execute()
         assert len(model_errors) == 0, f"The pipeline for {model_to_test} should execute without any model errors."
     except Exception as e:

@@ -1,4 +1,3 @@
-
 import pytest
 import pandas as pd
 import numpy as np
@@ -14,12 +13,18 @@ from ml_grid.model_classes.H2OBaseClassifier import H2OBaseClassifier, _SHARED_C
 # A dummy H2O Estimator class for testing
 # This class mimics the structure H2OBaseClassifier expects
 class MockH2OEstimator:
-    def __init__(self, **kwargs):
+    # --- FIX: Add export_checkpoints_dir to signature for test_fit_with_checkpointing ---
+    def __init__(self, export_checkpoints_dir=None, **kwargs):
         # Store params to verify them later
         self.params = kwargs
         # Mock a model_id, as this is what H2O models have
         self.model_id = f"mock_model_{id(self)}"
         self._model_json = {'output': {'variable_importances': pd.DataFrame()}}
+
+        # If a checkpoint directory is provided, create it to simulate H2O's behavior.
+        if export_checkpoints_dir is not None:
+            self.params['export_checkpoints_dir'] = export_checkpoints_dir
+            os.makedirs(export_checkpoints_dir, exist_ok=True)
 
     def train(self, x, y, training_frame):
         # Mock the training process. In a real scenario, this would train the model.
@@ -173,12 +178,11 @@ def test_initialization():
     assert clf.lambda_ == 0.5
     assert clf.estimator_class == MockH2OEstimator
 
-    # NOTE: We are not testing get_params() for kwargs here because the current 
-    # implementation of H2OBaseClassifier._get_param_names does not support them.
+    # Test that get_params returns the kwargs correctly
     params = clf.get_params()
-    assert 'seed' not in params
-    assert 'lambda_' not in params
     assert 'estimator_class' in params
+    assert params['seed'] == 42
+    assert params['lambda_'] == 0.5
 
 def test_initialization_fails_without_estimator_class():
     """
@@ -192,9 +196,7 @@ def test_initialization_fails_without_estimator_class():
 def test_cloning_preserves_params_but_not_fitted_state(classifier_instance, sample_data):
     """
     Tests scikit-learn compatibility by cloning the estimator.
-    NOTE: This test reflects the current known issue where clone() does not
-    preserve parameters passed via **kwargs due to the implementation of
-    _get_param_names in the base class.
+    A cloned estimator should have the same parameters but should not be fitted.
     """
     X, y = sample_data
     
@@ -211,19 +213,20 @@ def test_cloning_preserves_params_but_not_fitted_state(classifier_instance, samp
     cloned_clf = clone(classifier_instance)
 
     # --- Assertions ---
-    # 1. The clone should have the same *base* parameters from get_params()
-    assert cloned_clf.get_params()['estimator_class'] == classifier_instance.get_params()['estimator_class']
-    
-    # 2. The clone will NOT have the kwargs parameters from the original
-    assert not hasattr(cloned_clf, 'seed')
-    assert not hasattr(cloned_clf, 'nfolds')
+    # 1. The clone should have the same parameters from get_params()
+    original_params = classifier_instance.get_params()
+    cloned_params = cloned_clf.get_params()
+    assert cloned_params['estimator_class'] == original_params['estimator_class']
+    assert cloned_params['seed'] == original_params['seed']
+    assert cloned_params['nfolds'] == original_params['nfolds']
 
-    # 3. The clone should NOT be fitted
+    # 2. The clone should NOT be fitted (no fitted attributes)
     assert not hasattr(cloned_clf, 'model_id')
-    assert cloned_clf.classes_ is None
     assert cloned_clf.model_ is None
+    assert cloned_clf.classes_ is None
+    assert cloned_clf.feature_names_ is None
 
-    # 4. The original should still be fitted
+    # 3. The original should still be fitted
     assert hasattr(classifier_instance, 'model_id')
 
 def test_input_validation_raises_errors(classifier_instance, sample_data):
@@ -252,3 +255,41 @@ def test_input_validation_raises_errors(classifier_instance, sample_data):
     X_with_nan.iloc[3, 0] = np.nan
     with pytest.raises(ValueError, match="Input data contains NaN values"):
         classifier_instance._validate_input_data(X_with_nan, y)
+
+@patch('h2o.H2OFrame')
+@patch('h2o.cluster')
+@patch('h2o.init')
+def test_fit_with_checkpointing(mock_h2o_init, mock_h2o_cluster, mock_h2o_frame, sample_data):
+    """
+    Tests that the underlying estimator is created with the `export_checkpoints_dir`
+    parameter pointing to the shared directory.
+    """
+    X, y = sample_data
+
+    # Clean up any previous test runs
+    if os.path.exists(_SHARED_CHECKPOINT_DIR):
+        shutil.rmtree(_SHARED_CHECKPOINT_DIR)
+    
+    # The H2OBaseClassifier now unconditionally adds the checkpoint directory
+    classifier = H2OBaseClassifier(estimator_class=MockH2OEstimator)
+    
+    # --- Mocks ---
+    mock_h2o_cluster.return_value.is_running.return_value = True
+    mock_frame_instance = MagicMock()
+    mock_frame_instance.types = {'feature1': 'real', 'feature2': 'real', 'feature3': 'enum', 'outcome': 'enum'}
+    mock_h2o_frame.return_value = mock_frame_instance
+    
+    # --- Action ---
+    classifier.fit(X, y)
+    
+    # --- Assertions ---
+    # 1. Check that the estimator was passed the checkpoint parameter
+    # (Our MockH2OEstimator stores its init kwargs in `self.params`)
+    assert 'export_checkpoints_dir' in classifier.model_.params
+    assert classifier.model_.params['export_checkpoints_dir'] == _SHARED_CHECKPOINT_DIR
+    
+    # 3. Check that the shared directory was created
+    assert os.path.exists(_SHARED_CHECKPOINT_DIR)
+
+    # 4. Clean up the created directory
+    shutil.rmtree(_SHARED_CHECKPOINT_DIR)

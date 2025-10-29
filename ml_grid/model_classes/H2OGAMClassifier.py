@@ -37,6 +37,8 @@ class H2OGAMClassifier(H2OBaseClassifier):
         self._fallback_to_glm = False # Reset flag
 
         # --- 1. Parameter Preprocessing for GAM ---
+        self.logger.debug(f"DEBUG: Before GAM column processing, model_params['gam_columns'] type: {type(model_params.get('gam_columns'))}, value: {model_params.get('gam_columns')}")
+
         if 'gam_columns' not in model_params or not model_params['gam_columns']:
              self.logger.warning("H2OGAMClassifier: 'gam_columns' not provided or empty. Defaulting to all numerical features.")
              numeric_cols = [col for col in x_vars if train_h2o[col].types[col] in ['int', 'real']]
@@ -46,6 +48,12 @@ class H2OGAMClassifier(H2OBaseClassifier):
              model_params['gam_columns'] = [model_params['gam_columns']]
         elif isinstance(model_params['gam_columns'], tuple):
              model_params['gam_columns'] = list(model_params['gam_columns'])
+        # --- FIX for TypeError: object of type 'int' has no len() ---
+        elif isinstance(model_params['gam_columns'], int):
+             # If an integer is passed (e.g., from a hyperparameter search),
+             # convert it to a list containing the column name as a string.
+             # H2O expects column names to be strings.
+             model_params['gam_columns'] = [str(model_params['gam_columns'])]
         elif isinstance(model_params['gam_columns'], list) and model_params['gam_columns'] and isinstance(model_params['gam_columns'][0], list):
              model_params['gam_columns'] = [item for sublist in model_params['gam_columns'] for item in sublist]
 
@@ -127,7 +135,7 @@ class H2OGAMClassifier(H2OBaseClassifier):
                 suitable_gam_cols.append(col)
                 suitable_knots.append(required_knots)
                 if i < len(bs_list): suitable_bs.append(bs_list[i])
-                if i < len(scale_list): suitable_scale.append(scale_list[i])
+                if scale_list and i < len(scale_list): suitable_scale.append(scale_list[i])
 
             if not suitable_gam_cols:
                 self.logger.warning("No suitable GAM columns found after checking cardinality. Falling back to GLM.")

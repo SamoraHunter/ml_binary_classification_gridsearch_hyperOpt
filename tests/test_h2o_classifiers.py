@@ -93,12 +93,12 @@ def test_h2o_classifier_fit_predict(h2o_model_instance, synthetic_data, h2o_sess
     # 2. Predict labels
     predictions = estimator.predict(X)
     assert isinstance(predictions, np.ndarray), "predict() should return a numpy array"
-    assert predictions.shape == (50,), "Prediction array has incorrect shape"
+    assert predictions.shape == (X.shape[0],), "Prediction array has incorrect shape"
     
     # 3. Predict probabilities
     proba_predictions = estimator.predict_proba(X)
     assert isinstance(proba_predictions, np.ndarray), "predict_proba() should return a numpy array"
-    assert proba_predictions.shape == (50, 2), "Probability array has incorrect shape"
+    assert proba_predictions.shape == (X.shape[0], 2), "Probability array has incorrect shape"
     assert np.allclose(np.sum(proba_predictions, axis=1), 1.0), "Probabilities should sum to 1"
 
     # 4. Test set_params and get_params
