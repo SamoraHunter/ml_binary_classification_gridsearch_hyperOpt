@@ -161,16 +161,36 @@ class H2OGAMClassifier(H2OBaseClassifier):
     def fit(self, X: pd.DataFrame, y: pd.Series, **kwargs) -> "H2OGAMClassifier":
         """Fits the H2O GAM model, falling back to GLM if necessary."""
         # The base class fit will call our overridden _prepare_fit
-        original_estimator_class = self.estimator_class
-        if self._fallback_to_glm:
-            self.estimator_class = H2OGeneralizedLinearEstimator
+        # We need to explicitly call _prepare_fit here to set _fallback_to_glm
+        # and get the processed parameters.
+        
+        # --- CRITICAL FIX: Manually call validation ---
+        # This ensures that if X is a numpy array, it's converted to a DataFrame
+        # with string columns before being passed to _prepare_fit.
+        X, y = self._validate_input_data(X, y)
+        # Call our overridden _prepare_fit to determine fallback and get processed data/params.
+        # This method will internally call super()._prepare_fit which handles validation,
+        # setting classes_, feature_names_, feature_types_, and H2OFrame creation.
+        train_h2o, x_vars, outcome_var, model_params = self._prepare_fit(X, y)
 
-        try:
-            super().fit(X, y, **kwargs)
-        finally:
-            # CRITICAL: Always restore the original estimator class
-            self.estimator_class = original_estimator_class
-            self.logger.debug(f"Restored self.estimator_class to {self.estimator_class.__name__}")
+        # Determine the actual H2O estimator class to use
+        if self._fallback_to_glm:
+            self.logger.warning("H2OGAMClassifier.fit: Fallback to GLM triggered. Using H2OGeneralizedLinearEstimator.")
+            h2o_estimator_to_use = H2OGeneralizedLinearEstimator
+        else:
+            h2o_estimator_to_use = self.estimator_class # This is H2OGeneralizedAdditiveEstimator
+
+        # Instantiate the H2O model with all the hyperparameters
+        self.logger.debug(f"Creating H2O model ({h2o_estimator_to_use.__name__}) with params: {model_params}")
+        self.model_ = h2o_estimator_to_use(**model_params)
+        
+        # Call the train() method with ONLY the data-related arguments
+        self.logger.debug("Calling H2O model.train()...")
+        self.model_.train(x=x_vars, y=outcome_var, training_frame=train_h2o)
+
+        # Store model_id for recovery - THIS IS CRITICAL for predict() to work
+        self.logger.debug(f"H2O train complete, extracting model_id from {self.model_}")
+        self.model_id = self.model_.model_id
 
         return self
 

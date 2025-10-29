@@ -116,9 +116,12 @@ def test_fit_successful(mock_h2o_init, mock_h2o_cluster, mock_h2o_frame, classif
     assert classifier_instance.feature_types_ == {'feature1': 'real', 'feature2': 'real', 'feature3': 'enum'}
 
 @patch('h2o.get_model')
+@patch('h2o.get_frame')
+@patch('h2o.assign')
 @patch('h2o.H2OFrame')
 @patch('h2o.cluster')
-def test_predict_successful(mock_h2o_cluster, mock_h2o_frame, mock_h2o_get_model, classifier_instance, sample_data):
+def test_predict_successful(mock_h2o_cluster, mock_h2o_frame, mock_h2o_assign, mock_h2o_get_frame, mock_h2o_get_model,
+                          classifier_instance, sample_data):
     """
     Tests the `predict` method on a pre-fitted classifier.
     """
@@ -132,12 +135,26 @@ def test_predict_successful(mock_h2o_cluster, mock_h2o_frame, mock_h2o_get_model
     
     # --- Setup Mocks ---
     # Mock the H2OFrame that will be created from the input data
-    mock_frame_instance = MagicMock()
-    mock_frame_instance.nrows = len(X) # This is the crucial fix
-    mock_h2o_frame.return_value = mock_frame_instance
+    mock_tmp_frame = MagicMock(spec=h2o.H2OFrame)
+    mock_h2o_frame.return_value = mock_tmp_frame
 
+    # Mock the final frame that get_frame will return
+    mock_final_frame = MagicMock(spec=h2o.H2OFrame)
+    mock_final_frame.nrows = len(X)
+    mock_h2o_get_frame.return_value = mock_final_frame
     # Mock the model object that `h2o.get_model` will return
-    mock_model = MockH2OEstimator()
+    # --- FIX: Replace the real predict method with a MagicMock ---
+    # Instantiate the mock estimator
+    mock_model = MockH2OEstimator() 
+    # Create a mock for the predict method so we can assert calls
+    mock_model.predict = MagicMock()
+    # Configure the mock's return value to simulate H2O's behavior
+    mock_pred_frame = MagicMock()
+    mock_pred_frame.as_data_frame.return_value = pd.DataFrame({
+        'predict': np.random.randint(0, 2, len(X))
+    })
+    mock_model.predict.return_value = mock_pred_frame
+
     mock_h2o_get_model.return_value = mock_model
     
     # Mock H2O cluster status
@@ -150,8 +167,12 @@ def test_predict_successful(mock_h2o_cluster, mock_h2o_frame, mock_h2o_get_model
     # 1. Check that the model was retrieved from H2O
     mock_h2o_get_model.assert_called_with("fitted_model_123")
     
-    # 2. Check that an H2OFrame was created for the prediction data with correct types
-    mock_h2o_frame.assert_called_with(X, column_names=list(X.columns), column_types=classifier_instance.feature_types_)
+    # 2. Check that the new frame creation logic was called
+    mock_h2o_frame.assert_called_once_with(X, column_names=list(X.columns), column_types=classifier_instance.feature_types_)
+    mock_h2o_assign.assert_called_once_with(mock_tmp_frame, ANY)
+    mock_h2o_get_frame.assert_called_once()
+    # Verify the model's predict method was called with the final mocked frame
+    mock_model.predict.assert_called_once_with(mock_final_frame)
 
     # 3. Check the output of the prediction
     assert isinstance(predictions, np.ndarray)

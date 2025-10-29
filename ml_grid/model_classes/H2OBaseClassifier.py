@@ -146,7 +146,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                 # If X is a numpy array, convert it to a DataFrame and ensure
                 # its columns are strings to prevent KeyErrors with H2O.
                 X = pd.DataFrame(X)
-                X.columns = X.columns.astype(str)
+                X.columns = [str(c) for c in X.columns]
         else:
             # If it's already a DataFrame, still ensure columns are strings.
             X.columns = X.columns.astype(str)
@@ -428,12 +428,21 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         self._ensure_model_is_loaded()
 
         # Create H2O frame with explicit column names
+        # --- ROBUSTNESS FIX for java.lang.NullPointerException ---
+        # Instead of creating the frame directly, upload the data and then assign it.
+        # This seems to create a more 'stable' frame in the H2O cluster, preventing
+        # internal errors during prediction with some models like GLM.
         try:
-            # --- CRITICAL FIX: Enforce training-time column types ---
-            # This prevents H2O from re-inferring types on the test data, which
-            # can lead to "Operation not allowed on string vector" errors.
-            test_h2o = h2o.H2OFrame(X, column_names=self.feature_names_,
-                                    column_types=self.feature_types_)
+            # Create a temporary H2OFrame by uploading the pandas DataFrame
+            tmp_frame = h2o.H2OFrame(X, column_names=self.feature_names_, column_types=self.feature_types_)
+            
+            # Assign it to a unique key in the H2O cluster. This is more reliable.
+            frame_id = f"predict_frame_{self.model_id}_{pd.Timestamp.now().strftime('%Y%m%d%H%M%S%f')}"
+            h2o.assign(tmp_frame, frame_id)
+            
+            # Get a handle to the newly created frame
+            test_h2o = h2o.get_frame(frame_id)
+
         except Exception as e:
             raise RuntimeError(f"Failed to create H2O frame for prediction: {e}")
         
