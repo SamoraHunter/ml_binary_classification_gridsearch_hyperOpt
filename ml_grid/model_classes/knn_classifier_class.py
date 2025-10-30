@@ -1,4 +1,11 @@
-from typing import Optional
+"""KNeighbors Classifier.
+
+This module contains the knn_classifiers_class, which is a configuration
+class for the KNeighborsClassifier. It provides parameter spaces for
+grid search and Bayesian optimization.
+"""
+
+from typing import Any, Dict, Optional, Union
 
 import pandas as pd
 from ml_grid.util import param_space
@@ -27,18 +34,26 @@ class knn_classifiers_class:
                 Defaults to None.
             parameter_space_size (Optional[str]): Size of the parameter space for
                 optimization. Defaults to None.
-        """
-        knn_n_jobs = global_parameters.knn_n_jobs  # Get the number of jobs from global parameters
 
-        self.X = X
-        self.y = y
+        Raises:
+            ValueError: If `parameter_space_size` is not a valid key (though current
+                implementation does not explicitly raise this).
+        """
+        knn_n_jobs: int = global_parameters.knn_n_jobs  # Get the number of jobs from global parameters
+
+        self.X: Optional[pd.DataFrame] = X
+        self.y: Optional[pd.Series] = y
 
         # Initialize KNeighborsClassifier
-        self.algorithm_implementation = KNeighborsClassifier()
-        self.method_name = "KNeighborsClassifier"
+        self.algorithm_implementation: KNeighborsClassifier = KNeighborsClassifier()
+        self.method_name: str = "KNeighborsClassifier"
 
         # Define the parameter vector space
-        self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
+        self.parameter_vector_space: param_space.ParamSpace = param_space.ParamSpace(
+            parameter_space_size
+        )
+
+        self.parameter_space: Dict[str, Any]
 
         if global_parameters.bayessearch:
             # Bayesian Optimization: Use skopt's Real, Integer, and Categorical for continuous, integer, and categorical parameters

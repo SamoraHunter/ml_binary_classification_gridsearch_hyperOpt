@@ -1,4 +1,11 @@
-"""Initializes the H2OAutoMLConfig class."""
+"""H2O AutoML Classifier.
+
+This module contains the H2OAutoMLConfig, which is a configuration
+class for the H2OAutoMLClassifier. It provides parameter spaces for
+grid search and Bayesian optimization.
+"""
+
+
 
 from typing import Any, Dict, List, Optional
 
@@ -35,6 +42,10 @@ class H2OAutoMLConfig:
             parameter_space_size (Optional[str]): A string indicating the size of
                 the parameter space to use (e.g., 'small', 'medium'). This
                 argument is currently unused but kept for API consistency.
+
+        Raises:
+            ValueError: If `parameter_space_size` is not a valid key (though current
+                implementation does not explicitly raise this).
         """
         global_params = global_parameters
         logger.debug("Initializing H2OAutoMLConfig")

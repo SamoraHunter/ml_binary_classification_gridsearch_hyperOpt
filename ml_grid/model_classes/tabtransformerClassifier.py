@@ -1,4 +1,9 @@
-from typing import Any, Optional, Tuple
+"""TabTransformer Classifier Wrapper.
+
+This module provides a scikit-learn compatible wrapper for the TabTransformer model.
+"""
+
+from typing import Any, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -100,7 +105,7 @@ class TabTransformerClassifier(BaseEstimator, ClassifierMixin):
         Returns:
             np.ndarray: The predicted class probabilities.
         """
-        self.model.eval()
+        self.model.eval() # type: ignore
         with torch.no_grad():
             x_categ, x_cont = X
             pred = self.model(x_categ, x_cont)

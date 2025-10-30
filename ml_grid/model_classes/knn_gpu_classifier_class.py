@@ -1,4 +1,11 @@
-from typing import Optional
+"""KNN GPU Classifier.
+
+This module contains the knn__gpu_wrapper_class, which is a configuration
+class for the KNNWrapper (GPU-accelerated KNN). It provides parameter spaces for
+grid search and Bayesian optimization.
+"""
+
+from typing import Any, Dict, Optional, Union
 
 import pandas as pd
 from ml_grid.model_classes.knn_wrapper_class import KNNWrapper
@@ -27,18 +34,26 @@ class knn__gpu_wrapper_class:
                 Defaults to None.
             parameter_space_size (Optional[str]): Size of the parameter space for
                 optimization. Defaults to None.
+
+        Raises:
+            ValueError: If `parameter_space_size` is not a valid key (though current
+                implementation does not explicitly raise this).
         """
-        self.X = X
-        self.y = y
+        self.X: Optional[pd.DataFrame] = X
+        self.y: Optional[pd.Series] = y
 
         # Initialize KNNWrapper for GPU support
-        self.algorithm_implementation = KNNWrapper()
-        self.method_name = "knn__gpu"
+        self.algorithm_implementation: KNNWrapper = KNNWrapper()
+        self.method_name: str = "knn__gpu"
 
         # Define the parameter vector space
-        self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
+        self.parameter_vector_space: param_space.ParamSpace = param_space.ParamSpace(
+            parameter_space_size
+        )
 
         knn_n_jobs = global_parameters.knn_n_jobs  # Get the number of jobs from global parameters
+
+        self.parameter_space: Dict[str, Any]
 
         if global_parameters.bayessearch:
             # Bayesian Optimization: Use skopt's Integer and Categorical for the parameter space

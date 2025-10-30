@@ -1,4 +1,11 @@
-from typing import Any, Optional
+"""TabTransformer Classifier.
+
+This module contains the TabTransformer_class, which is a configuration
+class for the TabTransformerClassifier. It provides parameter spaces for
+grid search and Bayesian optimization.
+"""
+
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import pandas as pd
 import torch
@@ -34,6 +41,7 @@ class TabTransformerWrapper(TabTransformerClassifier):
             TabTransformerWrapper: The instance with updated parameters.
         """
         tuple_mapping = {
+            # type: Dict[str, List[Tuple[int, ...]]]
             "categories": [
                 (10, 5, 6, 5, 8),
                 (15, 7, 8, 6, 10),
@@ -80,8 +88,13 @@ class TabTransformer_class:
             parameter_space_size (Optional[str]): Size of the parameter space for
                 optimization. Defaults to None.
         """
-        self.X = X
-        self.y = y
+        self.X: Optional[pd.DataFrame] = X
+        self.y: Optional[pd.Series] = y
+
+        self.method_name: str = "TabTransformerClassifier"
+        self.algorithm_implementation: Union[TabTransformerClassifier, TabTransformerWrapper]
+        self.parameter_vector_space: param_space.ParamSpace
+        self.parameter_space: Dict[str, Any]
 
         # Split the DataFrame into categorical and continuous parts
         df_categ = X.select_dtypes(
@@ -101,16 +114,16 @@ class TabTransformer_class:
         logging.getLogger('ml_grid').info(f"TabTransformer: Number of unique values within each category: {categories}")
         logging.getLogger('ml_grid').info(f"TabTransformer: Number of continuous columns: {num_continuous}")
 
-        self.method_name = "TabTransformerClassifier"
-
         # Algorithm Implementation
         # self.algorithm_implementation = TabTransformerClassifier(categories, num_continuous)
 
         if global_parameters.bayessearch is False:
-            self.algorithm_implementation = TabTransformerClassifier(categories, num_continuous)
+            self.algorithm_implementation = TabTransformerClassifier(
+                categories, num_continuous
+            )
         else:
             self.algorithm_implementation = TabTransformerWrapper(
-                categories, num_continuous
+                categories, num_continuous # type: ignore
             )  # Wrapper necessary for passing priors to bayescv
 
         # Parameter Space

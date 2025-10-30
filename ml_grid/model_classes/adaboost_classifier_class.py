@@ -1,4 +1,11 @@
-from typing import Optional
+"""AdaBoost Classifier.
+
+This module contains the adaboost_class, which is a configuration
+class for the AdaBoostClassifier. It provides parameter spaces for
+grid search and Bayesian optimization.
+"""
+
+from typing import Any, Dict, List, Optional, Union
 import pandas as pd
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.tree import DecisionTreeClassifier
@@ -8,7 +15,7 @@ from skopt.space import Categorical, Real, Integer
 
 import logging
 
-class AdaBoostClassifierClass:
+class adaboost_class:
     """A class for AdaBoostClassifier that handles both Bayesian and grid search.
 
     This class encapsulates the AdaBoostClassifier, providing a flexible way to
@@ -28,12 +35,17 @@ class AdaBoostClassifierClass:
             X: The input features, not used in this class.
             y: The target variable, not used in this class.
             parameter_space_size: The size of the parameter space, not used.
+
+        Raises:
+            ValueError: If `parameter_space_size` is not a valid key (though current
+                implementation does not explicitly raise this).
         """
-        self.X = X
-        self.y = y
+        self.X: Optional[pd.DataFrame] = X
+        self.y: Optional[pd.Series] = y
         
-        self.algorithm_implementation = AdaBoostClassifier()
-        self.method_name = "AdaBoostClassifier"
+        self.algorithm_implementation: AdaBoostClassifier = AdaBoostClassifier()
+        self.method_name: str = "AdaBoostClassifier"
+        self.parameter_space: List[Dict[str, Any]]
         is_bayes_search = global_parameters.bayessearch
 
         if is_bayes_search:

@@ -1,3 +1,8 @@
+"""H2O XGBoost Classifier Wrapper.
+
+This module provides a scikit-learn compatible wrapper for H2O's XGBoostEstimator.
+"""
+
 from h2o.estimators import H2OXGBoostEstimator
 from .H2OBaseClassifier import H2OBaseClassifier
 import pandas as pd

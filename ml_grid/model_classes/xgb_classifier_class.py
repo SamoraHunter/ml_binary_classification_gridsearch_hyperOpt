@@ -1,4 +1,11 @@
-from typing import Any, Optional, Union
+"""XGBoost Classifier.
+
+This module contains the XGB_class_class, which is a configuration
+class for the XGBClassifier. It provides parameter spaces for
+grid search and Bayesian optimization.
+"""
+
+from typing import Any, Dict, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -30,16 +37,24 @@ class XGB_class_class:
             y (Optional[pd.Series]): Target vector for training. Defaults to None.
             parameter_space_size (Optional[str]): Size of the parameter space for
                 optimization. Defaults to None.
+
+        Raises:
+            ValueError: If `parameter_space_size` is not a valid key (though current
+                implementation does not explicitly raise this).
         """
-        self.X = X
-        self.y = y
+        self.X: Optional[pd.DataFrame] = X
+        self.y: Optional[pd.Series] = y
 
         # Initialize the algorithm implementation using XGBClassifier
-        self.algorithm_implementation = xgb.XGBClassifier()
-        self.method_name = "XGBClassifier"
+        self.algorithm_implementation: xgb.XGBClassifier = xgb.XGBClassifier()
+        self.method_name: str = "XGBClassifier"
 
         # Initialize the parameter space handler
-        self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
+        self.parameter_vector_space: param_space.ParamSpace = param_space.ParamSpace(
+            parameter_space_size
+        )
+
+        self.parameter_space: Dict[str, Any]
 
         # Patch max_bin dynamically for compatibility
         def patch_max_bin(param_value: Any) -> Union[int, Real, Integer, Any]:

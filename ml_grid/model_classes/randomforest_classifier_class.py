@@ -1,4 +1,11 @@
-from typing import Any, List, Optional, Union
+"""Random Forest Classifier.
+
+This module contains the RandomForestClassifier_class, which is a configuration
+class for the RandomForestClassifier. It provides parameter spaces for
+grid search and Bayesian optimization.
+"""
+
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -26,16 +33,24 @@ class RandomForestClassifier_class:
                 Defaults to None.
             parameter_space_size (Optional[str]): Size of the parameter space for
                 optimization. Defaults to None.
+
+        Raises:
+            ValueError: If `parameter_space_size` is not a valid key (though current
+                implementation does not explicitly raise this).
         """
-        self.X = X
-        self.y = y
+        self.X: Optional[pd.DataFrame] = X
+        self.y: Optional[pd.Series] = y
 
         # Initialize the RandomForestClassifier
-        self.algorithm_implementation = RandomForestClassifier()
-        self.method_name = "RandomForestClassifier"
+        self.algorithm_implementation: RandomForestClassifier = RandomForestClassifier()
+        self.method_name: str = "RandomForestClassifier"
 
         # Define the parameter vector space
-        self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
+        self.parameter_vector_space: param_space.ParamSpace = param_space.ParamSpace(
+            parameter_space_size
+        )
+
+        self.parameter_space: Dict[str, Any]
 
         # Define the parameter space for Bayesian and traditional search
         if global_parameters.bayessearch:

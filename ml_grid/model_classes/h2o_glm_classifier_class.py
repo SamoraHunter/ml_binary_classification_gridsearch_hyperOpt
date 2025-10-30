@@ -1,8 +1,13 @@
-"""Configuration class for the H2O Generalized Linear Model (GLM) Classifier."""
+"""H2O Generalized Linear Model (GLM) Classifier.
 
-from typing import Any, Dict, List, Optional, Union
+This module contains the H2O_GLM_class, which is a configuration class for
+the H2OGLMClassifier. It provides parameter spaces for grid search and
+Bayesian optimization.
+"""
 
 import logging
+from typing import Any, Dict, List, Optional, Union
+
 import pandas as pd
 from ml_grid.model_classes.H2OGLMClassifier import H2OGLMClassifier
 from ml_grid.util.global_params import global_parameters
@@ -12,7 +17,7 @@ logger = logging.getLogger(__name__)
 logger.debug("Imported h2o_glm_classifier_class")
 
 # Define parameter spaces outside the class for better organization and reusability.
-PARAM_SPACE_GRID = {
+PARAM_SPACE_GRID: Dict[str, Dict[str, List[Union[int, float]]]] = {
     "xsmall": {
         "alpha": [0.5],
         "lambda_": [1e-4],
@@ -30,7 +35,7 @@ PARAM_SPACE_GRID = {
     },
 }
 
-PARAM_SPACE_BAYES = {
+PARAM_SPACE_BAYES: Dict[str, Dict[str, Union[Integer, Real]]] = {
     "xsmall": {
         "alpha": Real(0.4, 0.6),
         "lambda_": Real(1e-5, 1e-3, "log-uniform"),
@@ -49,8 +54,8 @@ PARAM_SPACE_BAYES = {
 }
 
 
-class H2OGLMConfig:
-    """Configuration class for H2OGLMClassifier.
+class H2O_GLM_class:
+    """A configuration class for the H2OGLMClassifier.
 
     This class provides parameter spaces for grid search and Bayesian
     optimization. The H2OGLMClassifier is instantiated with `family='binomial'`
@@ -72,7 +77,7 @@ class H2OGLMConfig:
         y: Optional[pd.Series] = None,
         parameter_space_size: str = "small",
     ) -> None:
-        """Initializes the H2OGLMConfig.
+        """Initializes the H2O_GLM_class.
 
         Args:
             X (Optional[pd.DataFrame]): The input features.

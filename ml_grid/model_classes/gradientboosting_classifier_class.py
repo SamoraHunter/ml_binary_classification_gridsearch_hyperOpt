@@ -1,4 +1,11 @@
-from typing import Optional
+"""Gradient Boosting Classifier.
+
+This module contains the GradientBoostingClassifier_class, which is a configuration
+class for the GradientBoostingClassifier. It provides parameter spaces for
+grid search and Bayesian optimization.
+"""
+
+from typing import Any, Dict, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -25,17 +32,26 @@ class GradientBoostingClassifier_class:
                 Defaults to None.
             parameter_space_size (Optional[str]): Size of the parameter space for
                 optimization. Defaults to None.
+
+        Raises:
+            ValueError: If `parameter_space_size` is not a valid key (though current
+                implementation does not explicitly raise this).
         """
         global_params = global_parameters
-        self.X = X
-        self.y = y
+        self.X: Optional[pd.DataFrame] = X
+        self.y: Optional[pd.Series] = y
 
         # Use the standard GradientBoostingClassifier directly
-        self.algorithm_implementation = GradientBoostingClassifier()
-        self.method_name = "GradientBoostingClassifier"
+        self.algorithm_implementation: GradientBoostingClassifier = (
+            GradientBoostingClassifier()
+        )
+        self.method_name: str = "GradientBoostingClassifier"
 
         # Define the parameter vector space
-        self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
+        self.parameter_vector_space: param_space.ParamSpace = param_space.ParamSpace(
+            parameter_space_size
+        )
+        self.parameter_space: Dict[str, Any]
 
         if global_params.bayessearch:
             # Define the parameter space for Bayesian optimization

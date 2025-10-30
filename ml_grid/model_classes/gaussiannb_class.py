@@ -1,6 +1,6 @@
 """Defines the GaussianNB model class.."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import logging
 import numpy as np
@@ -75,18 +75,26 @@ class GaussianNBClassifierClass:
             y (Optional[pd.Series]): The target variable. Defaults to None.
             parameter_space_size (Optional[str]): The size of the parameter
               space. Defaults to None.
+
+        Raises:
+            ValueError: If `parameter_space_size` is not a valid key (though current
+                implementation does not explicitly raise this).
         """
-        self.X = X
-        self.y = y
+        self.X: Optional[pd.DataFrame] = X
+        self.y: Optional[pd.Series] = y
 
         if not global_parameters.bayessearch:
-            self.algorithm_implementation = GaussianNB()
+            self.algorithm_implementation: Union[GaussianNB, GaussianNBWrapper] = (
+                GaussianNB()
+            )
         else:
-            self.algorithm_implementation = (
+            self.algorithm_implementation: Union[GaussianNB, GaussianNBWrapper] = (
                 GaussianNBWrapper()
             )  # Wrapper necessary for passing priors to bayescv
 
-        self.method_name = "GaussianNB"
+        self.method_name: str = "GaussianNB"
+
+        self.parameter_space: Dict[str, Any]
 
         if global_parameters.bayessearch:
             # For BayesSearchCV, use distributions from skopt.space

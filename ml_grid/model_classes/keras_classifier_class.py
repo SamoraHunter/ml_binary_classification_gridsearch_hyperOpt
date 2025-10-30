@@ -1,6 +1,12 @@
 import math
-from typing import Any, Optional
+"""Keras Classifier.
 
+This module contains the kerasClassifier_class, which is a configuration
+class for a Keras Sequential model wrapped by KerasClassifier. It provides
+parameter spaces for grid search and Bayesian optimization.
+"""
+
+from typing import Any, Dict, Optional, Union
 import pandas as pd
 import numpy as np
 import tensorflow as tf
@@ -83,16 +89,23 @@ class kerasClassifier_class:
             y (pd.Series): Target vector for training.
             parameter_space_size (Optional[str]): Size of the parameter space for
                 optimization. Defaults to None.
-        """
 
+        Raises:
+            ValueError: If `parameter_space_size` is not a valid key (though current
+                implementation does not explicitly raise this).
+        """
         gpu_devices = tf.config.experimental.list_physical_devices("GPU")
         for device in gpu_devices:
             tf.config.experimental.set_memory_growth(device, True)
 
-        self.X = X
-        self.y = y
+        self.X: pd.DataFrame = X
+        self.y: pd.Series = y
 
-        self.x_train_col_val = len(X.columns)
+        self.x_train_col_val: int = len(X.columns)
+
+        self.method_name: str = "kerasClassifier_class"
+        self.parameter_space: Dict[str, Any]
+
 
         self.algorithm_implementation = KerasClassifier(
             model=create_model,
@@ -104,7 +117,6 @@ class kerasClassifier_class:
             l1_reg=0.0,  # Register l1_reg with a default value
             l2_reg=0.0,  # Register l2_reg with a default value
         )
-        self.method_name = "kerasClassifier_class"
         X_data = self.X
         y_data = self.y
 

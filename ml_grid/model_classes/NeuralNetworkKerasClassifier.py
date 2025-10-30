@@ -1,4 +1,9 @@
-from typing import Optional
+"""Keras Neural Network Classifier Wrapper.
+
+This module provides a scikit-learn compatible wrapper for a Keras Sequential
+neural network for binary classification.
+"""
+from typing import Optional, Tuple, Union
 import numpy as np
 import tensorflow as tf
 from sklearn.base import BaseEstimator, ClassifierMixin
@@ -150,7 +155,7 @@ class NeuralNetworkClassifier(BaseEstimator, ClassifierMixin):
         # Store class labels
         self.classes_ = np.unique(y)
 
-        # Build and train the model
+        # Build or re-compile the model
         if self.model is None:
             self.model = self.build_model(input_dim=X.shape[1])
         else:
@@ -165,7 +170,6 @@ class NeuralNetworkClassifier(BaseEstimator, ClassifierMixin):
                 monitor='val_loss', patience=self.early_stopping_patience, restore_best_weights=True
             ))
 
-        self.model = self.build_model(input_dim=X.shape[1])
         self.model.fit(
             X,
             y,

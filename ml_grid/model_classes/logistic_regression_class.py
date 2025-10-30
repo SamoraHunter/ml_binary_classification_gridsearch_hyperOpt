@@ -1,4 +1,11 @@
-from typing import Optional
+"""Logistic Regression Classifier.
+
+This module contains the LogisticRegression_class, which is a configuration
+class for the LogisticRegression. It provides parameter spaces for
+grid search and Bayesian optimization.
+"""
+
+from typing import Any, Dict, List, Optional, Union
 
 import pandas as pd
 from ml_grid.util import param_space
@@ -27,16 +34,24 @@ class LogisticRegression_class:
                 Defaults to None.
             parameter_space_size (Optional[str]): Size of the parameter space for
                 optimization. Defaults to None.
+
+        Raises:
+            ValueError: If `parameter_space_size` is not a valid key (though current
+                implementation does not explicitly raise this).
         """
         global_params = global_parameters
-        self.X = X
-        self.y = y
+        self.X: Optional[pd.DataFrame] = X
+        self.y: Optional[pd.Series] = y
 
         # Set the base implementation
-        self.algorithm_implementation = LogisticRegression()
-        self.method_name = "LogisticRegression"
+        self.algorithm_implementation: LogisticRegression = LogisticRegression()
+        self.method_name: str = "LogisticRegression"
 
-        self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
+        self.parameter_vector_space: param_space.ParamSpace = param_space.ParamSpace(
+            parameter_space_size
+        )
+
+        self.parameter_space: List[Dict[str, Any]]
 
         # Define parameter space based on search type
         if global_params.bayessearch:

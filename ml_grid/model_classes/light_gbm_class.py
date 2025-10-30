@@ -1,4 +1,11 @@
-from typing import Optional
+"""LightGBM Classifier.
+
+This module contains the LightGBMClassifierWrapper, which is a configuration
+class for the LightGBMClassifier. It provides parameter spaces for
+grid search and Bayesian optimization.
+"""
+
+from typing import Any, Dict, Optional, Union
 
 import pandas as pd
 from ml_grid.util import param_space

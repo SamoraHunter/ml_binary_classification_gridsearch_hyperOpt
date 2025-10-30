@@ -1,6 +1,13 @@
-from typing import Any, Dict, List, Optional, Union
+"""H2O Naive Bayes Classifier.
+
+This module contains the H2O_NaiveBayes_class, which is a configuration
+class for the H2ONaiveBayesClassifier. It provides parameter spaces for
+grid search and Bayesian optimization.
+"""
 
 import logging
+from typing import Any, Dict, List, Optional, Union
+
 import pandas as pd
 from ml_grid.model_classes.H2ONaiveBayesClassifier import H2ONaiveBayesClassifier
 from ml_grid.util.global_params import global_parameters
@@ -10,7 +17,7 @@ logger = logging.getLogger(__name__)
 logger.debug("Imported h2o_naive_bayes_classifier_class")
 
 # Define parameter spaces outside the class for better organization and reusability.
-PARAM_SPACE_GRID = {
+PARAM_SPACE_GRID: Dict[str, Dict[str, List[Union[int, float]]]] = {
     "xsmall": {
         "laplace": [1],
         "min_sdev": [0.001],
@@ -31,7 +38,7 @@ PARAM_SPACE_GRID = {
     },
 }
 
-PARAM_SPACE_BAYES = {
+PARAM_SPACE_BAYES: Dict[str, Dict[str, Union[Real, Integer]]] = {
     "xsmall": {
         "laplace": Real(0.5, 2.0, "log-uniform"),
         "min_sdev": Real(0.001, 0.1, "log-uniform"),
@@ -55,8 +62,8 @@ PARAM_SPACE_BAYES = {
 ParameterSpace = Union[List[Dict[str, Any]], Dict[str, Any]]
 
 
-class H2ONaiveBayesConfig:
-    """Configuration class for H2ONaiveBayesClassifier.
+class H2O_NaiveBayes_class:
+    """A configuration class for the H2ONaiveBayesClassifier.
 
     This class provides parameter spaces for grid search and Bayesian
     optimization for the H2ONaiveBayesClassifier.
@@ -77,7 +84,7 @@ class H2ONaiveBayesConfig:
         y: Optional[pd.Series] = None,
         parameter_space_size: str = "small",
     ) -> None:
-        """Initializes the H2ONaiveBayesConfig.
+        """Initializes the H2O_NaiveBayes_class.
 
         Args:
             X (Optional[pd.DataFrame]): The input features. Defaults to None.

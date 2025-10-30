@@ -1,6 +1,6 @@
 """Defines the QuadraticDiscriminantAnalysis model class."""
 
-from typing import Optional
+from typing import Any, Dict, Optional, Union
 
 import pandas as pd
 from ml_grid.util import param_space
@@ -30,15 +30,24 @@ class quadratic_discriminant_analysis_class:
                 Defaults to None.
             parameter_space_size (Optional[str]): Size of the parameter space for
                 optimization. Defaults to None.
+
+        Raises:
+            ValueError: If `parameter_space_size` is not a valid key (though current
+                implementation does not explicitly raise this).
         """
         global_params = global_parameters
-        self.X = X
-        self.y = y
+        self.X: Optional[pd.DataFrame] = X
+        self.y: Optional[pd.Series] = y
 
-        self.algorithm_implementation = QuadraticDiscriminantAnalysis()
-        self.method_name = "QuadraticDiscriminantAnalysis"
+        self.algorithm_implementation: QuadraticDiscriminantAnalysis = (
+            QuadraticDiscriminantAnalysis()
+        )
+        self.method_name: str = "QuadraticDiscriminantAnalysis"
 
-        self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
+        self.parameter_vector_space: param_space.ParamSpace = param_space.ParamSpace(
+            parameter_space_size
+        )
+        self.parameter_space: Dict[str, Any]
 
         if global_params.bayessearch:
             self.parameter_space = {

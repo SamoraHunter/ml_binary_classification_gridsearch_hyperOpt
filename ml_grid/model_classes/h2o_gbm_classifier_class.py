@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 logger.debug("Imported h2o_gbm_classifier_class")
 
 # Define parameter spaces outside the class for better organization and reusability.
-PARAM_SPACE_GRID = {
+PARAM_SPACE_GRID: Dict[str, Dict[str, List[Union[int, float]]]] = {
     "xsmall": {
         "ntrees": [50],
         "max_depth": [5],
@@ -39,7 +39,7 @@ PARAM_SPACE_GRID = {
     },
 }
 
-PARAM_SPACE_BAYES = {
+PARAM_SPACE_BAYES: Dict[str, Dict[str, Union[Integer, Real]]] = {
     "xsmall": {
         "ntrees": Integer(50, 100),
         "max_depth": Integer(3, 5),
@@ -67,7 +67,7 @@ PARAM_SPACE_BAYES = {
 }
 
 
-class H2OGBMConfig:
+class H2O_GBM_class:
     """Configuration class for H2OGBMClassifier.
 
     Provides parameter spaces for grid search and Bayesian optimization.

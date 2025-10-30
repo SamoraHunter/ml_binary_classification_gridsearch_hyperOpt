@@ -1,8 +1,13 @@
-"""Configuration class for the H2O Deep Learning Classifier."""
+"""H2O Deep Learning Classifier.
 
-from typing import Any, Dict, List, Optional, Union
+This module contains the H2O_DeepLearning_class, which is a configuration
+class for the H2ODeepLearningClassifier. It provides parameter spaces for
+grid search and Bayesian optimization.
+"""
 
 import logging
+from typing import Any, Dict, List, Optional, Union
+
 import pandas as pd
 from ml_grid.model_classes.H2ODeepLearningClassifier import H2ODeepLearningClassifier
 from ml_grid.util.global_params import global_parameters
@@ -13,7 +18,7 @@ logger.debug("Imported h2o_deeplearning_classifier_class")
 
 # Define parameter spaces outside the class for better organization and reusability.
 # This also makes it easier to manage different parameter space sizes.
-PARAM_SPACE_GRID = {
+PARAM_SPACE_GRID: Dict[str, Dict[str, List[Union[int, float, str]]]] = {
     "xsmall": {
         "epochs": [5],
         "hidden_config": ["small"],
@@ -40,7 +45,7 @@ PARAM_SPACE_GRID = {
     },
 }
 
-PARAM_SPACE_BAYES = {
+PARAM_SPACE_BAYES: Dict[str, Dict[str, Union[Categorical, Integer, Real]]] = {
     "xsmall": {
         "epochs": Integer(5, 10),
         "hidden_config": Categorical(["small"]),
@@ -68,10 +73,15 @@ PARAM_SPACE_BAYES = {
 }
 
 
-class H2ODeepLearningConfig:
-    """Configuration class for H2ODeepLearningClassifier.
+class H2O_DeepLearning_class:
+    """A configuration class for the H2ODeepLearningClassifier.
 
-    Provides parameter spaces for grid search and Bayesian optimization.
+    This class provides parameter spaces for grid search and Bayesian
+    optimization.
+
+    Note:
+        The 'hidden_config' string is decoded into a layer list inside the
+        H2ODeepLearningClassifier wrapper during the fit method.
 
     Attributes:
         X (Optional[pd.DataFrame]): The input features.
@@ -89,7 +99,7 @@ class H2ODeepLearningConfig:
         y: Optional[pd.Series] = None,
         parameter_space_size: str = "small",
     ) -> None:
-        """Initializes the H2ODeepLearningConfig.
+        """Initializes the H2O_DeepLearning_class.
 
         Args:
             X (Optional[pd.DataFrame]): The input features.
@@ -119,6 +129,3 @@ class H2ODeepLearningConfig:
             self.parameter_space: List[Dict[str, Any]] = [
                 PARAM_SPACE_GRID[parameter_space_size]
             ]
-
-        # Note: The 'hidden_config' string is decoded into a layer list
-        # inside the H2ODeepLearningClassifier wrapper during the fit method.

@@ -1,4 +1,11 @@
-from typing import Optional
+"""Keras Neural Network Classifier.
+
+This module contains the NeuralNetworkClassifier_class, which is a configuration
+class for the NeuralNetworkClassifier (Keras wrapper). It provides parameter
+spaces for grid search and Bayesian optimization.
+"""
+
+from typing import Any, Dict, List, Optional, Union
 import pandas as pd
 from ml_grid.util import param_space
 from ml_grid.model_classes.NeuralNetworkKerasClassifier import NeuralNetworkClassifier
@@ -26,14 +33,22 @@ class NeuralNetworkClassifier_class:
             parameter_space_size (Optional[str]): Size of the parameter space for
                 optimization. This is not used in the current implementation
                 as the parameter space is hardcoded. Defaults to None.
+
+        Raises:
+            ValueError: If `parameter_space_size` is not a valid key (though current
+                implementation does not explicitly raise this).
         """
-        self.X = X
-        self.y = y
+        self.X: Optional[pd.DataFrame] = X
+        self.y: Optional[pd.Series] = y
 
-        self.algorithm_implementation = NeuralNetworkClassifier()
-        self.method_name = "NeuralNetworkClassifier"
+        self.algorithm_implementation: NeuralNetworkClassifier = NeuralNetworkClassifier()
+        self.method_name: str = "NeuralNetworkClassifier"
 
-        self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
+        self.parameter_vector_space: param_space.ParamSpace = param_space.ParamSpace(
+            parameter_space_size
+        )
+
+        self.parameter_space: Union[List[Dict[str, Any]], Dict[str, Any]]
 
         from ml_grid.util.global_params import global_parameters
         import logging

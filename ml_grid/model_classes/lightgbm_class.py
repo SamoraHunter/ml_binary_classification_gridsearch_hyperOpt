@@ -1,4 +1,9 @@
-from typing import Optional, Union
+"""LightGBM Classifier Wrapper.
+
+This module provides a scikit-learn compatible wrapper for the LightGBM classifier,
+handling feature name sanitization.
+"""
+from typing import Any, Optional, Union
 
 import lightgbm as lgb
 from sklearn.base import BaseEstimator, ClassifierMixin

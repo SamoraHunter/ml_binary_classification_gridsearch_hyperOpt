@@ -1,3 +1,8 @@
+"""H2O Naive Bayes Classifier Wrapper.
+
+This module provides a scikit-learn compatible wrapper for H2O's H2ONaiveBayesEstimator.
+"""
+
 from h2o.estimators import H2ONaiveBayesEstimator
 from .H2OBaseClassifier import H2OBaseClassifier
 

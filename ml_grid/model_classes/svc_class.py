@@ -1,5 +1,5 @@
 from scipy import sparse
-from typing import Optional
+from typing import Any, Dict, List, Optional, Union
 from ml_grid.util import param_space
 from ml_grid.util.global_params import global_parameters
 from sklearn.svm import SVC
@@ -30,16 +30,23 @@ class SVC_class:
             y (Optional[pd.Series]): Target vector for training. Defaults to None.
             parameter_space_size (Optional[str]): Size of the parameter space for
                 optimization. Defaults to None.
+
+        Raises:
+            ValueError: If `parameter_space_size` is not a valid key.
+            RuntimeError: If data scaling fails.
         """
-        self.X = X
-        self.y = y
+        self.X: Optional[pd.DataFrame] = X
+        self.y: Optional[pd.Series] = y
+        self.scaler: Optional[StandardScaler] = None
 
         # Enforce scaling for SVM method
         if not self.is_data_scaled():
             try:
                 # Data validation checks before scaling
                 if self.X is None:
-                    raise ValueError("Input data X is None - data not loaded properly")
+                    raise ValueError(
+                        "Input data X is None - data not loaded properly"
+                    )
                     
                 # If the dataframe is empty, there's nothing to scale.
                 # The pipeline will likely fail later, but we avoid a scaling error here.
@@ -47,7 +54,7 @@ class SVC_class:
                     raise ValueError("SVC_class received an empty DataFrame. Halting execution.")
 
                 elif not self.X.empty:
-                    if not hasattr(self, 'scaler'):
+                    if not hasattr(self, 'scaler') or self.scaler is None:
                         self.scaler = StandardScaler()  # or whichever scaler you're using
                         
                     # Convert sparse matrices if needed
@@ -55,10 +62,12 @@ class SVC_class:
                         self.X = self.X.toarray()
                         
                     # Ensure numeric data
-                    if isinstance(self.X, pd.DataFrame):
+                    if isinstance(self.X, pd.DataFrame): # type: ignore
                         non_numeric = self.X.select_dtypes(exclude=['number']).columns
                         if len(non_numeric) > 0:
-                            raise ValueError(f"Non-numeric columns found: {list(non_numeric)}")
+                            raise ValueError(
+                                f"Non-numeric columns found: {list(non_numeric)}"
+                            )
                             
                     # Debug logging 
                     #print(f"Scaling data with shape: {self.X.shape}")
@@ -88,11 +97,15 @@ class SVC_class:
                         
                 raise RuntimeError(error_msg) from e
 
-        self.algorithm_implementation = SVC()
-        self.method_name = "SVC"
+        self.algorithm_implementation: SVC = SVC()
+        self.method_name: str = "SVC"
 
         # Define the parameter vector space
-        self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
+        self.parameter_vector_space: param_space.ParamSpace = param_space.ParamSpace(
+            parameter_space_size
+        )
+
+        self.parameter_space: List[Dict[str, Any]]
 
         if global_parameters.bayessearch:
             # Bayesian Optimization: Define parameter space using pre-defined schemes
