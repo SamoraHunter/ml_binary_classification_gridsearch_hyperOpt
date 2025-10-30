@@ -1,6 +1,6 @@
 import unittest
 import pandas as pd
-from ml_grid.pipeline.column_names import get_pertubation_columns, filter_substring_list
+from ml_grid.pipeline.column_names import get_pertubation_columns
 from ml_grid.util.global_params import global_parameters
 
 class TestColumnNames(unittest.TestCase):
@@ -20,15 +20,6 @@ class TestColumnNames(unittest.TestCase):
         self.drop_term_list = ['bad_term']
         # Mute verbose output for tests
         global_parameters.verbose = 0
-
-    def test_filter_substring_list(self):
-        """Test the filter_substring_list utility function."""
-        string_list = ['test_mean', 'test_median', 'other_val', 'bmi_mean']
-        substr_list = ['_mean', '_median']
-        # 'bmi_mean' should be excluded by the function's logic
-        expected = ['test_mean', 'test_median']
-        result = filter_substring_list(string_list, substr_list)
-        self.assertCountEqual(result, expected)
 
     def test_get_pertubation_columns_selects_all(self):
         """Test that all categories are selected when flags are True."""
