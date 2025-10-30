@@ -1,37 +1,39 @@
-from typing import Any, Dict, List, Optional
-import logging
-import inspect
-import torch
-import os
+"""This module provides a function to get a list of model classes."""
 
+import inspect
+import logging
+import os
+from typing import Any, Dict, List, Optional
+
+import torch
 from ml_grid.model_classes.adaboost_classifier_class import adaboost_class
-from ml_grid.model_classes.catboost_classifier_class import CatBoost_class
-from ml_grid.model_classes.gaussiannb_class import GaussianNB_class
+from ml_grid.model_classes.catboost_classifier_class import (
+    CatBoostClassifierClass as CatBoost_class,
+)
+from ml_grid.model_classes.gaussiannb_class import (
+    GaussianNBClassifierClass as GaussianNB_class,
+)
 from ml_grid.model_classes.gradientboosting_classifier_class import (
     GradientBoostingClassifier_class,
 )
-from ml_grid.model_classes.h2o_classifier_class import H2OAutoMLConfig
-from ml_grid.model_classes.h2o_gbm_classifier_class import H2O_GBM_class
-from ml_grid.model_classes.h2o_drf_classifier_class import H2O_DRF_class
+from ml_grid.model_classes.h2o_classifier_class import H2OAutoMLConfig as H2O_class
 from ml_grid.model_classes.h2o_deeplearning_classifier_class import (
     H2O_DeepLearning_class,
 )
+from ml_grid.model_classes.h2o_drf_classifier_class import H2ODRFClass as H2O_DRF_class
+from ml_grid.model_classes.h2o_gam_classifier_class import H2OGAMClass as H2O_GAM_class
+from ml_grid.model_classes.h2o_gbm_classifier_class import (
+    H2O_GBM_class,
+)  # Correctly named
 from ml_grid.model_classes.h2o_glm_classifier_class import H2O_GLM_class
 from ml_grid.model_classes.h2o_naive_bayes_classifier_class import (
     H2O_NaiveBayes_class,
 )
-from ml_grid.model_classes.h2o_rulefit_classifier_class import (
-    H2O_RuleFit_class,
-)
-from ml_grid.model_classes.h2o_xgboost_classifier_class import (
-    H2O_XGBoost_class,
-)
+from ml_grid.model_classes.h2o_rulefit_classifier_class import H2ORuleFitClass as H2O_RuleFit_class
 from ml_grid.model_classes.h2o_stackedensemble_classifier_class import (
     H2O_StackedEnsemble_class,
 )
-from ml_grid.model_classes.h2o_gam_classifier_class import (
-    H2O_GAM_class,
-)
+from ml_grid.model_classes.h2o_xgboost_classifier_class import H2O_XGBoost_class
 from ml_grid.model_classes.keras_classifier_class import kerasClassifier_class
 from ml_grid.model_classes.knn_classifier_class import knn_classifiers_class
 from ml_grid.model_classes.knn_gpu_classifier_class import knn__gpu_wrapper_class
@@ -50,7 +52,6 @@ from ml_grid.model_classes.randomforest_classifier_class import (
 from ml_grid.model_classes.svc_class import SVC_class
 from ml_grid.model_classes.tabtransformer_classifier_class import TabTransformer_class
 from ml_grid.model_classes.xgb_classifier_class import XGB_class_class
-
 from ml_grid.pipeline.data import pipe
 
 
@@ -62,10 +63,10 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
     through the dictionary, and for each model marked for inclusion, it
     instantiates the corresponding class using `eval()` and appends it to a list.
 
-    Note:
-        The use of `eval()` is necessary for this function to work as intended,
-        as it dynamically instantiates classes from their string names. All
-        model classes must be imported into this module's scope.
+    Warning:
+        The use of `eval()` can be dangerous if the input is not trusted. In this
+        case, it is used to dynamically instantiate classes from their string
+        names, which are defined within the project.
 
     Args:
         ml_grid_object (pipe): The main data pipeline object, which contains
@@ -74,10 +75,10 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
     Returns:
         List[Any]: A list of instantiated model class objects.
     """
-    logger = logging.getLogger('ml_grid')
-    
+    logger = logging.getLogger("ml_grid")
+
     # Check if running in a CI environment (like GitHub Actions)
-    is_ci_environment = os.environ.get('CI') == 'true'
+    is_ci_environment = os.environ.get("CI") == "true"
 
     # Check for GPU availability once
     gpu_available = torch.cuda.is_available()
@@ -107,25 +108,41 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
             "LightGBMClassifierWrapper": True,
             "adaboost_class": True,
             "kerasClassifier_class": gpu_available,
-            "knn__gpu_wrapper_class": gpu_available,  
-            "NeuralNetworkClassifier_class": False, # NNI based,
-            "TabTransformer_class": False, # PyTorch based
-            "H2OAutoMLConfig": False, # H2O AutoML
-            "H2O_GBM_class": True, # H2O Gradient Boosting Machine
-            "H2O_DRF_class": True, # H2O Distributed Random Forest
-            "H2O_DeepLearning_class": True, # H2O Deep Learning
-            "H2O_GLM_class": True, # H2O Generalized Linear Model
-            "H2O_NaiveBayes_class": True, # H2O Naive Bayes
-            "H2O_RuleFit_class": True, # H2O RuleFit
-            "H2O_XGBoost_class": True, # H2O XGBoost
-            "H2O_StackedEnsemble_class": True, # H2O Stacked Ensemble
-            "H2O_GAM_class": True, # H2O Generalized Additive Models
+            "knn__gpu_wrapper_class": gpu_available,
+            "NeuralNetworkClassifier_class": False,  # NNI based,
+            "TabTransformer_class": False,  # PyTorch based
+            "H2O_class": False,  # H2O AutoML
+            "H2O_GBM_class": True,  # H2O Gradient Boosting Machine
+            "H2O_DRF_class": True,  # H2O Distributed Random Forest
+            "H2O_DeepLearning_class": True,  # H2O Deep Learning
+            "H2O_GLM_class": True,  # H2O Generalized Linear Model
+            "H2O_NaiveBayes_class": True,  # H2O Naive Bayes
+            "H2O_RuleFit_class": True,  # H2O RuleFit
+            "H2O_XGBoost_class": True,  # H2O XGBoost
+            "H2O_StackedEnsemble_class": True,  # H2O Stacked Ensemble
+            "H2O_GAM_class": True,  # H2O Generalized Additive Models
         }
 
     # If running in a CI environment, explicitly disable resource-intensive models
     if is_ci_environment:
-        logger.warning("CI environment detected. Disabling GPU-heavy and resource-intensive models.")
-        models_to_disable = ['kerasClassifier_class', 'knn__gpu_wrapper_class', 'H2OAutoMLConfig', 'H2O_GBM_class', 'H2O_DRF_class', 'H2O_DeepLearning_class', 'H2O_GLM_class', 'H2O_NaiveBayes_class', 'H2O_RuleFit_class', 'H2O_XGBoost_class', 'H2O_StackedEnsemble_class', 'H2O_GAM_class', 'TabTransformer_class']
+        logger.warning(
+            "CI environment detected. Disabling GPU-heavy and resource-intensive models."
+        )
+        models_to_disable = [
+            "kerasClassifier_class",
+            "knn__gpu_wrapper_class",
+            "H2O_class",
+            "H2O_GBM_class",
+            "H2O_DRF_class",
+            "H2O_DeepLearning_class",
+            "H2O_GLM_class",
+            "H2O_NaiveBayes_class",
+            "H2O_RuleFit_class",
+            "H2O_XGBoost_class",
+            "H2O_StackedEnsemble_class",
+            "H2O_GAM_class",
+            "TabTransformer_class",
+        ]
         for model_name in models_to_disable:
             if model_name in model_class_dict:
                 if model_class_dict[model_name]:
@@ -150,16 +167,18 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
                 try:
                     model_class = eval(class_name_with_suffix)
                 except NameError:
-                    raise NameError(f"Could not find model class '{class_name}' or '{class_name_with_suffix}'. Please check the name and ensure it's imported.")
+                    raise NameError(
+                        f"Could not find model class '{class_name}' or '{class_name_with_suffix}'. Please check the name and ensure it's imported."
+                    )
             # Pass X and y to constructors that accept them (like H2OStackedEnsemble)
             init_signature = inspect.signature(model_class.__init__)
             init_params = {}
-            if 'X' in init_signature.parameters:
-                init_params['X'] = ml_grid_object.X_train
-            if 'y' in init_signature.parameters:
-                init_params['y'] = ml_grid_object.y_train
-            if 'parameter_space_size' in init_signature.parameters:
-                init_params['parameter_space_size'] = parameter_space_size
+            if "X" in init_signature.parameters:
+                init_params["X"] = ml_grid_object.X_train
+            if "y" in init_signature.parameters:
+                init_params["y"] = ml_grid_object.y_train
+            if "parameter_space_size" in init_signature.parameters:
+                init_params["parameter_space_size"] = parameter_space_size
 
             model_instance = model_class(**init_params)
 
