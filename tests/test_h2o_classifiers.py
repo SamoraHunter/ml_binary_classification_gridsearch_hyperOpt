@@ -11,12 +11,12 @@ from ml_grid.util.global_params import global_parameters
 
 # Import all the H2O *model definition* classes, which is more realistic
 from ml_grid.model_classes.h2o_gbm_classifier_class import H2O_GBM_class
-from ml_grid.model_classes.h2o_drf_classifier_class import H2O_DRF_class
-from ml_grid.model_classes.h2o_gam_classifier_class import H2O_GAM_class
+from ml_grid.model_classes.h2o_drf_classifier_class import H2ODRFClass as H2O_DRF_class
+from ml_grid.model_classes.h2o_gam_classifier_class import H2OGAMClass as H2O_GAM_class
 from ml_grid.model_classes.h2o_deeplearning_classifier_class import H2O_DeepLearning_class
 from ml_grid.model_classes.h2o_glm_classifier_class import H2O_GLM_class
 from ml_grid.model_classes.h2o_naive_bayes_classifier_class import H2O_NaiveBayes_class
-from ml_grid.model_classes.h2o_rulefit_classifier_class import H2O_RuleFit_class
+from ml_grid.model_classes.h2o_rulefit_classifier_class import H2ORuleFitClass as H2O_RuleFit_class
 from ml_grid.model_classes.h2o_xgboost_classifier_class import H2O_XGBoost_class
 from ml_grid.model_classes.h2o_stackedensemble_classifier_class import H2O_StackedEnsemble_class
 from ml_grid.model_classes.h2o_classifier_class import H2OAutoMLConfig as H2O_class # This is the AutoML class
@@ -163,7 +163,7 @@ def test_h2o_gam_knot_cardinality_error(h2o_session_fixture):
     y = pd.Series(np.random.randint(0, 2, 20), name="outcome")
 
     # Instantiate the GAM class
-    gam_class_instance = H2O_GAM_class(X=X, y=y, parameter_space_size="small")
+    gam_class_instance = H2O_GAM_class(X=X, y=y)
     estimator = gam_class_instance.algorithm_implementation
 
     # Set parameters that will cause the error: 5 knots for a feature with 2 unique values.

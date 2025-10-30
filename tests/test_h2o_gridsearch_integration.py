@@ -11,12 +11,12 @@ from ml_grid.util.global_params import global_parameters
 
 # Import all H2O model definition classes
 from ml_grid.model_classes.h2o_gbm_classifier_class import H2O_GBM_class
-from ml_grid.model_classes.h2o_drf_classifier_class import H2O_DRF_class
-from ml_grid.model_classes.h2o_gam_classifier_class import H2O_GAM_class
+from ml_grid.model_classes.h2o_drf_classifier_class import H2ODRFClass as H2O_DRF_class
+from ml_grid.model_classes.h2o_gam_classifier_class import H2OGAMClass as H2O_GAM_class
 from ml_grid.model_classes.h2o_deeplearning_classifier_class import H2O_DeepLearning_class
 from ml_grid.model_classes.h2o_glm_classifier_class import H2O_GLM_class
 from ml_grid.model_classes.h2o_naive_bayes_classifier_class import H2O_NaiveBayes_class
-from ml_grid.model_classes.h2o_rulefit_classifier_class import H2O_RuleFit_class
+from ml_grid.model_classes.h2o_rulefit_classifier_class import H2ORuleFitClass as H2O_RuleFit_class
 from ml_grid.model_classes.h2o_xgboost_classifier_class import H2O_XGBoost_class
 from ml_grid.model_classes.h2o_stackedensemble_classifier_class import H2O_StackedEnsemble_class
 from ml_grid.model_classes.h2o_classifier_class import H2OAutoMLConfig as H2O_class # AutoML
@@ -157,6 +157,8 @@ def test_h2o_search_integrations(model_class, search_strategy, synthetic_data, h
     
     if model_class == H2O_class:
         instance = model_class(parameter_space_size="small")
+    elif model_class == H2O_GAM_class:
+        instance = model_class(X=X_df, y=y_series)
     else:
         instance = model_class(X=X_df, y=y_series, parameter_space_size="small")
 
@@ -189,7 +191,10 @@ def test_h2o_slow_models(model_class, search_strategy, synthetic_data, h2o_sessi
     
     X_df = pd.DataFrame(X)
     y_series = pd.Series(y)
-    instance = model_class(X=X_df, y=y_series, parameter_space_size="small")
+    if model_class == H2O_GAM_class:
+        instance = model_class(X=X_df, y=y_series)
+    else:
+        instance = model_class(X=X_df, y=y_series, parameter_space_size="small")
     mock_ml_grid_object = MockMlGridObject(X_df, y_series, search_strategy=search_strategy)
 
     param_space = _prepare_h2o_param_space(
