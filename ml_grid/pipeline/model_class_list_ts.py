@@ -4,8 +4,8 @@ from typing import Any, List
 
 from ml_grid.model_classes_time_series.ArsenalClassifier_module import Arsenal_class
 from ml_grid.model_classes_time_series.CNNClassifier_module import CNNClassifier_class
-from ml_grid.model_classes_time_series.ContractableBOSSClassifier_module import (
-    ContractableBOSS_class,
+from ml_grid.model_classes_time_series.elasticEnsembleClassifier_module import (
+    ElasticEnsemble_class,
 )
 from ml_grid.model_classes_time_series.EncoderClassifier_module import (
     EncoderClassifier_class,
@@ -13,9 +13,6 @@ from ml_grid.model_classes_time_series.EncoderClassifier_module import (
 from ml_grid.model_classes_time_series.FCNClassifier_module import FCNClassifier_class
 from ml_grid.model_classes_time_series.FreshPRINCEClassifier_module import (
     FreshPRINCEClassifier_class,
-)
-from ml_grid.model_classes_time_series.HIVECOTEV1Classifier_module import (
-    HIVECOTEV1_class,
 )
 from ml_grid.model_classes_time_series.HIVECOTEV2Classifier_module import (
     HIVECOTEV2_class,
@@ -33,7 +30,6 @@ from ml_grid.model_classes_time_series.KNeighborsTimeSeriesClassifier_module imp
     KNeighborsTimeSeriesClassifier_class,
 )
 
-
 # from ml_grid.model_classes import LogisticRegression_class
 from ml_grid.model_classes_time_series.MLPClassifier_module import MLPClassifier_class
 from ml_grid.model_classes_time_series.MUSEClassifier_module import MUSE_class
@@ -43,14 +39,15 @@ from ml_grid.model_classes_time_series.OrdinalTDEClassifier_module import (
 from ml_grid.model_classes_time_series.ResNetClassifier_module import (
     ResNetClassifier_class,
 )
+from ml_grid.model_classes_time_series.rocketClassifier_module import (
+    RocketClassifier_class,
+)
+from ml_grid.model_classes_time_series.shapeDTWClassifier_module import ShapeDTW_class
 from ml_grid.model_classes_time_series.SignatureClassifier_module import (
     SignatureClassifier_class,
 )
 from ml_grid.model_classes_time_series.SummaryClassifier_module import (
     SummaryClassifier_class,
-)
-from ml_grid.model_classes_time_series.TSFreshClassifier_module import (
-    TSFreshClassifier_class,
 )
 from ml_grid.model_classes_time_series.TapNetClassifier_module import (
     TapNetClassifier_class,
@@ -58,13 +55,9 @@ from ml_grid.model_classes_time_series.TapNetClassifier_module import (
 from ml_grid.model_classes_time_series.TemporalDictionaryEnsembleClassifier_module import (
     TemporalDictionaryEnsemble_class,
 )
-from ml_grid.model_classes_time_series.elasticEnsembleClassifier_module import (
-    ElasticEnsemble_class,
+from ml_grid.model_classes_time_series.TSFreshClassifier_module import (
+    TSFreshClassifier_class,
 )
-from ml_grid.model_classes_time_series.rocketClassifier_module import (
-    RocketClassifier_class,
-)
-from ml_grid.model_classes_time_series.shapeDTWClassifier_module import ShapeDTW_class
 from ml_grid.pipeline.data import pipe
 
 

@@ -20,18 +20,16 @@ from ml_grid.model_classes.h2o_classifier_class import H2OAutoMLClass
 from ml_grid.model_classes.h2o_deeplearning_classifier_class import (
     H2O_DeepLearning_class,
 )
-from ml_grid.model_classes.h2o_drf_classifier_class import H2ODRFClass as H2O_DRF_class
+from ml_grid.model_classes.h2o_drf_classifier_class import H2ODRFClass as H2O_DRF_class # noqa
 from ml_grid.model_classes.h2o_gam_classifier_class import H2OGAMClass as H2O_GAM_class
 from ml_grid.model_classes.h2o_gbm_classifier_class import (
-    H2O_GBM_class,  # No change needed here
+    H2O_GBM_class, # No change needed here
 )  # Correctly named
 from ml_grid.model_classes.h2o_glm_classifier_class import H2O_GLM_class
 from ml_grid.model_classes.h2o_naive_bayes_classifier_class import (
     H2O_NaiveBayes_class,
 )
-from ml_grid.model_classes.h2o_rulefit_classifier_class import (
-    H2ORuleFitClass as H2O_RuleFit_class,
-)
+from ml_grid.model_classes.h2o_rulefit_classifier_class import H2ORuleFitClass as H2O_RuleFit_class # noqa
 from ml_grid.model_classes.h2o_stackedensemble_classifier_class import (
     H2O_StackedEnsemble_class,
 )
@@ -39,10 +37,10 @@ from ml_grid.model_classes.h2o_xgboost_classifier_class import H2O_XGBoost_class
 from ml_grid.model_classes.keras_classifier_class import KerasClassifierClass
 from ml_grid.model_classes.knn_classifier_class import KNeighborsClassifierClass
 from ml_grid.model_classes.knn_gpu_classifier_class import KNNGpuWrapperClass
-from ml_grid.model_classes.light_gbm_class import LightGBMClassifierWrapper
+from ml_grid.model_classes.light_gbm_class import LightGBMClassifierWrapper # noqa
 from ml_grid.model_classes.logistic_regression_class import LogisticRegressionClass
 from ml_grid.model_classes.mlp_classifier_class import MLPClassifierClass
-from ml_grid.model_classes.NeuralNetworkClassifier_class import (
+from ml_grid.model_classes.NeuralNetworkClassifier_class import ( # noqa
     NeuralNetworkClassifier_class,
 )
 from ml_grid.model_classes.quadratic_discriminant_class import (
@@ -52,8 +50,8 @@ from ml_grid.model_classes.randomforest_classifier_class import (
     RandomForestClassifierClass,
 )
 from ml_grid.model_classes.svc_class import SVCClass
-from ml_grid.model_classes.tabtransformer_classifier_class import TabTransformerClass
-from ml_grid.model_classes.xgb_classifier_class import XGBClassifierClass
+from ml_grid.model_classes.tabtransformer_classifier_class import TabTransformerClass # noqa
+from ml_grid.model_classes.xgb_classifier_class import XGBClassifierClass # noqa
 from ml_grid.pipeline.data import pipe
 
 
