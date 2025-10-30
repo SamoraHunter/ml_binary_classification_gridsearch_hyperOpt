@@ -1,6 +1,7 @@
-from h2o.estimators import H2OGradientBoostingEstimator
 import pandas as pd
-from skopt.space import Real, Integer
+from h2o.estimators import H2OGradientBoostingEstimator
+from skopt.space import Integer, Real
+
 from ml_grid.util.global_params import global_parameters
 
 from .H2OBaseClassifier import H2OBaseClassifier

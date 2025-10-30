@@ -4,15 +4,15 @@
 This module provides a scikit-learn compatible wrapper for the
 simbsig.neighbors.KNeighborsClassifier, with GPU support.
 """
+import logging
 from typing import Any, Dict, Optional, Union
 
 import numpy as np
 import pandas as pd
 import torch
 from simbsig.neighbors import KNeighborsClassifier as SimbsigKNeighborsClassifier
-from sklearn.neighbors import KNeighborsClassifier as SklearnKNeighborsClassifier
 from sklearn import metrics
-import logging
+from sklearn.neighbors import KNeighborsClassifier as SklearnKNeighborsClassifier
 
 
 class KNNWrapper:

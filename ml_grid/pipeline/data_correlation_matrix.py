@@ -1,9 +1,9 @@
-import sys
-from typing import Any, Dict, List, Tuple
 import logging
+import sys
+from typing import Any, Dict, List
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 from tqdm import tqdm
 
 

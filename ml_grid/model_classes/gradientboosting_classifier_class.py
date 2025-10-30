@@ -5,14 +5,15 @@ class for the GradientBoostingClassifier. It provides parameter spaces for
 grid search and Bayesian optimization.
 """
 
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 
 import numpy as np
 import pandas as pd
+from sklearn.ensemble import GradientBoostingClassifier
+from skopt.space import Categorical, Integer, Real
+
 from ml_grid.util import param_space
 from ml_grid.util.global_params import global_parameters
-from sklearn.ensemble import GradientBoostingClassifier
-from skopt.space import Categorical, Real, Integer
 
 
 class GradientBoostingClassifierClass:

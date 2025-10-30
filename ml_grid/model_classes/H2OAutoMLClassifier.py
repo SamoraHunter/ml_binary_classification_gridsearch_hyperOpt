@@ -1,10 +1,10 @@
-import h2o
-import numpy as np
-import pandas as pd
 import logging
+
+import pandas as pd
 from h2o.automl import H2OAutoML
-from .H2OBaseClassifier import H2OBaseClassifier
 from h2o.estimators import H2OGeneralizedLinearEstimator
+
+from .H2OBaseClassifier import H2OBaseClassifier
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,7 @@
 import logging
-import pandas as pd
 from typing import List
+
+import pandas as pd
 
 # Import H2O estimators
 try:

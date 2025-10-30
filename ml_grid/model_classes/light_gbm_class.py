@@ -5,14 +5,15 @@ class for the LightGBMClassifier. It provides parameter spaces for
 grid search and Bayesian optimization.
 """
 
+import logging
 from typing import Any, Dict, Optional, Union
 
 import pandas as pd
-from ml_grid.util import param_space
+from skopt.space import Categorical, Integer, Real
+
 from ml_grid.model_classes.lightgbm_class import LightGBMClassifier
+from ml_grid.util import param_space
 from ml_grid.util.global_params import global_parameters
-from skopt.space import Categorical, Real, Integer
-import logging
 
 
 class LightGBMClassifierWrapper:

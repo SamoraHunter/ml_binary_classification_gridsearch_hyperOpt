@@ -4,24 +4,24 @@ Master plotting module that provides a single entry point to generate a
 comprehensive set of visualizations for ML results analysis.
 """
 
-import os
-import pandas as pd
-from typing import List, Optional, NoReturn
 import logging
+import os
+
+import pandas as pd
 
 # Import all the individual plotter classes
 from ml_grid.results_processing.plot_algorithms import AlgorithmComparisonPlotter
+from ml_grid.results_processing.plot_best_model import BestModelAnalyzerPlotter
 from ml_grid.results_processing.plot_distributions import DistributionPlotter
+from ml_grid.results_processing.plot_feature_categories import FeatureCategoryPlotter
 from ml_grid.results_processing.plot_features import FeatureAnalysisPlotter
-from ml_grid.results_processing.plot_timeline import TimelineAnalysisPlotter
+from ml_grid.results_processing.plot_global_importance import GlobalImportancePlotter
 from ml_grid.results_processing.plot_hyperparameters import (
     HyperparameterAnalysisPlotter,
 )
-from ml_grid.results_processing.plot_feature_categories import FeatureCategoryPlotter
-from ml_grid.results_processing.plot_pipeline_parameters import PipelineParameterPlotter
-from ml_grid.results_processing.plot_global_importance import GlobalImportancePlotter
 from ml_grid.results_processing.plot_interactions import InteractionPlotter
-from ml_grid.results_processing.plot_best_model import BestModelAnalyzerPlotter
+from ml_grid.results_processing.plot_pipeline_parameters import PipelineParameterPlotter
+from ml_grid.results_processing.plot_timeline import TimelineAnalysisPlotter
 from ml_grid.results_processing.summarize_results import ResultsSummarizer
 
 
@@ -148,7 +148,7 @@ class MasterPlotter:
             save_best_results (bool, optional): If True, saves a CSV summary of
                 the best model per outcome. Defaults to True.
         """
-        self.logger.info(f"--- Starting MasterPlotter.plot_all() ---")
+        self.logger.info("--- Starting MasterPlotter.plot_all() ---")
         self.logger.info(
             f"Parameters: metric='{metric}', stratify_by_outcome={stratify_by_outcome}, save_best_results={save_best_results}"
         )

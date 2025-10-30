@@ -1,6 +1,7 @@
 from typing import Any, Dict, List
 
 from aeon.classification.feature_based._signature_classifier import SignatureClassifier
+
 from ml_grid.pipeline.data import pipe
 
 

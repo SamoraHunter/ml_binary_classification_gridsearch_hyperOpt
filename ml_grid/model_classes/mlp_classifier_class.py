@@ -5,14 +5,15 @@ class for the MLPClassifier. It provides parameter spaces for
 grid search and Bayesian optimization.
 """
 
-from typing import Any, Dict, Optional, Union
+import logging
+from typing import Any, Dict, Optional
 
 import pandas as pd
 from sklearn.neural_network import MLPClassifier
-from skopt.space import Real, Integer, Categorical
+from skopt.space import Categorical, Integer, Real
+
 from ml_grid.util import param_space
 from ml_grid.util.global_params import global_parameters
-import logging
 
 logging.getLogger("ml_grid").debug("Imported MLPClassifier class")
 

@@ -1,34 +1,30 @@
-import pytest
-import pandas as pd
-import numpy as np
-from sklearn.model_selection import cross_val_score, KFold
-from sklearn.utils.estimator_checks import check_estimator
-import h2o
-from typing import List
 import logging
 
-from ml_grid.pipeline.grid_search_cross_validate import grid_search_crossvalidate
-from ml_grid.util.global_params import global_parameters
+import h2o
+import numpy as np
+import pandas as pd
+import pytest
+from sklearn.model_selection import KFold, cross_val_score
 
-# Import all the H2O *model definition* classes, which is more realistic
-from ml_grid.model_classes.h2o_gbm_classifier_class import H2O_GBM_class
-from ml_grid.model_classes.h2o_drf_classifier_class import H2ODRFClass as H2O_DRF_class
-from ml_grid.model_classes.h2o_gam_classifier_class import H2OGAMClass as H2O_GAM_class
+from ml_grid.model_classes.h2o_classifier_class import (
+    H2OAutoMLClass as H2O_class,
+)  # This is the AutoML class
 from ml_grid.model_classes.h2o_deeplearning_classifier_class import (
     H2O_DeepLearning_class,
 )
+from ml_grid.model_classes.h2o_drf_classifier_class import H2ODRFClass as H2O_DRF_class
+from ml_grid.model_classes.h2o_gam_classifier_class import H2OGAMClass as H2O_GAM_class
+
+# Import all the H2O *model definition* classes, which is more realistic
+from ml_grid.model_classes.h2o_gbm_classifier_class import H2O_GBM_class
 from ml_grid.model_classes.h2o_glm_classifier_class import H2O_GLM_class
 from ml_grid.model_classes.h2o_naive_bayes_classifier_class import H2O_NaiveBayes_class
 from ml_grid.model_classes.h2o_rulefit_classifier_class import (
     H2ORuleFitClass as H2O_RuleFit_class,
 )
 from ml_grid.model_classes.h2o_xgboost_classifier_class import H2O_XGBoost_class
-from ml_grid.model_classes.h2o_stackedensemble_classifier_class import (
-    H2O_StackedEnsemble_class,
-)
-from ml_grid.model_classes.h2o_classifier_class import (
-    H2OAutoMLClass as H2O_class,
-)  # This is the AutoML class
+from ml_grid.pipeline.grid_search_cross_validate import grid_search_crossvalidate
+from ml_grid.util.global_params import global_parameters
 
 
 @pytest.fixture
@@ -50,7 +46,6 @@ def tiny_problematic_data():
 
 
 # A list of all H2O model definition classes to be tested
-import random
 
 H2O_MODEL_CLASSES = [
     H2O_GBM_class,

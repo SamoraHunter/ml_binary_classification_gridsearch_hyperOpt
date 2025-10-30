@@ -1,6 +1,7 @@
-from typing import Any, Dict, List, Union
 import logging
-from skopt.space import Real, Integer, Categorical
+from typing import Any, Dict, List, Union
+
+from skopt.space import Categorical, Integer, Real
 
 
 def calculate_combinations(

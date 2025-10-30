@@ -1,14 +1,16 @@
 import inspect
-from typing import Any, Dict, List, Optional, Tuple
 import logging
+import os
+import shutil
+import tempfile
+from typing import Any, Dict, List, Optional, Tuple
+
 import h2o
 import numpy as np
-import os
-import tempfile
-import shutil
 import pandas as pd
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.utils.validation import check_is_fitted
+
 from ml_grid.util.global_params import global_parameters
 
 # Configure logging
@@ -67,7 +69,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             # CRITICAL: Never allow 'model' as a parameter - it conflicts with 'model_'
             if key == "model":
                 self.logger.warning(
-                    f"Rejecting 'model' parameter in __init__ - this conflicts with fitted attribute 'model_'"
+                    "Rejecting 'model' parameter in __init__ - this conflicts with fitted attribute 'model_'"
                 )
                 continue
             setattr(self, key, value)

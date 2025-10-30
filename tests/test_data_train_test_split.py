@@ -1,6 +1,8 @@
 import unittest
-import pandas as pd
+
 import numpy as np
+import pandas as pd
+
 from ml_grid.pipeline.data_train_test_split import get_data_split, is_valid_shape
 
 

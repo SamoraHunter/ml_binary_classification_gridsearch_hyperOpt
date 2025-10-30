@@ -4,11 +4,12 @@ Interaction effect plotting module for ML results analysis.
 Focuses on visualizing how pairs of parameters jointly affect model performance.
 """
 
-import pandas as pd
 import logging
+from typing import Tuple
+
 import matplotlib.pyplot as plt
+import pandas as pd
 import seaborn as sns
-from typing import Tuple, Optional
 
 from ml_grid.results_processing.core import get_clean_data
 

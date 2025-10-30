@@ -1,6 +1,6 @@
+import logging
 import re
 from typing import List
-import logging
 
 import pandas as pd
 

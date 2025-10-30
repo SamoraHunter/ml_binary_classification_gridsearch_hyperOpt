@@ -4,9 +4,11 @@ Data filtering and querying module for ML results analysis.
 Provides flexible filtering capabilities with outcome variable stratification.
 """
 
-import pandas as pd
+from typing import Dict, List, Optional, Union
+
 import numpy as np
-from typing import List, Dict, Optional, Union, Tuple, Any
+import pandas as pd
+
 from ml_grid.results_processing.core import get_clean_data
 
 

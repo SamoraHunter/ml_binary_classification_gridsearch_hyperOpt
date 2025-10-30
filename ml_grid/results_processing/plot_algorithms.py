@@ -4,14 +4,16 @@ Algorithm comparison plotting module for ML results analysis.
 Focuses on comparing algorithm performance with outcome variable stratification.
 """
 
-import pandas as pd
-import numpy as np
+import warnings
+from typing import List, Optional, Tuple
+
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import seaborn as sns
 from scipy.stats import ttest_ind
-from typing import List, Dict, Optional, Union, Tuple
+
 from ml_grid.results_processing.core import get_clean_data
-import warnings
 
 # Maximum number of outcomes to display in stratified plots to avoid clutter.
 MAX_OUTCOMES_FOR_STRATIFIED_PLOT = 20

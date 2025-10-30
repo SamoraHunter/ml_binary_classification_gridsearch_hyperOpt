@@ -5,14 +5,15 @@ class for the KNeighborsClassifier. It provides parameter spaces for
 grid search and Bayesian optimization.
 """
 
-from typing import Any, Dict, Optional, Union
+import logging
+from typing import Any, Dict, Optional
 
 import pandas as pd
+from sklearn.neighbors import KNeighborsClassifier
+from skopt.space import Categorical, Integer
+
 from ml_grid.util import param_space
 from ml_grid.util.global_params import global_parameters
-from sklearn.neighbors import KNeighborsClassifier
-from skopt.space import Integer, Categorical, Real
-import logging
 
 logging.getLogger("ml_grid").debug("Imported KNeighborsClassifier class")
 

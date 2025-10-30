@@ -1,12 +1,14 @@
 import unittest
+
+import lightgbm as lgb
 import pandas as pd
-from ml_grid.pipeline.data_feature_methods import (
-    feature_methods,
-)
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
-import lightgbm as lgb
+
+from ml_grid.pipeline.data_feature_methods import (
+    feature_methods,
+)
 
 
 class TestGetNFeaturesMarkovBlanket(unittest.TestCase):

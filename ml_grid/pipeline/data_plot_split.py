@@ -1,6 +1,6 @@
+import logging
 from typing import Dict, Sized, Union
 
-import logging
 import matplotlib.pyplot as plt
 
 

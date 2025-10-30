@@ -4,12 +4,12 @@ Feature analysis and importance plotting module for ML results analysis.
 Focuses on feature usage and impact on performance, with outcome stratification.
 """
 
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from typing import List, Optional, Tuple
 import warnings
+from typing import List, Optional, Tuple
+
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
 
 # Maximum number of outcomes to display in stratified plots to avoid clutter.
 MAX_OUTCOMES_FOR_STRATIFIED_PLOT = 10
@@ -19,7 +19,7 @@ MAX_FEATURES_FOR_ANALYSIS = 500
 MAX_FEATURES_FOR_UPSET = 40
 
 try:
-    from upsetplot import from_memberships, UpSet
+    from upsetplot import UpSet, from_memberships
 except ImportError:
     UpSet = None
     warnings.warn(

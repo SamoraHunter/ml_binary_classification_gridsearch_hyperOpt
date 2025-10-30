@@ -5,17 +5,16 @@ Focuses on methods suitable for sparse, high-dimensional data with reproducible 
 """
 
 import logging
-from typing import Union, Optional, Dict, Any, Literal
+from typing import Any, Dict, Literal, Optional, Union
 
 import numpy as np
 import pandas as pd
-from sklearn.decomposition import PCA, TruncatedSVD, NMF
-from sklearn.feature_selection import SelectKBest, f_classif, mutual_info_classif
+from sklearn.decomposition import NMF, PCA, TruncatedSVD
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.random_projection import GaussianRandomProjection, SparseRandomProjection
+from sklearn.feature_selection import SelectKBest, f_classif, mutual_info_classif
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
-
+from sklearn.random_projection import GaussianRandomProjection, SparseRandomProjection
 
 EmbeddingMethod = Literal[
     "svd",

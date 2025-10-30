@@ -1,13 +1,14 @@
 """Defines the QuadraticDiscriminantAnalysis model class."""
 
-from typing import Any, Dict, Optional, Union
+import logging
+from typing import Any, Dict, Optional
 
 import pandas as pd
-from ml_grid.util import param_space
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
-from ml_grid.util.global_params import global_parameters
 from skopt.space import Categorical, Real
-import logging
+
+from ml_grid.util import param_space
+from ml_grid.util.global_params import global_parameters
 
 logging.getLogger("ml_grid").debug("Imported QuadraticDiscriminantAnalysis class")
 

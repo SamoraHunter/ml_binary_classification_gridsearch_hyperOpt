@@ -1,6 +1,6 @@
+import logging
 import random
 from typing import Any, Dict, Tuple, Union
-import logging
 
 import numpy as np
 import pandas as pd

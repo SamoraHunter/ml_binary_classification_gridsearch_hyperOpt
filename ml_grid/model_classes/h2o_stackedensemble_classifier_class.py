@@ -5,20 +5,22 @@ class for the H2OStackedEnsembleClassifier. It provides parameter spaces for
 grid search and Bayesian optimization.
 """
 
+import logging
 from typing import Any, Dict, List, Optional, Union
+
 import pandas as pd
+from skopt.space import Categorical, Integer
+
 from ml_grid.model_classes.H2OStackedEnsembleClassifier import (
     H2OStackedEnsembleClassifier,
 )
 from ml_grid.util.global_params import global_parameters
-from skopt.space import Categorical, Integer
-import logging
+
+from .h2o_drf_classifier_class import H2ODRFClass as H2O_DRF_class
 
 # --- FIX: Import our custom wrapper classes to use as base models ---
 from .h2o_gbm_classifier_class import H2O_GBM_class
-from .h2o_drf_classifier_class import H2ODRFClass as H2O_DRF_class
 from .h2o_glm_classifier_class import H2O_GLM_class
-
 
 logging.getLogger("ml_grid").debug("Imported h2o_stackedensemble_classifier_class")
 

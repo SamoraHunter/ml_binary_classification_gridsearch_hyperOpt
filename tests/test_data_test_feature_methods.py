@@ -1,8 +1,8 @@
+import unittest
+
 import numpy as np
 import pandas as pd
-import sklearn
-import unittest
-from unittest.mock import patch
+
 from ml_grid.pipeline.data_feature_methods import feature_methods
 
 

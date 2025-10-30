@@ -1,16 +1,17 @@
-import pytest
-import pandas as pd
-import numpy as np
-from unittest.mock import patch, MagicMock, ANY, call
 import os
 import shutil
-from sklearn.base import clone
+from unittest.mock import ANY, MagicMock, patch
+
 import h2o
+import numpy as np
+import pandas as pd
+import pytest
+from sklearn.base import clone
 
 # The class to test
 from ml_grid.model_classes.H2OBaseClassifier import (
-    H2OBaseClassifier,
     _SHARED_CHECKPOINT_DIR,
+    H2OBaseClassifier,
 )
 
 

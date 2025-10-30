@@ -5,14 +5,15 @@ class for the LogisticRegression. It provides parameter spaces for
 grid search and Bayesian optimization.
 """
 
-from typing import Any, Dict, List, Optional, Union
+import logging
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
-from ml_grid.util import param_space
 from sklearn.linear_model import LogisticRegression
+from skopt.space import Categorical, Integer, Real
+
+from ml_grid.util import param_space
 from ml_grid.util.global_params import global_parameters
-from skopt.space import Categorical, Real, Integer
-import logging
 
 logging.getLogger("ml_grid").debug("Imported logistic regression class")
 

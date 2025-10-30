@@ -1,9 +1,10 @@
 # tests/conftest.py
 
-import pytest
-import h2o
 import logging
 import os
+
+import h2o
+import pytest
 
 # --- Tame TensorFlow ---
 # Set log level to suppress info/warnings before importing

@@ -8,8 +8,7 @@ custom scoring function for ROC AUC that handles cases with a single class.
 from typing import Any, Callable, Dict, List, Union
 
 import numpy as np
-from sklearn.metrics import make_scorer
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import make_scorer, roc_auc_score
 
 
 def custom_roc_auc_score(y_true: np.ndarray, y_pred: np.ndarray) -> float:

@@ -1,8 +1,7 @@
-import os
 import logging
-from typing import Optional
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 
 def create_experiment_directory(

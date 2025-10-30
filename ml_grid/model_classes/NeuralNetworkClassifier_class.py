@@ -5,11 +5,13 @@ class for the NeuralNetworkClassifier (Keras wrapper). It provides parameter
 spaces for grid search and Bayesian optimization.
 """
 
-from typing import Any, Dict, List, Optional, Union
-import pandas as pd
-from ml_grid.util import param_space
-from ml_grid.model_classes.NeuralNetworkKerasClassifier import NeuralNetworkClassifier
 import logging
+from typing import Any, Dict, List, Optional, Union
+
+import pandas as pd
+
+from ml_grid.model_classes.NeuralNetworkKerasClassifier import NeuralNetworkClassifier
+from ml_grid.util import param_space
 
 logging.getLogger("ml_grid").debug("Imported NeuralNetworkClassifier class")
 
@@ -52,8 +54,8 @@ class NeuralNetworkClassifier_class:
 
         self.parameter_space: Union[List[Dict[str, Any]], Dict[str, Any]]
 
+
         from ml_grid.util.global_params import global_parameters
-        import logging
 
         if global_parameters.bayessearch:
             from skopt.space import Categorical, Integer, Real

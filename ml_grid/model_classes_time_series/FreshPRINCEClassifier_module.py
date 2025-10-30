@@ -1,6 +1,7 @@
 from typing import Any, Dict, List
 
 from aeon.classification.feature_based._fresh_prince import FreshPRINCEClassifier
+
 from ml_grid.pipeline.data import pipe
 
 

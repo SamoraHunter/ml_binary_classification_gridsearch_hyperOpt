@@ -1,9 +1,11 @@
+import logging
 from typing import Optional
+
 import pandas as pd
+from skopt.space import Integer, Real
+
 from ml_grid.model_classes.H2OXGBoostClassifier import H2OXGBoostClassifier
 from ml_grid.util.global_params import global_parameters
-from skopt.space import Real, Integer
-import logging
 
 logging.getLogger("ml_grid").debug("Imported h2o_xgboost_classifier_class")
 

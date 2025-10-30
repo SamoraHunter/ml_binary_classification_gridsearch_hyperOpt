@@ -4,11 +4,12 @@ Pipeline parameter analysis plotting module for ML results analysis.
 Focuses on visualizing the impact of data transformations and pipeline settings on model performance.
 """
 
-import pandas as pd
 import logging
+from typing import Optional, Tuple
+
 import matplotlib.pyplot as plt
+import pandas as pd
 import seaborn as sns
-from typing import List, Tuple, Optional
 
 from ml_grid.results_processing.core import get_clean_data
 

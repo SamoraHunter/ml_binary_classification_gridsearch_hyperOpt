@@ -1,6 +1,7 @@
 from typing import Any, Dict, List
 
 from aeon.classification.dictionary_based import ContractableBOSS
+
 from ml_grid.pipeline.data import pipe
 
 

@@ -5,14 +5,15 @@ class for the KNNWrapper (GPU-accelerated KNN). It provides parameter spaces for
 grid search and Bayesian optimization.
 """
 
-from typing import Any, Dict, Optional, Union
+import logging
+from typing import Any, Dict, Optional
 
 import pandas as pd
+from skopt.space import Categorical, Integer
+
 from ml_grid.model_classes.knn_wrapper_class import KNNWrapper
 from ml_grid.util import param_space
 from ml_grid.util.global_params import global_parameters
-from skopt.space import Categorical, Integer
-import logging
 
 logging.getLogger("ml_grid").debug("Imported knn__gpu class")
 

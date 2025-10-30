@@ -5,12 +5,13 @@ class for the H2OAutoMLClassifier. It provides parameter spaces for
 grid search and Bayesian optimization.
 """
 
+import logging
 from typing import Any, Dict, List, Optional
 
-import logging
+from skopt.space import Categorical, Integer
+
 from ml_grid.model_classes.H2OAutoMLClassifier import H2OAutoMLClassifier
 from ml_grid.util.global_params import global_parameters
-from skopt.space import Categorical, Integer
 
 logger = logging.getLogger(__name__)
 logger.debug("Imported h2o_classifier_class")

@@ -6,22 +6,22 @@ that data is loaded, cleaned, transformed, and split correctly according to
 various configurations.
 """
 
-import unittest
-import pandas as pd
-import numpy as np
-import os
-import tempfile
 import shutil
+import tempfile
+import unittest
 from pathlib import Path
+
+import numpy as np
+import pandas as pd
 
 # Ensure the project root is in the Python path to allow for module imports
 try:
-    from ml_grid.pipeline.data import pipe, NoFeaturesError
+    from ml_grid.pipeline.data import NoFeaturesError, pipe
     from ml_grid.util.global_params import global_parameters
 except ImportError:
     # This allows the test to be run from the project root directory
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    from ml_grid.pipeline.data import pipe, NoFeaturesError
+    from ml_grid.pipeline.data import pipe
     from ml_grid.util.global_params import global_parameters
 
 

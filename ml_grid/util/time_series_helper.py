@@ -1,8 +1,9 @@
-import pandas as pd
-import numpy as np
-from tqdm import tqdm
 import logging
+
+import numpy as np
+import pandas as pd
 from tensorflow.keras.preprocessing import sequence
+from tqdm import tqdm
 
 
 def add_date_order_sequence_column(df):

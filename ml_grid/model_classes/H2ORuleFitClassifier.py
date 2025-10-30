@@ -3,9 +3,10 @@
 This module provides a scikit-learn compatible wrapper for H2O's RuleFitEstimator.
 """
 
-from h2o.estimators import H2ORuleFitEstimator
-from .H2OBaseClassifier import H2OBaseClassifier
 import pandas as pd
+from h2o.estimators import H2ORuleFitEstimator
+
+from .H2OBaseClassifier import H2OBaseClassifier
 
 
 class H2ORuleFitClassifier(H2OBaseClassifier):

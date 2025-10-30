@@ -2,13 +2,13 @@
 Dedicated tests for data integrity checks within the data pipeline.
 """
 
-import unittest
-import pandas as pd
-import numpy as np
-import os
-import tempfile
 import shutil
+import tempfile
+import unittest
 from pathlib import Path
+
+import numpy as np
+import pandas as pd
 
 from ml_grid.pipeline.data import pipe
 from ml_grid.util.global_params import global_parameters

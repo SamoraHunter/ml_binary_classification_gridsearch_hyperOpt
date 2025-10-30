@@ -7,15 +7,15 @@ class for a Keras Sequential model wrapped by KerasClassifier. It provides
 parameter spaces for grid search and Bayesian optimization.
 """
 
-from typing import Any, Dict, Optional, Union
-import pandas as pd
+from typing import Any, Dict, Optional
+
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 from keras.constraints import max_norm
 from keras.layers import Dense, Dropout
 from keras.models import Sequential
 from keras.optimizers import Adam
-from ml_grid.util import param_space
 from scikeras.wrappers import KerasClassifier
 
 

@@ -3,6 +3,7 @@ from typing import Any, Dict, List
 from aeon.classification.feature_based import Catch22Classifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
+
 from ml_grid.pipeline.data import pipe
 
 

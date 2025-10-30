@@ -4,14 +4,16 @@ Distribution plotting module for ML results analysis.
 Focuses on metric distributions with outcome variable stratification.
 """
 
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from typing import List, Dict, Optional, Union, Tuple
-import warnings
 import logging
-from ml_grid.results_processing.core import get_clean_data, stratify_by_outcome
+import warnings
+from typing import List, Optional, Tuple
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+
+from ml_grid.results_processing.core import get_clean_data
 
 # Maximum number of outcomes to display in stratified plots to avoid clutter.
 MAX_OUTCOMES_FOR_STRATIFIED_PLOT = 20

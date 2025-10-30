@@ -9,10 +9,10 @@ from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
-from ml_grid.util import param_space
 from sklearn.ensemble import RandomForestClassifier
-from skopt.space import Real, Categorical, Integer
+from skopt.space import Categorical, Integer, Real
 
+from ml_grid.util import param_space
 from ml_grid.util.global_params import global_parameters
 
 

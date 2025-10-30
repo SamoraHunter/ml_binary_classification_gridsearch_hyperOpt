@@ -1,5 +1,6 @@
-from typing import Dict
 import logging
+from typing import Dict
+
 import numpy as np
 
 

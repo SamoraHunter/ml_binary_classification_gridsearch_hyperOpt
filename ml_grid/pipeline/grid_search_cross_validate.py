@@ -1,64 +1,50 @@
-import time
-import traceback
 import logging
+import time
 import warnings
 from typing import Any, Dict, List, Optional, Union
 
-import keras
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 import torch
 from IPython.display import clear_output
-from numpy import absolute, mean, std
+from pandas.testing import assert_index_equal
 from scikeras.wrappers import KerasClassifier
 from sklearn import metrics
-from IPython.display import display
-from catboost import CatBoostError
-from pandas.testing import assert_index_equal
-from xgboost.core import XGBoostError
-from ml_grid.model_classes.H2OAutoMLClassifier import H2OAutoMLClassifier
-from ml_grid.model_classes.H2OGBMClassifier import H2OGBMClassifier
-from ml_grid.model_classes.H2ODRFClassifier import H2ODRFClassifier
-from ml_grid.model_classes.H2OGAMClassifier import H2OGAMClassifier
-from ml_grid.model_classes.H2ODeepLearningClassifier import H2ODeepLearningClassifier
-from ml_grid.model_classes.H2OGLMClassifier import H2OGLMClassifier
-from ml_grid.model_classes.H2ONaiveBayesClassifier import H2ONaiveBayesClassifier
-from ml_grid.model_classes.H2ORuleFitClassifier import H2ORuleFitClassifier
-from ml_grid.model_classes.H2OXGBoostClassifier import H2OXGBoostClassifier
-from ml_grid.model_classes.H2OStackedEnsembleClassifier import (
-    H2OStackedEnsembleClassifier,
-)
-from ml_grid.model_classes.NeuralNetworkKerasClassifier import NeuralNetworkClassifier
 
 # from sklearn.utils.testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.metrics import *
-from sklearn.metrics import (
-    classification_report,
-    f1_score,
-    make_scorer,
-    matthews_corrcoef,
-    roc_auc_score,
-)
 from sklearn.model_selection import (
-    GridSearchCV,
-    ParameterGrid,
-    RandomizedSearchCV,
-    RepeatedKFold,
     KFold,
+    ParameterGrid,
+    RepeatedKFold,
     cross_validate,
 )
+from sklearn.preprocessing import MinMaxScaler
+from skopt.space import Categorical
+from xgboost.core import XGBoostError
 
+from ml_grid.model_classes.H2OAutoMLClassifier import H2OAutoMLClassifier
+from ml_grid.model_classes.H2ODeepLearningClassifier import H2ODeepLearningClassifier
+from ml_grid.model_classes.H2ODRFClassifier import H2ODRFClassifier
+from ml_grid.model_classes.H2OGAMClassifier import H2OGAMClassifier
+from ml_grid.model_classes.H2OGBMClassifier import H2OGBMClassifier
+from ml_grid.model_classes.H2OGLMClassifier import H2OGLMClassifier
+from ml_grid.model_classes.H2ONaiveBayesClassifier import H2ONaiveBayesClassifier
+from ml_grid.model_classes.H2ORuleFitClassifier import H2ORuleFitClassifier
+from ml_grid.model_classes.H2OStackedEnsembleClassifier import (
+    H2OStackedEnsembleClassifier,
+)
+from ml_grid.model_classes.H2OXGBoostClassifier import H2OXGBoostClassifier
 from ml_grid.model_classes.keras_classifier_class import KerasClassifierClass
+from ml_grid.model_classes.NeuralNetworkKerasClassifier import NeuralNetworkClassifier
 from ml_grid.pipeline.hyperparameter_search import HyperparameterSearch
+from ml_grid.util.bayes_utils import is_skopt_space
 from ml_grid.util.debug_print_statements import debug_print_statements_class
 from ml_grid.util.global_params import global_parameters
 from ml_grid.util.project_score_save import project_score_save_class
 from ml_grid.util.validate_parameters import validate_parameters_helper
-from sklearn.preprocessing import MinMaxScaler
-from ml_grid.util.bayes_utils import calculate_combinations, is_skopt_space
-from skopt.space import Categorical
 
 
 class grid_search_crossvalidate:

@@ -3,16 +3,16 @@ Hyperparameter analysis plotting module for ML results analysis.
 Focuses on visualizing the impact of hyperparameters on model performance.
 """
 
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from typing import List, Optional, Tuple, Dict, Any
-import warnings
 import ast
 import logging
+import warnings
+from typing import Any, Dict, List, Optional, Tuple
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import scipy.stats as stats
-from sklearn.metrics import r2_score
+import seaborn as sns
 
 from ml_grid.results_processing.core import get_clean_data
 
@@ -720,7 +720,7 @@ class HyperparameterAnalysisPlotter:
                 if p_value < 0.001:
                     title += " (p < 0.001)"
                 elif p_value < 0.01:
-                    title += f" (p < 0.01)"
+                    title += " (p < 0.01)"
                 elif p_value < 0.05:
                     title += f" (p = {p_value:.3f})"
                 else:

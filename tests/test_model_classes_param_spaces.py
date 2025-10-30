@@ -1,13 +1,15 @@
-import unittest
-import pkgutil
 import importlib
 import inspect
-import pandas as pd
+import pkgutil
+import unittest
+
 import numpy as np
+import pandas as pd
 from sklearn.base import clone
 from sklearn.model_selection import ParameterGrid
 from skopt import Optimizer  # Use the main Optimizer for sampling
-from skopt.space import Real, Integer, Categorical  # Import dimension types
+from skopt.space import Categorical, Integer, Real  # Import dimension types
+
 import ml_grid.model_classes
 from ml_grid.util.global_params import global_parameters
 

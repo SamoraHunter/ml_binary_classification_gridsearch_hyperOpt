@@ -1,9 +1,11 @@
-from h2o.estimators import H2ODeepLearningEstimator
-from .H2OBaseClassifier import H2OBaseClassifier
+
 import pandas as pd
-import logging
-from skopt.space import Categorical, Real, Integer
+from h2o.estimators import H2ODeepLearningEstimator
+from skopt.space import Categorical, Integer, Real
+
 from ml_grid.util.global_params import global_parameters
+
+from .H2OBaseClassifier import H2OBaseClassifier
 
 PARAM_SPACE_GRID = {
     "xsmall": {

@@ -1,6 +1,6 @@
-import pandas as pd
-import re
 import unittest
+
+import pandas as pd
 
 from ml_grid.pipeline.data_clean_up import clean_up_class
 

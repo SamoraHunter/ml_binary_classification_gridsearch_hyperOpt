@@ -9,9 +9,10 @@ import logging
 from typing import Any, Dict, List, Optional, Union
 
 import pandas as pd
+from skopt.space import Integer, Real
+
 from ml_grid.model_classes.H2ODRFClassifier import H2ODRFClassifier
 from ml_grid.util.global_params import global_parameters
-from skopt.space import Integer, Real
 
 logger = logging.getLogger(__name__)
 logger.debug("Imported h2o_drf_classifier_class")

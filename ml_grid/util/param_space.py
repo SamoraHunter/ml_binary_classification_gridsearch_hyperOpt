@@ -3,8 +3,9 @@
 from typing import Any, Dict, Optional
 
 import numpy as np
-from ml_grid.util.global_params import global_parameters
 from skopt.space import Categorical, Integer, Real
+
+from ml_grid.util.global_params import global_parameters
 
 
 class ParamSpace:

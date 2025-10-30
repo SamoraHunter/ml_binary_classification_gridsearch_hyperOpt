@@ -1,5 +1,6 @@
-from typing import List
 import logging
+from typing import List
+
 from ml_grid.util import outcome_list
 
 
@@ -28,7 +29,7 @@ def handle_outcome_list(drop_list: List[str], outcome_variable: str) -> List[str
 
     try:
         drop_list.remove(outcome_variable)
-    except Exception as e:
+    except Exception:
         logger.warning(
             f"{outcome_variable} not in drop list to be removed. This is expected."
         )

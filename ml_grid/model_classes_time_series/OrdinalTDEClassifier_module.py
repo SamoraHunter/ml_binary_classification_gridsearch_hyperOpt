@@ -1,6 +1,7 @@
 from typing import Any, Dict, List
 
 from aeon.classification.ordinal_classification import OrdinalTDE
+
 from ml_grid.pipeline.data import pipe
 
 

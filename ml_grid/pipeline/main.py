@@ -1,15 +1,15 @@
+import logging
 import traceback
 from typing import Any, Dict, List, Tuple
-import logging
 
 import numpy as np
-from catboost import CatBoostError
+from sklearn.model_selection import ParameterGrid
+
 from ml_grid.pipeline import grid_search_cross_validate
 from ml_grid.pipeline.data import pipe
 from ml_grid.util.bayes_utils import calculate_combinations
-from ml_grid.util.project_score_save import project_score_save_class  # Import the class
 from ml_grid.util.global_params import global_parameters
-from sklearn.model_selection import ParameterGrid
+from ml_grid.util.project_score_save import project_score_save_class  # Import the class
 
 
 class run:

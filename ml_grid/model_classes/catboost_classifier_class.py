@@ -5,15 +5,14 @@ class for the CatBoostClassifier. It provides parameter spaces for
 grid search and Bayesian optimization.
 """
 
+import logging
 from typing import Any, Dict, List, Optional, Union
 
-import numpy as np
 import pandas as pd
 from catboost import CatBoostClassifier
-from skopt.space import Categorical, Real, Integer
-from ml_grid.util import param_space
+from skopt.space import Categorical, Integer, Real
+
 from ml_grid.util.global_params import global_parameters
-import logging
 
 
 class CatBoostClassifierClass:

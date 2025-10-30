@@ -1,10 +1,9 @@
-import pandas as pd
+import unittest
+
 import numpy as np
+import pandas as pd
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
-from keras.preprocessing import sequence
-from tqdm import tqdm
-import unittest
 
 from ml_grid.util.time_series_helper import convert_Xy_to_time_series
 

@@ -1,7 +1,8 @@
+import logging
 from typing import Any, Tuple
 
-import logging
 import pandas as pd
+
 from ml_grid.pipeline.data_feature_methods import feature_methods
 
 # rename this class

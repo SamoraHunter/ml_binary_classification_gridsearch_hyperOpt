@@ -2,6 +2,7 @@ from typing import Any, Dict, List
 
 import keras
 from aeon.classification.deep_learning import ResNetClassifier
+
 from ml_grid.pipeline.data import pipe
 from ml_grid.util.param_space import ParamSpace
 

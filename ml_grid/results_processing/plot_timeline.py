@@ -4,14 +4,16 @@ Timeline analysis plotting module for ML results analysis.
 Focuses on temporal trends and run-to-run comparisons with outcome stratification.
 """
 
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from typing import List, Dict, Optional, Union, Tuple
-from ml_grid.results_processing.core import get_clean_data
 import logging
 import warnings
+from typing import List, Optional, Tuple
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+
+from ml_grid.results_processing.core import get_clean_data
 
 # Maximum number of outcomes to display in stratified plots to avoid clutter.
 MAX_OUTCOMES_FOR_STRATIFIED_PLOT = 8
@@ -326,7 +328,7 @@ class TimelineAnalysisPlotter:
         plt.xlabel("Trial Number (within run)", fontsize=12)
         plt.ylabel(f"Best {metric.upper()} So Far", fontsize=12)
         plt.title(
-            f"Optimization Progress per Run - All Outcomes",
+            "Optimization Progress per Run - All Outcomes",
             fontsize=14,
             fontweight="bold",
         )
@@ -420,7 +422,7 @@ class TimelineAnalysisPlotter:
                     break
 
         plt.suptitle(
-            f"Optimization Progress per Run by Outcome", fontsize=16, fontweight="bold"
+            "Optimization Progress per Run by Outcome", fontsize=16, fontweight="bold"
         )
         plt.tight_layout(rect=[0, 0.03, 1, 0.96])
         plt.show()

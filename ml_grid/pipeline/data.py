@@ -1,33 +1,26 @@
-import re
 import random
-import os
-import logging
-from ml_grid.pipeline.data_train_test_split import get_data_split
-import numpy as np
-from typing import Any, Dict, List, Optional
 import warnings
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 from IPython.display import display
+from pandas.testing import assert_index_equal
 from sklearn.exceptions import ConvergenceWarning
 
 from ml_grid.pipeline import read_in
 from ml_grid.pipeline.column_names import get_pertubation_columns
 from ml_grid.pipeline.data_clean_up import clean_up_class
 from ml_grid.pipeline.data_constant_columns import (
-    remove_constant_columns,
     remove_constant_columns_with_debug,
 )
 from ml_grid.pipeline.data_correlation_matrix import handle_correlation_matrix
-from ml_grid.pipeline.embeddings import create_embedding_pipeline, apply_embedding
 from ml_grid.pipeline.data_feature_importance_methods import feature_importance_methods
 from ml_grid.pipeline.data_outcome_list import handle_outcome_list
-from ml_grid.pipeline.data_percent_missing import handle_percent_missing
 from ml_grid.pipeline.data_plot_split import (
     plot_pie_chart_with_counts,
 )  # This import is not used in the provided code, but kept as it's not the focus of this fix.
-from pandas.testing import assert_index_equal
-from ml_grid.pipeline.data_scale import data_scale_methods
+from ml_grid.pipeline.data_train_test_split import get_data_split
+from ml_grid.pipeline.embeddings import create_embedding_pipeline
 from ml_grid.util.global_params import global_parameters
 from ml_grid.util.logger_setup import setup_logger
 
@@ -280,7 +273,7 @@ class pipe:
                 error_occurred=pipeline_error is not None
             )
             if pipeline_error:
-                self.logger.error(f"Data pipeline processing HALTED due to an error.")
+                self.logger.error("Data pipeline processing HALTED due to an error.")
             else:
                 self.logger.info("Data pipeline processing complete.")
 
@@ -758,6 +751,7 @@ class pipe:
                 # Check if the method is supervised to pass y_train
                 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
                 from sklearn.feature_selection import SelectKBest
+
                 from ml_grid.pipeline.embeddings import get_explained_variance
 
                 embed_step = embedding_pipeline.named_steps["embed"]

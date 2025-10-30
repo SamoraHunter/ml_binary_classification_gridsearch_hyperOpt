@@ -3,13 +3,13 @@
 This module provides a scikit-learn compatible wrapper for the TabTransformer model.
 """
 
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Optional, Tuple
 
 import numpy as np
 import torch
 import torch.nn as nn
-from tab_transformer_pytorch import TabTransformer
 from sklearn.base import BaseEstimator, ClassifierMixin
+from tab_transformer_pytorch import TabTransformer
 
 
 class TabTransformerClassifier(BaseEstimator, ClassifierMixin):

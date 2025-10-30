@@ -1,14 +1,14 @@
 import logging
+from typing import Any, Dict
+
+import numpy as np
+import pandas as pd
 from h2o.estimators import (
     H2OGeneralizedAdditiveEstimator,
     H2OGeneralizedLinearEstimator,
 )
-from typing import Any, Dict, List, Tuple
+
 from .H2OBaseClassifier import H2OBaseClassifier
-import pandas as pd
-import numpy as np
-import h2o
-from sklearn.utils.validation import check_is_fitted
 
 logger = logging.getLogger(__name__)  # Use module-level logger for consistency
 

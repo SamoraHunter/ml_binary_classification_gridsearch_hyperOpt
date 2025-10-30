@@ -5,19 +5,19 @@ This module trains a meta-model on the experimental parameters to determine
 which settings have the most significant impact on the target metric.
 """
 
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-from typing import Tuple, Optional, List
-import warnings
 import ast
 import logging
+import warnings
+from typing import List, Tuple
 
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from sklearn.impute import SimpleImputer
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
 from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from ml_grid.results_processing.core import get_clean_data
 

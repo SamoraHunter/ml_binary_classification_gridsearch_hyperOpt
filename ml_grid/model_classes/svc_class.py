@@ -1,12 +1,14 @@
+import logging
+from typing import Any, Dict, List, Optional
+
+import pandas as pd
 from scipy import sparse
-from typing import Any, Dict, List, Optional, Union
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.svm import SVC
+from skopt.space import Categorical, Integer, Real
+
 from ml_grid.util import param_space
 from ml_grid.util.global_params import global_parameters
-from sklearn.svm import SVC
-import pandas as pd
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
-import logging
-from skopt.space import Real, Categorical, Integer
 
 logging.getLogger("ml_grid").debug("Imported SVC class")
 

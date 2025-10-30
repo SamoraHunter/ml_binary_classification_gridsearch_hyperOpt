@@ -1,27 +1,25 @@
 # test_non_h2o_classifiers.py
 
-import pytest
-import pandas as pd
-import numpy as np
-from sklearn.model_selection import cross_val_score, KFold
-from sklearn.utils.estimator_checks import check_estimator
 import logging
-from typing import List
 
-from ml_grid.pipeline.grid_search_cross_validate import grid_search_crossvalidate
-from ml_grid.util.global_params import global_parameters
+import numpy as np
+import pandas as pd
+import pytest
+from sklearn.model_selection import KFold, cross_val_score
 
 # Import a selection of non-H2O model definition classes
 from ml_grid.model_classes.adaboost_classifier_class import AdaBoostClassifierClass
 from ml_grid.model_classes.gradientboosting_classifier_class import (
     GradientBoostingClassifierClass,
 )
+from ml_grid.model_classes.light_gbm_class import LightGBMClassifierWrapper
 from ml_grid.model_classes.logistic_regression_class import LogisticRegressionClass
 from ml_grid.model_classes.randomforest_classifier_class import (
     RandomForestClassifierClass,
 )
-from ml_grid.model_classes.light_gbm_class import LightGBMClassifierWrapper
 from ml_grid.model_classes.xgb_classifier_class import XGBClassifierClass
+from ml_grid.pipeline.grid_search_cross_validate import grid_search_crossvalidate
+from ml_grid.util.global_params import global_parameters
 
 
 @pytest.fixture

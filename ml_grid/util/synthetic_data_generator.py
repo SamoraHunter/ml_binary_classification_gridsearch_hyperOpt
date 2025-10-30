@@ -3,11 +3,12 @@ Module for generating synthetic datasets that mimic the structure of real-world
 data used in the ml-grid pipeline.
 """
 
-import pandas as pd
-import numpy as np
-import random
 import logging
-from typing import List, Optional
+import random
+from typing import List
+
+import numpy as np
+import pandas as pd
 
 
 class SyntheticDataGenerator:
@@ -342,8 +343,8 @@ if __name__ == "__main__":
 
     # Import necessary functions for imputation and saving
     from ml_grid.util.impute_data_for_pipe import (
-        save_missing_percentage,
         mean_impute_dataframe,
+        save_missing_percentage,
     )
 
     logging.info(

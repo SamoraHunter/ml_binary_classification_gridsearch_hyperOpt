@@ -1,6 +1,7 @@
 import unittest
+
 import pandas as pd
-import numpy as np
+
 from ml_grid.util.synthetic_data_generator import SyntheticDataGenerator
 
 

@@ -1,7 +1,7 @@
 import logging
 import os
-from datetime import datetime
 import sys
+from datetime import datetime
 
 
 def setup_logger(notebook_verbose=False):

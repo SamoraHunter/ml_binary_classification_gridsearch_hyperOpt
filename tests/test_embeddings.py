@@ -1,25 +1,26 @@
 """Unit and integration tests for the embedding module."""
 
 import unittest
+
 import numpy as np
 import pandas as pd
 from scipy import sparse
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA, TruncatedSVD, NMF
+from sklearn.decomposition import NMF, PCA, TruncatedSVD
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.feature_selection import SelectKBest
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 from sklearn.random_projection import GaussianRandomProjection, SparseRandomProjection
 
-from ml_grid.pipeline.embeddings import (
-    create_embedding_pipeline,
-    apply_embedding,
-    transform_new_data,
-    get_method_recommendation,
-    get_explained_variance,
-    recommend_n_components,
-)
 from ml_grid.pipeline.data import pipe
+from ml_grid.pipeline.embeddings import (
+    apply_embedding,
+    create_embedding_pipeline,
+    get_explained_variance,
+    get_method_recommendation,
+    recommend_n_components,
+    transform_new_data,
+)
 
 
 class TestEmbeddings(unittest.TestCase):

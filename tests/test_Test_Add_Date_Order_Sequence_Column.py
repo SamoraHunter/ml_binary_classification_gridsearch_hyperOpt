@@ -1,6 +1,6 @@
-import pandas as pd
-import numpy as np
 import unittest
+
+import pandas as pd
 
 # Assuming the function is defined in a module named 'time_series_helper'
 from ml_grid.util.time_series_helper import add_date_order_sequence_column

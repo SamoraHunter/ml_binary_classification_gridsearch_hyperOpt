@@ -1,34 +1,31 @@
-import inspect
-import warnings
 import logging
+import warnings
 from typing import Any, Dict, List, Union
 
-import numpy as np
 import pandas as pd
 import tensorflow as tf
-from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, ParameterGrid
-from pandas.testing import assert_index_equal
+from sklearn.base import BaseEstimator, is_classifier
 from sklearn.exceptions import ConvergenceWarning
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from skopt import BayesSearchCV
-from sklearn.base import is_classifier, BaseEstimator
 
-from ml_grid.util.validate_parameters import validate_parameters_helper
-from ml_grid.util.global_params import global_parameters
-from ml_grid.model_classes.knn_wrapper_class import KNNWrapper
-from ml_grid.model_classes.keras_classifier_class import KerasClassifierClass
 from ml_grid.model_classes.H2OAutoMLClassifier import H2OAutoMLClassifier
-from ml_grid.model_classes.H2OGBMClassifier import H2OGBMClassifier
+from ml_grid.model_classes.H2ODeepLearningClassifier import H2ODeepLearningClassifier
 from ml_grid.model_classes.H2ODRFClassifier import H2ODRFClassifier
 from ml_grid.model_classes.H2OGAMClassifier import H2OGAMClassifier
-from ml_grid.model_classes.H2ODeepLearningClassifier import H2ODeepLearningClassifier
+from ml_grid.model_classes.H2OGBMClassifier import H2OGBMClassifier
 from ml_grid.model_classes.H2OGLMClassifier import H2OGLMClassifier
 from ml_grid.model_classes.H2ONaiveBayesClassifier import H2ONaiveBayesClassifier
 from ml_grid.model_classes.H2ORuleFitClassifier import H2ORuleFitClassifier
-from ml_grid.model_classes.H2OXGBoostClassifier import H2OXGBoostClassifier
 from ml_grid.model_classes.H2OStackedEnsembleClassifier import (
     H2OStackedEnsembleClassifier,
 )
+from ml_grid.model_classes.H2OXGBoostClassifier import H2OXGBoostClassifier
+from ml_grid.model_classes.keras_classifier_class import KerasClassifierClass
+from ml_grid.model_classes.knn_wrapper_class import KNNWrapper
 from ml_grid.model_classes.NeuralNetworkKerasClassifier import NeuralNetworkClassifier
+from ml_grid.util.global_params import global_parameters
+from ml_grid.util.validate_parameters import validate_parameters_helper
 
 
 class HyperparameterSearch:

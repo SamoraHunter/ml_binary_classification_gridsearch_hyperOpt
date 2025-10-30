@@ -1,6 +1,7 @@
 from typing import Any, Dict, List
 
 from aeon.classification.convolution_based import Arsenal
+
 from ml_grid.pipeline.data import pipe
 
 

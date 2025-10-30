@@ -1,11 +1,11 @@
 """Functions to validate model-specific hyperparameters before grid search."""
 
-from typing import Any, Dict
 import logging
+from typing import Any, Dict
 
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
+
 from ml_grid.model_classes.knn_gpu_classifier_class import KNNGpuWrapperClass
 from ml_grid.model_classes.knn_wrapper_class import KNNWrapper
 

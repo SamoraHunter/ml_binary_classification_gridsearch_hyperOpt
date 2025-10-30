@@ -4,13 +4,13 @@ This module provides a scikit-learn compatible wrapper for the LightGBM classifi
 handling feature name sanitization.
 """
 
-from typing import Any, Optional, Union
+import re
+from typing import Optional, Union
 
 import lightgbm as lgb
-from sklearn.base import BaseEstimator, ClassifierMixin
-import pandas as pd
-import re
 import numpy as np
+import pandas as pd
+from sklearn.base import BaseEstimator, ClassifierMixin
 
 
 class LightGBMClassifier(BaseEstimator, ClassifierMixin):

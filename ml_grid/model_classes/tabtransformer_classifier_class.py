@@ -5,16 +5,16 @@ class for the TabTransformerClassifier. It provides parameter spaces for
 grid search and Bayesian optimization.
 """
 
-from typing import Any, Dict, List, Optional, Tuple, Union
+import logging
+from typing import Any, Dict, Optional, Union
 
 import pandas as pd
 import torch
 import torch.nn as nn
+from skopt.space import Categorical, Real
+
 from ml_grid.model_classes.tabtransformerClassifier import TabTransformerClassifier
 from ml_grid.util import param_space
-from skopt.space import Real, Categorical
-import logging
-
 from ml_grid.util.global_params import global_parameters
 
 logging.getLogger("ml_grid").debug("Imported TabTransformerClassifier class")

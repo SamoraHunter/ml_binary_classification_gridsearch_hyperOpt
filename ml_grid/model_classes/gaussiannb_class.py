@@ -1,14 +1,14 @@
 """Defines the GaussianNB model class.."""
 
+import logging
 from typing import Any, Dict, List, Optional, Union
 
-import logging
-import numpy as np
 import pandas as pd
-from ml_grid.util import param_space
-from ml_grid.util.global_params import global_parameters
 from sklearn.naive_bayes import GaussianNB
 from skopt.space import Categorical, Real
+
+from ml_grid.util import param_space
+from ml_grid.util.global_params import global_parameters
 
 logging.getLogger("ml_grid").debug("Imported gaussiannb class")
 

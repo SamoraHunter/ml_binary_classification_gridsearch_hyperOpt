@@ -4,13 +4,14 @@ This module provides a scikit-learn compatible wrapper for a Keras Sequential
 neural network for binary classification.
 """
 
-from typing import Optional, Tuple, Union
+from typing import Optional
+
 import numpy as np
 import tensorflow as tf
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.metrics import accuracy_score
-from tensorflow.keras.models import Sequential, clone_model
 from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.models import Sequential, clone_model
 
 
 class NeuralNetworkClassifier(BaseEstimator, ClassifierMixin):

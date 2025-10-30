@@ -1,11 +1,11 @@
+import logging
 from typing import List, Union
 
-import logging
 import numpy as np
 import pandas as pd
 from PyImpetus import PPIMBC
-from sklearn.model_selection import StratifiedKFold
 from sklearn.feature_selection import f_classif
+from sklearn.model_selection import StratifiedKFold
 from sklearn.svm import SVC
 
 
@@ -116,7 +116,6 @@ class feature_methods:
             the Markov Blanket.
         """
         import os
-        import sys
 
         # Ensure input is a pandas DataFrame to access column names
         if not isinstance(X_train, pd.DataFrame):

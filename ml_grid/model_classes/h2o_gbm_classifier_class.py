@@ -1,12 +1,13 @@
 """Configuration class for the H2O Gradient Boosting Machine (GBM) Classifier."""
 
+import logging
 from typing import Any, Dict, List, Optional, Union
 
-import logging
 import pandas as pd
+from skopt.space import Integer, Real
+
 from ml_grid.model_classes.H2OGBMClassifier import H2OGBMClassifier
 from ml_grid.util.global_params import global_parameters
-from skopt.space import Integer, Real
 
 logger = logging.getLogger(__name__)
 logger.debug("Imported h2o_gbm_classifier_class")

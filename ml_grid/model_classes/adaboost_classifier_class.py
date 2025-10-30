@@ -5,15 +5,15 @@ class for the AdaBoostClassifier. It provides parameter spaces for
 grid search and Bayesian optimization.
 """
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
+
 import pandas as pd
 from sklearn.ensemble import AdaBoostClassifier
-from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import SVC
-from ml_grid.util.global_params import global_parameters
-from skopt.space import Categorical, Real, Integer
+from sklearn.tree import DecisionTreeClassifier
+from skopt.space import Categorical, Integer, Real
 
-import logging
+from ml_grid.util.global_params import global_parameters
 
 
 class AdaBoostClassifierClass:

@@ -1,7 +1,8 @@
-import pandas as pd
-import numpy as np
 import logging
 from typing import List, Optional, Tuple, Union
+
+import numpy as np
+import pandas as pd
 
 
 def remove_constant_columns(
@@ -134,7 +135,7 @@ def remove_constant_columns_with_debug(
                     logger.warning(f"Error checking column '{col}': {e}")
 
         if verbosity > 1:
-            logger.debug(f"\nUnique value counts in X_train:")
+            logger.debug("\nUnique value counts in X_train:")
             for col in X_train.columns:
                 logger.debug(
                     f"  {col}: {X_train[col].nunique(dropna=False)} unique values"

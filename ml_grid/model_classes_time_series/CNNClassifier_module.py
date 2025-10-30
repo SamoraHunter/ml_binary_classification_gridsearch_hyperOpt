@@ -1,6 +1,7 @@
 from typing import Any, Dict, List
 
 from aeon.classification.deep_learning import CNNClassifier
+
 from ml_grid.pipeline.data import pipe
 from ml_grid.util.param_space import ParamSpace
 

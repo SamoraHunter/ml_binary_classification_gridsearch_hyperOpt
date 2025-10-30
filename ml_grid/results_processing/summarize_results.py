@@ -3,10 +3,10 @@
 Module for creating tabular summaries from ML results data.
 """
 
-import pandas as pd
-from typing import Optional, List
-from sklearn.preprocessing import MultiLabelBinarizer
 import warnings
+
+import pandas as pd
+from sklearn.preprocessing import MultiLabelBinarizer
 
 from ml_grid.results_processing.core import get_clean_data
 

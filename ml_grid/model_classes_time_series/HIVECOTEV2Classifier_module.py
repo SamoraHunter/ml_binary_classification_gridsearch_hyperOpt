@@ -1,6 +1,7 @@
 from typing import Any, Dict, List
 
 from aeon.classification.hybrid._hivecote_v2 import HIVECOTEV2
+
 from ml_grid.pipeline.data import pipe
 
 

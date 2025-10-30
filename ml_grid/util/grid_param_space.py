@@ -1,8 +1,8 @@
 """Defines the Grid class for creating a hyperparameter search space."""
 
 import itertools as it
-import random
 import logging
+import random
 from typing import Dict, Generator, List, Optional, Union
 
 from ml_grid.util.global_params import global_parameters
