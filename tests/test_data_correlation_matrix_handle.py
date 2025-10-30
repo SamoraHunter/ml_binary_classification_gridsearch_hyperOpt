@@ -45,7 +45,7 @@ class TestHandleCorrelationMatrix(unittest.TestCase):
         )
 
         # The function should identify one of the correlated columns to drop.
-        self.assertIn(result[0], ['A', 'B'])
+        self.assertIn(result[0], ["A", "B"])
         self.assertEqual(len(result), 1)
 
 

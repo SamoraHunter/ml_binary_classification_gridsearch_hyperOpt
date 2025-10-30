@@ -28,7 +28,9 @@ class data_scale_methods:
         """
         # Separate numeric and non-numeric columns
         numeric_cols: List[str] = selector(dtype_exclude=object)(X)
-        non_numeric_cols: List[str] = [col for col in X.columns if col not in numeric_cols]
+        non_numeric_cols: List[str] = [
+            col for col in X.columns if col not in numeric_cols
+        ]
 
         # Define transformers
         transformers = [("scaler", StandardScaler(), numeric_cols)]

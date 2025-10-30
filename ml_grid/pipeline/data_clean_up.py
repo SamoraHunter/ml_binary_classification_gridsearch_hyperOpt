@@ -14,7 +14,7 @@ class clean_up_class:
         """Initializes the clean_up_class."""
         self.global_params = global_parameters
 
-        self.logger = logging.getLogger('ml_grid')
+        self.logger = logging.getLogger("ml_grid")
 
         self.verbose = self.global_params.verbose
 

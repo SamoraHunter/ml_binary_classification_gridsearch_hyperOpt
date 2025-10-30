@@ -43,30 +43,36 @@ class feature_importance_methods:
                 and other data.
 
         Returns:
-            Tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series, pd.DataFrame]: 
-            A tuple containing the modified X_train, aligned y_train, X_test, 
+            Tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series, pd.DataFrame]:
+            A tuple containing the modified X_train, aligned y_train, X_test,
             aligned y_test, and X_test_orig DataFrames with selected features.
         """
 
-        logger = logging.getLogger('ml_grid')
+        logger = logging.getLogger("ml_grid")
         # Work with copies to avoid modifying the original DataFrames in the calling scope
         X_train_copy = X_train.copy()
         X_test_copy = X_test.copy()
         X_test_orig_copy = X_test_orig.copy()
 
-        self.feature_method = ml_grid_object.local_param_dict.get("feature_selection_method")
+        self.feature_method = ml_grid_object.local_param_dict.get(
+            "feature_selection_method"
+        )
 
         if self.feature_method == "anova" or self.feature_method is None:
             logger.info("feature_method ANOVA")
             fm = feature_methods()
             # The data pipeline now guarantees a clean index, so no reset is needed here.
-            features = fm.getNfeaturesANOVAF(n=target_n_features, X_train=X_train_copy, y_train=y_train)
+            features = fm.getNfeaturesANOVAF(
+                n=target_n_features, X_train=X_train_copy, y_train=y_train
+            )
 
         elif self.feature_method == "markov_blanket":
             logger.info("feature method Markov")
             fm = feature_methods()
             # The data pipeline now guarantees a clean index, so no reset is needed here.
-            features = fm.getNFeaturesMarkovBlanket(n=target_n_features, X_train=X_train_copy, y_train=y_train)
+            features = fm.getNFeaturesMarkovBlanket(
+                n=target_n_features, X_train=X_train_copy, y_train=y_train
+            )
 
         logger.info(f"target_n_features: {target_n_features}")
         logger.info(f"Selected features: {features}")

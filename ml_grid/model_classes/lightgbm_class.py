@@ -3,6 +3,7 @@
 This module provides a scikit-learn compatible wrapper for the LightGBM classifier,
 handling feature name sanitization.
 """
+
 from typing import Any, Optional, Union
 
 import lightgbm as lgb
@@ -96,7 +97,7 @@ class LightGBMClassifier(BaseEstimator, ClassifierMixin):
             # early_stopping_rounds=self.early_stopping_rounds,
             verbose=self.verbosity,
         )
-        
+
         X_fit = X
         if isinstance(X, pd.DataFrame):
             # Change columns names ([LightGBM] Do not support special JSON characters in feature name.)
@@ -139,9 +140,7 @@ class LightGBMClassifier(BaseEstimator, ClassifierMixin):
         X_pred = X
         if isinstance(X, pd.DataFrame):
             # Change columns names ([LightGBM] Do not support special JSON characters in feature name.)
-            new_names = {
-                col: re.sub(r"[^A-Za-z0-9_]+", "", col) for col in X.columns
-            }
+            new_names = {col: re.sub(r"[^A-Za-z0-9_]+", "", col) for col in X.columns}
             new_n_list = list(new_names.values())
             # [LightGBM] Feature appears more than one time.
             new_names = {
@@ -193,9 +192,7 @@ class LightGBMClassifier(BaseEstimator, ClassifierMixin):
         X_pred = X
         if isinstance(X, pd.DataFrame):
             # Change columns names ([LightGBM] Do not support special JSON characters in feature name.)
-            new_names = {
-                col: re.sub(r"[^A-Za-z0-9_]+", "", col) for col in X.columns
-            }
+            new_names = {col: re.sub(r"[^A-Za-z0-9_]+", "", col) for col in X.columns}
             new_n_list = list(new_names.values())
             # [LightGBM] Feature appears more than one time.
             new_names = {

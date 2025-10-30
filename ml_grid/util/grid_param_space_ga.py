@@ -69,7 +69,7 @@ class Grid:
         self.global_params = global_parameters
 
         self.verbose = self.global_params.verbose
-        self.logger = logging.getLogger('ml_grid')
+        self.logger = logging.getLogger("ml_grid")
 
         if sample_n is None:
             self.sample_n = 1000
@@ -147,7 +147,9 @@ class Grid:
         # Ensure sample_n is not greater than the number of available settings
         sample_size = min(self.sample_n, full_settings_size)
         if self.sample_n > full_settings_size:
-            self.logger.warning(f"sample_n ({self.sample_n}) is larger than the number of settings ({full_settings_size}). Using all settings.")
+            self.logger.warning(
+                f"sample_n ({self.sample_n}) is larger than the number of settings ({full_settings_size}). Using all settings."
+            )
 
         self.settings_list = random.sample(self.settings_list, sample_size)
 

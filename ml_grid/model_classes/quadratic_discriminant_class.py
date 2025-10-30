@@ -9,7 +9,7 @@ from ml_grid.util.global_params import global_parameters
 from skopt.space import Categorical, Real
 import logging
 
-logging.getLogger('ml_grid').debug("Imported QuadraticDiscriminantAnalysis class")
+logging.getLogger("ml_grid").debug("Imported QuadraticDiscriminantAnalysis class")
 
 
 class QuadraticDiscriminantAnalysisClass:
@@ -53,7 +53,9 @@ class QuadraticDiscriminantAnalysisClass:
             self.parameter_space = {
                 "priors": Categorical([None]),  # Categorical: single option, None
                 "reg_param": Real(1e-5, 1e-2, prior="log-uniform"),
-                "store_covariance": Categorical([False]),  # Categorical: single option, False
+                "store_covariance": Categorical(
+                    [False]
+                ),  # Categorical: single option, False
                 "tol": Real(1e-5, 1e-2, prior="log-uniform"),
             }
 

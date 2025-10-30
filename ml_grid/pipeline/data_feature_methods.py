@@ -42,9 +42,7 @@ class feature_methods:
             feature_names = X_train.columns  # Get column names
             X_train = X_train.values  # Convert to numpy array
         elif isinstance(X_train, np.ndarray):
-            feature_names = np.arange(
-                X_train.shape[1]
-            )  # Use indices as column names
+            feature_names = np.arange(X_train.shape[1])  # Use indices as column names
         else:
             raise ValueError("X_train must be a pandas DataFrame or numpy array")
 
@@ -83,8 +81,6 @@ class feature_methods:
 
         return finalColNames
 
-
-
     def getNFeaturesMarkovBlanket(
         self,
         n: int,
@@ -121,7 +117,7 @@ class feature_methods:
         """
         import os
         import sys
-        
+
         # Ensure input is a pandas DataFrame to access column names
         if not isinstance(X_train, pd.DataFrame):
             raise TypeError(
@@ -135,58 +131,64 @@ class feature_methods:
 
         # Use the provided classifier, or default to SVC if none is given.
         # CRITICAL: Set verbose=False for SVC to prevent LibSVM output
-        model_to_use = classifier if classifier is not None else SVC(
-            random_state=27, 
-            class_weight="balanced", 
-            kernel=svc_kernel,
-            verbose=False  # This is the key parameter for LibSVM
+        model_to_use = (
+            classifier
+            if classifier is not None
+            else SVC(
+                random_state=27,
+                class_weight="balanced",
+                kernel=svc_kernel,
+                verbose=False,  # This is the key parameter for LibSVM
+            )
         )
-        
+
         # Ensure verbose is set to False at multiple levels
-        if hasattr(model_to_use, 'set_params'):
+        if hasattr(model_to_use, "set_params"):
             try:
                 model_to_use.set_params(verbose=False)
             except:
                 pass
-        if hasattr(model_to_use, 'verbose'):
+        if hasattr(model_to_use, "verbose"):
             model_to_use.verbose = False
 
         # Suppress output at the OS level BEFORE creating any model objects
         devnull_fd = None
         old_stdout_fd = None
         old_stderr_fd = None
-        
+
         if suppress_print:
             try:
                 # Save original file descriptors
                 old_stdout_fd = os.dup(1)
                 old_stderr_fd = os.dup(2)
-                
+
                 # Open devnull and redirect stdout/stderr to it
                 devnull_fd = os.open(os.devnull, os.O_RDWR)
                 os.dup2(devnull_fd, 1)
                 os.dup2(devnull_fd, 2)
             except Exception as e:
                 # If suppression fails, just continue without it
-                logging.getLogger('ml_grid').warning(f"Could not suppress output: {e}")
+                logging.getLogger("ml_grid").warning(f"Could not suppress output: {e}")
                 suppress_print = False
 
         try:
             # Initialize the PyImpetus object with desired parameters
-            model = PPIMBC(model=model_to_use,
-                        p_val_thresh=0.05, 
-                        num_simul=num_simul,
-                        simul_size=0.2, 
-                        simul_type=0, 
-                        sig_test_type="non-parametric",
-                        cv=stratified_kfold,
-                        random_state=27,
-                        n_jobs=-1,
-                        verbose=0)
-            
+            model = PPIMBC(
+                model=model_to_use,
+                p_val_thresh=0.05,
+                num_simul=num_simul,
+                simul_size=0.2,
+                simul_type=0,
+                sig_test_type="non-parametric",
+                cv=stratified_kfold,
+                random_state=27,
+                n_jobs=-1,
+                verbose=0,
+            )
+
             # Fit the model (this is where LibSVM prints)
             model.fit(X_train.values, y_train)
-            
+
         except ValueError as e:
             # Restore output before logging
             if suppress_print and old_stdout_fd is not None:
@@ -196,11 +198,13 @@ class feature_methods:
                     os.close(devnull_fd)
                 os.close(old_stdout_fd)
                 os.close(old_stderr_fd)
-                
+
             # This handles cases where PyImpetus fails due to numerical precision
             # issues (e.g., y_prob > 1). We'll log the error and fall back to
             # using all original features for this trial.
-            logging.getLogger('ml_grid').error(f"PyImpetus failed during fit: {e}. Using all features as a fallback.")
+            logging.getLogger("ml_grid").error(
+                f"PyImpetus failed during fit: {e}. Using all features as a fallback."
+            )
             return list(original_columns)
         finally:
             # Always restore stdout/stderr
@@ -214,7 +218,7 @@ class feature_methods:
                     os.close(old_stderr_fd)
                 except:
                     pass  # Silently fail if restoration doesn't work
-        
+
         # Get the feature indices from the Markov blanket (MB)
         selected_features = model.MB
 
@@ -232,7 +236,11 @@ class feature_methods:
         if not feature_names and selected_features:
             # Re-evaluate the first selected feature to ensure it's a valid name
             first_feature = selected_features[0]
-            feature_names = [original_columns[first_feature] if isinstance(first_feature, int) else first_feature]
+            feature_names = [
+                (
+                    original_columns[first_feature]
+                    if isinstance(first_feature, int)
+                    else first_feature
+                )
+            ]
         return feature_names
-
-    

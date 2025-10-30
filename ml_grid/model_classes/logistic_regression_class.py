@@ -14,7 +14,8 @@ from ml_grid.util.global_params import global_parameters
 from skopt.space import Categorical, Real, Integer
 import logging
 
-logging.getLogger('ml_grid').debug("Imported logistic regression class")
+logging.getLogger("ml_grid").debug("Imported logistic regression class")
+
 
 class LogisticRegressionClass:
     """LogisticRegression with support for both Bayesian and non-Bayesian parameter spaces."""
@@ -64,7 +65,9 @@ class LogisticRegressionClass:
                     "dual": Categorical([False]),
                     "fit_intercept": Categorical([True]),
                     "intercept_scaling": Real(0.1, 10.0, prior="log-uniform"),
-                    "l1_ratio": Real(0.0, 1.0, prior="uniform"),  # For elasticnet penalty only
+                    "l1_ratio": Real(
+                        0.0, 1.0, prior="uniform"
+                    ),  # For elasticnet penalty only
                     "max_iter": Integer(100, 1000),
                     "multi_class": Categorical(["auto", "ovr", "multinomial"]),
                     "n_jobs": Categorical([None, -1]),
@@ -119,7 +122,9 @@ class LogisticRegressionClass:
                     "fit_intercept": [True],
                     "intercept_scaling": [1],
                     "l1_ratio": [0.5],  # Only for elasticnet penalty
-                    "max_iter": self.parameter_vector_space.param_dict.get("log_large_long"),
+                    "max_iter": self.parameter_vector_space.param_dict.get(
+                        "log_large_long"
+                    ),
                     "multi_class": ["auto"],
                     "n_jobs": [None, -1],
                     "penalty": ["elasticnet"],
@@ -135,7 +140,9 @@ class LogisticRegressionClass:
                     "fit_intercept": [True],
                     "intercept_scaling": [1],
                     "l1_ratio": [None],  # No l1_ratio for l1 and l2 penalties
-                    "max_iter": self.parameter_vector_space.param_dict.get("log_large_long"),
+                    "max_iter": self.parameter_vector_space.param_dict.get(
+                        "log_large_long"
+                    ),
                     "multi_class": ["auto"],
                     "n_jobs": [None, -1],
                     "penalty": ["l1"],
@@ -151,7 +158,9 @@ class LogisticRegressionClass:
                     "fit_intercept": [True],
                     "intercept_scaling": [1],
                     "l1_ratio": [None],  # No l1_ratio for l2 penalty
-                    "max_iter": self.parameter_vector_space.param_dict.get("log_large_long"),
+                    "max_iter": self.parameter_vector_space.param_dict.get(
+                        "log_large_long"
+                    ),
                     "multi_class": ["auto"],
                     "n_jobs": [None, -1],
                     "penalty": ["l2"],

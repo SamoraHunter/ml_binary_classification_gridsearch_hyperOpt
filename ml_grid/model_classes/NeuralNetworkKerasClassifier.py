@@ -3,6 +3,7 @@
 This module provides a scikit-learn compatible wrapper for a Keras Sequential
 neural network for binary classification.
 """
+
 from typing import Optional, Tuple, Union
 import numpy as np
 import tensorflow as tf
@@ -46,12 +47,12 @@ class NeuralNetworkClassifier(BaseEstimator, ClassifierMixin):
             random_state (Optional[int]): Seed for reproducibility. Defaults to None.
         """
         # CRITICAL FIX: Handle tuple parameter that may come as string from skopt
-        # During sklearn's cross-validation, estimators are cloned and parameters 
+        # During sklearn's cross-validation, estimators are cloned and parameters
         # may be converted to/from strings. We need to handle both cases robustly.
-        
+
         # Store the raw parameter first
         self.hidden_layer_sizes = hidden_layer_sizes
-        
+
         # Set random seed for reproducibility
         self.dropout_rate = dropout_rate
         self.learning_rate = learning_rate
@@ -69,12 +70,12 @@ class NeuralNetworkClassifier(BaseEstimator, ClassifierMixin):
 
     def _normalize_hidden_layer_sizes(self):
         """Convert hidden_layer_sizes to a tuple regardless of input format.
-        
+
         This method handles three cases:
         1. Already a tuple: return as-is
         2. String representation from skopt: parse with ast.literal_eval
         3. List: convert to tuple
-        
+
         Returns:
             tuple: Normalized hidden layer sizes as tuple of integers
         """
@@ -84,13 +85,16 @@ class NeuralNetworkClassifier(BaseEstimator, ClassifierMixin):
         elif isinstance(self.hidden_layer_sizes, str):
             # String from skopt - need to parse it
             import ast
+
             try:
                 parsed = ast.literal_eval(self.hidden_layer_sizes)
                 # Ensure it's a tuple (could be parsed as list)
                 if isinstance(parsed, (list, tuple)):
                     return tuple(parsed)
                 else:
-                    raise ValueError(f"Parsed hidden_layer_sizes is not a sequence: {parsed}")
+                    raise ValueError(
+                        f"Parsed hidden_layer_sizes is not a sequence: {parsed}"
+                    )
             except (ValueError, SyntaxError) as e:
                 raise ValueError(
                     f"Could not parse hidden_layer_sizes string: '{self.hidden_layer_sizes}'. "
@@ -117,10 +121,16 @@ class NeuralNetworkClassifier(BaseEstimator, ClassifierMixin):
         # CRITICAL: Normalize hidden_layer_sizes here, right before use
         # This ensures it's always a proper tuple when building the model
         hidden_sizes = self._normalize_hidden_layer_sizes()
-        
+
         model = Sequential()
         # Add input layer
-        model.add(Dense(units=hidden_sizes[0], activation=self.activation_func, input_dim=input_dim))
+        model.add(
+            Dense(
+                units=hidden_sizes[0],
+                activation=self.activation_func,
+                input_dim=input_dim,
+            )
+        )
         model.add(Dropout(rate=self.dropout_rate))
         # Add subsequent hidden layers
         for units in hidden_sizes[1:]:
@@ -149,7 +159,7 @@ class NeuralNetworkClassifier(BaseEstimator, ClassifierMixin):
         # --- FIX for 'Invalid dtype: category' ---
         # Keras expects numerical labels, not pandas categoricals.
         # If y is a categorical Series, convert it to its numerical codes.
-        if hasattr(y, 'dtype') and str(y.dtype) == 'category':
+        if hasattr(y, "dtype") and str(y.dtype) == "category":
             y = y.cat.codes.to_numpy()
 
         # Store class labels
@@ -162,13 +172,19 @@ class NeuralNetworkClassifier(BaseEstimator, ClassifierMixin):
             # Re-compile the model if it's being re-fitted (e.g., in a pipeline)
             self.model = clone_model(self.model)
             optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)
-            self.model.compile(loss="binary_crossentropy", optimizer=optimizer, metrics=["accuracy"])
+            self.model.compile(
+                loss="binary_crossentropy", optimizer=optimizer, metrics=["accuracy"]
+            )
 
         callbacks = []
         if "validation_data" in kwargs and self.early_stopping_patience > 0:
-            callbacks.append(tf.keras.callbacks.EarlyStopping(
-                monitor='val_loss', patience=self.early_stopping_patience, restore_best_weights=True
-            ))
+            callbacks.append(
+                tf.keras.callbacks.EarlyStopping(
+                    monitor="val_loss",
+                    patience=self.early_stopping_patience,
+                    restore_best_weights=True,
+                )
+            )
 
         self.model.fit(
             X,
@@ -177,7 +193,7 @@ class NeuralNetworkClassifier(BaseEstimator, ClassifierMixin):
             batch_size=self.batch_size,
             callbacks=callbacks,
             verbose=0,
-            **kwargs
+            **kwargs,
         )
         return self
 
@@ -191,7 +207,9 @@ class NeuralNetworkClassifier(BaseEstimator, ClassifierMixin):
             np.ndarray: The predicted class labels (0 or 1).
         """
         if self.model is None:
-            raise RuntimeError("The model has not been fitted yet. Call fit() before predict().")
+            raise RuntimeError(
+                "The model has not been fitted yet. Call fit() before predict()."
+            )
         # Predict class probabilities
         y_pred = self.model.predict(X, verbose=0)
         # Convert probabilities to class labels (0 or 1)
@@ -207,7 +225,9 @@ class NeuralNetworkClassifier(BaseEstimator, ClassifierMixin):
             np.ndarray: The class probabilities of the input samples.
         """
         if self.model is None:
-            raise RuntimeError("The model has not been fitted yet. Call fit() before predict_proba().")
+            raise RuntimeError(
+                "The model has not been fitted yet. Call fit() before predict_proba()."
+            )
         # Return class probabilities
         return self.model.predict(X, verbose=0)
 

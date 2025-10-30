@@ -14,7 +14,8 @@ from ml_grid.util.global_params import global_parameters
 from skopt.space import Categorical, Integer
 import logging
 
-logging.getLogger('ml_grid').debug("Imported knn__gpu class")
+logging.getLogger("ml_grid").debug("Imported knn__gpu class")
+
 
 class KNNGpuWrapperClass:
     """KNN with GPU support, including Bayesian and non-Bayesian parameter space."""
@@ -51,7 +52,9 @@ class KNNGpuWrapperClass:
             parameter_space_size
         )
 
-        knn_n_jobs = global_parameters.knn_n_jobs  # Get the number of jobs from global parameters
+        knn_n_jobs = (
+            global_parameters.knn_n_jobs
+        )  # Get the number of jobs from global parameters
 
         self.parameter_space: Dict[str, Any]
 
@@ -61,12 +64,18 @@ class KNNGpuWrapperClass:
                 "algorithm": Categorical(["auto", "ball_tree", "kd_tree", "brute"]),
                 "metric": Categorical(["minkowski"]),  # Categorical choice for metric
                 "metric_params": Categorical([None]),  # No parameter for the metric
-                "n_jobs": Categorical([knn_n_jobs]),  # Number of jobs from global parameters
-                "n_neighbors": Integer(1, self.X.shape[0] - 1),  # Integer range for n_neighbors
+                "n_jobs": Categorical(
+                    [knn_n_jobs]
+                ),  # Number of jobs from global parameters
+                "n_neighbors": Integer(
+                    1, self.X.shape[0] - 1
+                ),  # Integer range for n_neighbors
                 "p": Integer(1, 5),  # Integer range for p
                 "device": Categorical(["gpu"]),  # Device set to GPU
                 "mode": Categorical(["arrays", "hdf5"]),  # Categorical choice for mode
-                "scoring": Categorical(["accuracy"]),  # Categorical choice for scoring metric
+                "scoring": Categorical(
+                    ["accuracy"]
+                ),  # Categorical choice for scoring metric
             }
         else:
             # Traditional Grid Search: Define parameter space using lists for grid search
@@ -75,7 +84,9 @@ class KNNGpuWrapperClass:
                 "metric": ["minkowski"],
                 "metric_params": [None],
                 "n_jobs": [knn_n_jobs],  # Number of jobs from global parameters
-                "n_neighbors": list(self.parameter_vector_space.param_dict.get("log_med")),
+                "n_neighbors": list(
+                    self.parameter_vector_space.param_dict.get("log_med")
+                ),
                 "p": list(self.parameter_vector_space.param_dict.get("log_med")),
                 "device": ["gpu"],  # Device set to GPU
                 "mode": ["arrays", "hdf5"],  # Mode options

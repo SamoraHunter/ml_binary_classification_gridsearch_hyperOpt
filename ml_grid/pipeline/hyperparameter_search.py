@@ -25,7 +25,9 @@ from ml_grid.model_classes.H2OGLMClassifier import H2OGLMClassifier
 from ml_grid.model_classes.H2ONaiveBayesClassifier import H2ONaiveBayesClassifier
 from ml_grid.model_classes.H2ORuleFitClassifier import H2ORuleFitClassifier
 from ml_grid.model_classes.H2OXGBoostClassifier import H2OXGBoostClassifier
-from ml_grid.model_classes.H2OStackedEnsembleClassifier import H2OStackedEnsembleClassifier
+from ml_grid.model_classes.H2OStackedEnsembleClassifier import (
+    H2OStackedEnsembleClassifier,
+)
 from ml_grid.model_classes.NeuralNetworkKerasClassifier import NeuralNetworkClassifier
 
 
@@ -111,7 +113,7 @@ class HyperparameterSearch:
             H2ORuleFitClassifier,
             H2OXGBoostClassifier,
             H2OStackedEnsembleClassifier,
-            NeuralNetworkClassifier, # type: ignore
+            NeuralNetworkClassifier,  # type: ignore
             KerasClassifierClass,
         )
 
@@ -131,7 +133,9 @@ class HyperparameterSearch:
         # Configure warnings
         warnings.filterwarnings("ignore", category=ConvergenceWarning)
         warnings.filterwarnings("ignore", category=UserWarning)
-        warnings.filterwarnings("ignore", category=RuntimeWarning)  # Suppress divide by zero warnings from NaiveBayes
+        warnings.filterwarnings(
+            "ignore", category=RuntimeWarning
+        )  # Suppress divide by zero warnings from NaiveBayes
 
         # Configure GPUs if applicable
         if (
@@ -144,7 +148,7 @@ class HyperparameterSearch:
     def _configure_gpu(self) -> None:
         """Configures TensorFlow to use GPU with memory growth enabled."""
         try:
-            logger = logging.getLogger('ml_grid')
+            logger = logging.getLogger("ml_grid")
             gpu_devices = tf.config.experimental.list_physical_devices("GPU")
             for device in gpu_devices:
                 tf.config.experimental.set_memory_growth(device, True)
@@ -168,22 +172,31 @@ class HyperparameterSearch:
         grid_n_jobs = self.global_params.grid_n_jobs
         bayessearch = self.global_params.bayessearch
         # Get main verbosity level for logging
-        verbose = getattr(self.global_params, 'verbose', 0)
+        verbose = getattr(self.global_params, "verbose", 0)
         # Get specific verbosity for the search CV object, default to 0 (silent)
-        search_verbose = getattr(self.global_params, 'search_verbose', 0)
+        search_verbose = getattr(self.global_params, "search_verbose", 0)
 
         # --- CRITICAL FIX for H2O multiprocessing ---
         # H2O models are not compatible with joblib's process-based parallelism.
         # We must detect if the algorithm is an H2O model and force n_jobs=1 for the search.
         h2o_models = (
-            H2OAutoMLClassifier, H2OGBMClassifier, H2ODRFClassifier, H2OGAMClassifier,
-            H2ODeepLearningClassifier, H2OGLMClassifier, H2ONaiveBayesClassifier,
-            H2ORuleFitClassifier, H2OXGBoostClassifier, H2OStackedEnsembleClassifier
+            H2OAutoMLClassifier,
+            H2OGBMClassifier,
+            H2ODRFClassifier,
+            H2OGAMClassifier,
+            H2ODeepLearningClassifier,
+            H2OGLMClassifier,
+            H2ONaiveBayesClassifier,
+            H2ORuleFitClassifier,
+            H2OXGBoostClassifier,
+            H2OStackedEnsembleClassifier,
         )
         is_h2o_model = isinstance(self.algorithm, h2o_models)
 
         # Also limit n_jobs for Bayesian search and other specific wrappers to avoid issues.
-        is_single_threaded_search = isinstance(self.algorithm, (KNNWrapper, KerasClassifierClass, NeuralNetworkClassifier))
+        is_single_threaded_search = isinstance(
+            self.algorithm, (KNNWrapper, KerasClassifierClass, NeuralNetworkClassifier)
+        )
 
         if is_h2o_model or is_single_threaded_search or bayessearch:
             if verbose > 0:
@@ -198,7 +211,7 @@ class HyperparameterSearch:
             parameters = validate_parameters_helper(
                 algorithm_implementation=self.algorithm,
                 parameters=self.parameter_space,
-                ml_grid_object=self.ml_grid_object
+                ml_grid_object=self.ml_grid_object,
             )
         else:
             # Bayesian search uses skopt space objects (Integer, Real, Categorical)
@@ -207,7 +220,7 @@ class HyperparameterSearch:
 
         # Reset index to ensure clean integer indexing for CV splits
         # Keep as pandas to retain feature names
-        if hasattr(X_train, 'reset_index'):
+        if hasattr(X_train, "reset_index"):
             X_train_reset = X_train.reset_index(drop=True)
             if verbose > 1:
                 self.ml_grid_object.logger.debug(
@@ -215,8 +228,8 @@ class HyperparameterSearch:
                 )
         else:
             X_train_reset = X_train
-            
-        if hasattr(y_train, 'reset_index'):
+
+        if hasattr(y_train, "reset_index"):
             y_train_reset = y_train.reset_index(drop=True)
             if verbose > 1:
                 self.ml_grid_object.logger.debug(
@@ -224,13 +237,13 @@ class HyperparameterSearch:
                 )
         else:
             y_train_reset = y_train
-        
+
         # Verify data integrity
         if len(X_train_reset) != len(y_train_reset):
             raise ValueError(
                 f"Length mismatch: X={len(X_train_reset)}, y={len(y_train_reset)}"
             )
-        
+
         if verbose > 1:
             self.ml_grid_object.logger.debug(
                 f"X_train type: {type(X_train_reset)}, shape: {X_train_reset.shape}"
@@ -276,7 +289,7 @@ class HyperparameterSearch:
             self.ml_grid_object.logger.info(
                 f"Starting hyperparameter search with {len(X_train_reset)} samples"
             )
-        
+
         # Fit the grid search with pandas DataFrames/Series (retains feature names)
         grid.fit(X_train_reset, y_train_reset)
 

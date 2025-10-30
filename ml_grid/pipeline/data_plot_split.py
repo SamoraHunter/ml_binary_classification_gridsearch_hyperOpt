@@ -18,7 +18,7 @@ def plot_pie_chart_with_counts(
     labels = ["X_train", "X_test", "X_test_orig"]
 
     if sum(sizes) == 0:
-        logger = logging.getLogger('ml_grid')
+        logger = logging.getLogger("ml_grid")
         logger.warning("Cannot plot pie chart, all datasets are empty.")
         return
 
@@ -107,7 +107,6 @@ def create_bar_chart(
         x_label (str, optional): The label for the x-axis. Defaults to "".
         y_label (str, optional): The label for the y-axis. Defaults to "".
     """
-
 
     # Extracting keys and values from the dictionary
     categories = list(data_dict.keys())

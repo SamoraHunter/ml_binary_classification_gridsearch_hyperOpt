@@ -28,8 +28,8 @@ class H2OGAMClass:
     def __init__(
         self,
         X: Optional[pd.DataFrame] = None,
-        y: Optional[pd.Series] = None, # type: ignore
-        parameter_space_size: str = "small", # Added for consistency
+        y: Optional[pd.Series] = None,  # type: ignore
+        parameter_space_size: str = "small",  # Added for consistency
     ) -> None:
         """Initializes the H2OGAMClass.
 

@@ -28,7 +28,7 @@ def validate_knn_parameters(
         Dict[str, Any]: The validated parameters dictionary.
     """
 
-    logger = logging.getLogger('ml_grid')
+    logger = logging.getLogger("ml_grid")
     # Get the number of samples in the training data
     logger.debug("Validating KNN parameters")
     X_train = ml_grid_object.X_train
@@ -47,7 +47,9 @@ def validate_knn_parameters(
     if n_neighbors is not None:
         for i in range(len(n_neighbors)):
             if n_neighbors[i] > max_neighbors:
-                logger.debug(f"    Capping n_neighbors[{i}] from {n_neighbors[i]} to {max_neighbors}")
+                logger.debug(
+                    f"    Capping n_neighbors[{i}] from {n_neighbors[i]} to {max_neighbors}"
+                )
                 n_neighbors[i] = max_neighbors
 
     parameters["n_neighbors"] = n_neighbors
@@ -105,13 +107,13 @@ def validate_parameters_helper(
         parameters = validate_knn_parameters(parameters, ml_grid_object)
 
         return parameters
-    
+
     elif type(algorithm_implementation) == KNNWrapper:
 
         parameters = validate_knn_parameters(parameters, ml_grid_object)
 
         return parameters
-    
+
     elif isinstance(algorithm_implementation, KNNGpuWrapperClass):
 
         parameters = validate_knn_parameters(parameters, ml_grid_object)

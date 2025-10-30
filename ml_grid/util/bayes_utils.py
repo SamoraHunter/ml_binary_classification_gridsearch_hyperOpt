@@ -29,7 +29,7 @@ def calculate_combinations(
 
     def calculate_param_combinations(single_space: Dict[str, Any], steps: int) -> int:
         """Calculates combinations for a single parameter space dictionary."""
-        logger = logging.getLogger('ml_grid')
+        logger = logging.getLogger("ml_grid")
         combinations = 1
         for param, values in single_space.items():
             if isinstance(values, Real):
@@ -42,7 +42,9 @@ def calculate_combinations(
                 combinations *= len(values)
 
         if not isinstance(combinations, (int, float)) or combinations <= 0:
-            logger.warning("Number of parameter combinations is not a positive integer. Returning 1.")
+            logger.warning(
+                "Number of parameter combinations is not a positive integer. Returning 1."
+            )
             logger.warning(f"Combinations calculated: {combinations}")
             logger.warning(f"Parameter space: {single_space}")
             return 1

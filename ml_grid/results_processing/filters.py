@@ -94,7 +94,9 @@ class ResultsFilter:
 
         return filtered_data
 
-    def filter_by_run_timestamp(self, timestamps: Union[str, List[str]]) -> pd.DataFrame:
+    def filter_by_run_timestamp(
+        self, timestamps: Union[str, List[str]]
+    ) -> pd.DataFrame:
         """Filters data by one or more run timestamps.
 
         Args:
@@ -356,11 +358,16 @@ class ResultsFilter:
         successful_data = self.filter_successful_runs()
 
         if algorithms is not None:
-            successful_data = successful_data[successful_data["method_name"].isin(algorithms)]
+            successful_data = successful_data[
+                successful_data["method_name"].isin(algorithms)
+            ]
 
         # Create pivot table
         comparison_table = successful_data.pivot_table(
-            values=metric, index="method_name", columns="outcome_variable", aggfunc="mean"
+            values=metric,
+            index="method_name",
+            columns="outcome_variable",
+            aggfunc="mean",
         ).round(4)
 
         return comparison_table
@@ -553,7 +560,9 @@ class OutcomeComparator:
                 f"No successful data found for reference outcome: {reference_outcome}"
             )
 
-        ref_performance = {metric: ref_data[metric].mean() for metric in similarity_metrics}
+        ref_performance = {
+            metric: ref_data[metric].mean() for metric in similarity_metrics
+        }
 
         # Calculate similarity for other outcomes
         similarities = []
@@ -562,7 +571,9 @@ class OutcomeComparator:
             if outcome == reference_outcome:
                 continue
 
-            outcome_data = successful_data[successful_data["outcome_variable"] == outcome]
+            outcome_data = successful_data[
+                successful_data["outcome_variable"] == outcome
+            ]
             if len(outcome_data) == 0:
                 continue
 

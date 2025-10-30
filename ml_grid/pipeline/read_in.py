@@ -5,6 +5,7 @@ import numpy as np
 
 import polars as pl
 
+
 class read:
     """Reads a CSV file into a pandas DataFrame, with an option to use Polars for faster reading."""
 
@@ -17,7 +18,7 @@ class read:
                 the Polars library and converts it to a pandas DataFrame.
                 Falls back to pandas if Polars fails. Defaults to False.
         """
-        logger = logging.getLogger('ml_grid')
+        logger = logging.getLogger("ml_grid")
         filename = input_filename
         logger.info(f"Reading data from {filename}")
         if use_polars:
@@ -38,7 +39,6 @@ class read:
             except Exception as e:
                 logger.error(f"Error reading with Pandas: {e}")
                 self.raw_input_data = pd.DataFrame()
-
 
 
 class read_sample:
@@ -68,7 +68,7 @@ class read_sample:
             ValueError: If the 'outcome_var_1' column does not contain at least
                 two unique classes after sampling.
         """
-        logger = logging.getLogger('ml_grid')
+        logger = logging.getLogger("ml_grid")
         self.filename = input_filename
 
         # The columns that are necessary to be in the input data
@@ -78,7 +78,9 @@ class read_sample:
         total_rows = sum(1 for line in open(self.filename))
 
         # Calculate the number of rows to skip to achieve random sampling on read in
-        skip_rows = np.random.choice(np.arange(1, total_rows), total_rows - test_sample_n, replace=False)
+        skip_rows = np.random.choice(
+            np.arange(1, total_rows), total_rows - test_sample_n, replace=False
+        )
 
         # Read column names from the file
         all_columns = pd.read_csv(self.filename, nrows=1).columns.tolist()
@@ -94,7 +96,9 @@ class read_sample:
 
         # Sample the remaining columns
         # If the number of columns to read in is less than the total number of columns in the file
-        selected_additional_columns = random.sample(remaining_columns, min(len(remaining_columns), max_additional_columns))
+        selected_additional_columns = random.sample(
+            remaining_columns, min(len(remaining_columns), max_additional_columns)
+        )
 
         # Combine the necessary and selected additional columns
         selected_columns = necessary_columns + selected_additional_columns
@@ -104,7 +108,9 @@ class read_sample:
         # If both test_sample_n and column_sample_n are 0
         # Read in all columns and all rows
         if test_sample_n == 0 and column_sample_n == 0:
-            self.raw_input_data = pd.read_csv(self.filename) # Read in all columns and all rows
+            self.raw_input_data = pd.read_csv(
+                self.filename
+            )  # Read in all columns and all rows
 
         # If test_sample_n is 0 but column_sample_n is greater than 0
         # Read in all rows but sample the columns
@@ -119,7 +125,7 @@ class read_sample:
             self.raw_input_data = pd.read_csv(
                 self.filename,
                 skiprows=skip_rows,
-            ) 
+            )
 
         # If both test_sample_n and column_sample_n are greater than 0
         # Read in a sample of the rows and columns
@@ -129,10 +135,15 @@ class read_sample:
                 self.filename,
                 skiprows=skip_rows,
                 usecols=selected_columns,
-            )  
+            )
 
         # Check if the outcome variable has both classes
-        if self.raw_input_data is not None and 'outcome_var_1' in self.raw_input_data.columns:
-            classes = self.raw_input_data['outcome_var_1'].unique()
+        if (
+            self.raw_input_data is not None
+            and "outcome_var_1" in self.raw_input_data.columns
+        ):
+            classes = self.raw_input_data["outcome_var_1"].unique()
             if len(classes) < 2:
-                raise ValueError("Outcome variable does not have both classes post sampling.")
+                raise ValueError(
+                    "Outcome variable does not have both classes post sampling."
+                )

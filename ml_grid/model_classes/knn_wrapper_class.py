@@ -14,6 +14,7 @@ from sklearn.neighbors import KNeighborsClassifier as SklearnKNeighborsClassifie
 from sklearn import metrics
 import logging
 
+
 class KNNWrapper:
     """A scikit-learn compatible wrapper for the GPU-accelerated KNN from simbsig.
 
@@ -56,17 +57,21 @@ class KNNWrapper:
         self.metric_params = metric_params
         self._init_device = device  # Store the original device parameter
         self.device = device
-        
+
         # Auto-detect device if not specified, or validate if specified
         self._set_device(device)
 
-        self.model: Optional[Union[SimbsigKNeighborsClassifier, SklearnKNeighborsClassifier]] = None
+        self.model: Optional[
+            Union[SimbsigKNeighborsClassifier, SklearnKNeighborsClassifier]
+        ] = None
 
     def _set_device(self, device: Optional[str]):
         """Helper to set the device, falling back to CPU if GPU is not available."""
         gpu_available = torch.cuda.is_available()
         if device == "gpu" and not gpu_available:
-            logging.getLogger('ml_grid').warning("GPU requested for KNNWrapper, but torch.cuda is not available. Falling back to CPU.")
+            logging.getLogger("ml_grid").warning(
+                "GPU requested for KNNWrapper, but torch.cuda is not available. Falling back to CPU."
+            )
             self.device = "cpu"
         else:
             self.device = device if device else ("gpu" if gpu_available else "cpu")
@@ -87,8 +92,10 @@ class KNNWrapper:
         """
         # If the device is CPU, use the standard scikit-learn implementation
         # to completely avoid any simbsig/torch/cuda calls.
-        if self.device == 'cpu':
-            logging.getLogger('ml_grid').info("Using scikit-learn's KNeighborsClassifier for CPU execution.")
+        if self.device == "cpu":
+            logging.getLogger("ml_grid").info(
+                "Using scikit-learn's KNeighborsClassifier for CPU execution."
+            )
             self.model = SklearnKNeighborsClassifier(
                 n_neighbors=self.n_neighbors,
                 weights=self.weights,
@@ -182,7 +189,7 @@ class KNNWrapper:
         """
         for parameter, value in parameters.items():
             # Special handling for device to re-validate availability
-            if parameter == 'device':
+            if parameter == "device":
                 # Update both the initial and current device setting
                 self._init_device = value
                 self._set_device(value)

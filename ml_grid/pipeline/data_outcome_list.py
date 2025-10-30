@@ -17,7 +17,7 @@ def handle_outcome_list(drop_list: List[str], outcome_variable: str) -> List[str
     Returns:
         List[str]: The updated list of columns to drop.
     """
-    logger = logging.getLogger('ml_grid')
+    logger = logging.getLogger("ml_grid")
     logger.debug("Extending all outcome list on drop list")
 
     outcome_object = outcome_list.OutcomeList()
@@ -29,7 +29,9 @@ def handle_outcome_list(drop_list: List[str], outcome_variable: str) -> List[str
     try:
         drop_list.remove(outcome_variable)
     except Exception as e:
-        logger.warning(f"{outcome_variable} not in drop list to be removed. This is expected.")
+        logger.warning(
+            f"{outcome_variable} not in drop list to be removed. This is expected."
+        )
         pass
 
     return drop_list

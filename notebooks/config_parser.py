@@ -1,7 +1,8 @@
 import yaml
 from pathlib import Path
 
-def load_config(config_path: str = 'config.yml'):
+
+def load_config(config_path: str = "config.yml"):
     """
     Loads the YAML configuration file.
 
@@ -17,6 +18,6 @@ def load_config(config_path: str = 'config.yml'):
     if not full_path.exists():
         raise FileNotFoundError(f"Configuration file not found at: {full_path}")
 
-    with open(full_path, 'r') as f:
+    with open(full_path, "r") as f:
         config = yaml.safe_load(f)
     return config

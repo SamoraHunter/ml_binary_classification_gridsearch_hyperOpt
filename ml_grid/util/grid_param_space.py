@@ -26,7 +26,7 @@ class Grid:
 
         self.global_params = global_parameters
         self.verbose = self.global_params.verbose
-        self.logger = logging.getLogger('ml_grid')
+        self.logger = logging.getLogger("ml_grid")
 
         if sample_n is None:
             self.sample_n = 1000
@@ -46,7 +46,7 @@ class Grid:
             "outcome_var_n": ["1"],
             "percent_missing": [99, 95, 80],  # n/100 ex 95 for 95% # 99.99, 99.5, 9
             "corr": [0.98, 0.85, 0.5, 0.25],
-            "feature_selection_method":['anova', 'markov_blanket'],
+            "feature_selection_method": ["anova", "markov_blanket"],
             "use_embedding": [True, False],
             "embedding_method": ["pca", "svd"],
             "embedding_dim": [32, 64, 128],
@@ -102,7 +102,9 @@ class Grid:
         # Ensure sample_n is not greater than the number of available settings
         sample_size = min(self.sample_n, full_settings_size)
         if self.sample_n > full_settings_size:
-            self.logger.warning(f"sample_n ({self.sample_n}) is larger than the number of settings ({full_settings_size}). Using all settings.")
+            self.logger.warning(
+                f"sample_n ({self.sample_n}) is larger than the number of settings ({full_settings_size}). Using all settings."
+            )
 
         self.settings_list = random.sample(self.settings_list, sample_size)
 

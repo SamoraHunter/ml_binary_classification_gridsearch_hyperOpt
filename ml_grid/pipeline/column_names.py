@@ -34,12 +34,18 @@ def get_pertubation_columns(
             - A list of column names identified to be dropped.
     """
     global_params = global_parameters
-    logger = logging.getLogger('ml_grid')
+    logger = logging.getLogger("ml_grid")
     verbose = global_params.verbose
 
     # Initial drop list for metadata and unwanted columns
     drop_list = []
-    drop_list.extend([col for col in all_df_columns if "__index_level" in col or "Unnamed:" in col or "client_idcode:" in col])
+    drop_list.extend(
+        [
+            col
+            for col in all_df_columns
+            if "__index_level" in col or "Unnamed:" in col or "client_idcode:" in col
+        ]
+    )
 
     for drop_term in drop_term_list:
         for elem in all_df_columns:
@@ -50,12 +56,30 @@ def get_pertubation_columns(
     FEATURE_CATEGORIES = {
         "bmi": ["bmi_"],
         "ethnicity": ["census_"],
-        "diagnostic_order": ["_num-diagnostic-order", "_days-since-last-diagnostic-order", "_days-between-first-last-diagnostic"],
-        "drug_order": ["_num-drug-order", "_days-since-last-drug-order", "_days-between-first-last-drug"],
+        "diagnostic_order": [
+            "_num-diagnostic-order",
+            "_days-since-last-diagnostic-order",
+            "_days-between-first-last-diagnostic",
+        ],
+        "drug_order": [
+            "_num-drug-order",
+            "_days-since-last-drug-order",
+            "_days-between-first-last-drug",
+        ],
         "annotation_n": ["_count"],
-        "meta_sp_annotation_n": ["_count_subject_present", "_count_subject_not_present", "_count_relative_present", "_count_relative_not_present"],
+        "meta_sp_annotation_n": [
+            "_count_subject_present",
+            "_count_subject_not_present",
+            "_count_relative_present",
+            "_count_relative_not_present",
+        ],
         "annotation_mrc_n": ["_count_mrc_cs"],
-        "meta_sp_annotation_mrc_n": ["_count_subject_present_mrc_cs", "_count_subject_not_present_mrc_cs", "_count_relative_present_mrc_cs", "_count_relative_not_present_mrc_cs"],
+        "meta_sp_annotation_mrc_n": [
+            "_count_subject_present_mrc_cs",
+            "_count_subject_not_present_mrc_cs",
+            "_count_relative_present_mrc_cs",
+            "_count_relative_not_present_mrc_cs",
+        ],
         "core_02": ["core_02_"],
         "bed": ["bed_"],
         "vte_status": ["vte_status_"],
@@ -65,7 +89,22 @@ def get_pertubation_columns(
         "date_time_stamp": ["date_time_stamp"],
         "appointments": ["ConsultantCode_", "ClinicCode_", "AppointmentType_"],
         # 'bloods' is intentionally last as it's a general catch-all
-        "bloods": ["_mean", "_median", "_mode", "_std", "_num-tests", "_days-since-last-test", "_max", "_min", "_most-recent", "_earliest-test", "_days-between-first-last", "_contains-extreme-low", "_contains-extreme-high", "_basic-obs-feature"],
+        "bloods": [
+            "_mean",
+            "_median",
+            "_mode",
+            "_std",
+            "_num-tests",
+            "_days-since-last-test",
+            "_max",
+            "_min",
+            "_most-recent",
+            "_earliest-test",
+            "_days-between-first-last",
+            "_contains-extreme-low",
+            "_contains-extreme-high",
+            "_basic-obs-feature",
+        ],
     }
 
     categorized_cols = {}
@@ -75,7 +114,8 @@ def get_pertubation_columns(
     for category, substrings in FEATURE_CATEGORIES.items():
         # Find columns that match the substrings but have not yet been categorized
         matches = [
-            col for col in all_df_columns
+            col
+            for col in all_df_columns
             if any(sub in col for sub in substrings) and col not in already_categorized
         ]
         categorized_cols[category] = matches
@@ -104,12 +144,16 @@ def get_pertubation_columns(
             pertubation_columns.extend(cols)
 
     # Add any other columns explicitly set to True in the data dict that were not in a category
-    explicitly_selected_cols = {col for col, selected in data_config.items() if selected}
+    explicitly_selected_cols = {
+        col for col, selected in data_config.items() if selected
+    }
     for col in explicitly_selected_cols:
         if col not in pertubation_columns and col in all_df_columns:
             pertubation_columns.append(col)
 
-    logger.info(f"local_param_dict data perturbation: \n {local_param_dict.get('data')}")
+    logger.info(
+        f"local_param_dict data perturbation: \n {local_param_dict.get('data')}"
+    )
 
     if verbose >= 2:
         plot_dict_values(local_param_dict.get("data"))

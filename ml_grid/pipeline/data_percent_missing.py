@@ -30,7 +30,7 @@ def handle_percent_missing(
     Returns:
         List[str]: Updated list of columns to be dropped from the dataframe.
     """
-    logger = logging.getLogger('ml_grid')
+    logger = logging.getLogger("ml_grid")
     # Check for null pointer references
     assert local_param_dict is not None
     assert all_df_columns is not None
@@ -40,7 +40,6 @@ def handle_percent_missing(
 
     filename = file_name.replace(".csv", "")
 
-    
     # Check if the file with .pkl extension exists, otherwise use .pickle
     if os.path.exists(f"{filename}_percent_missing.pkl"):
         percent_missing_filename = f"{filename}_percent_missing.pkl"
@@ -56,7 +55,9 @@ def handle_percent_missing(
                 logger.error(f"Error loading pickle file: {e}")
                 percent_missing_dict = {}
     else:
-        logger.warning(f"File {percent_missing_filename} not found. Returning empty dict.")
+        logger.warning(
+            f"File {percent_missing_filename} not found. Returning empty dict."
+        )
         percent_missing_dict = {}
 
     percent_missing_threshold = local_param_dict.get("percent_missing")

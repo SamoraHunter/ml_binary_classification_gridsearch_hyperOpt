@@ -16,6 +16,7 @@ import ast
 
 import logging
 
+
 class ResultsAggregator:
     """Aggregates ML results from a hierarchical folder structure.
 
@@ -39,7 +40,7 @@ class ResultsAggregator:
                 for decoding feature lists. Defaults to None.
         """
         self.root_folder = Path(root_folder)
-        self.logger = logging.getLogger('ml_grid')
+        self.logger = logging.getLogger("ml_grid")
         self.feature_names: Optional[List[str]] = None
         self.aggregated_data: Optional[pd.DataFrame] = None
 
@@ -56,7 +57,9 @@ class ResultsAggregator:
             # Reading with nrows=0 is an efficient way to get only the headers.
             feature_df = pd.read_csv(feature_names_csv, nrows=0)
             self.feature_names = feature_df.columns.tolist()
-            self.logger.info(f"Loaded {len(self.feature_names)} feature names from CSV columns.")
+            self.logger.info(
+                f"Loaded {len(self.feature_names)} feature names from CSV columns."
+            )
         except Exception as e:
             warnings.warn(
                 f"Could not load feature names from {feature_names_csv}: {e}",
@@ -69,8 +72,8 @@ class ResultsAggregator:
         This method is robust to nested directory structures. It finds all
         `final_grid_score_log.csv` files and returns their parent directory
         names as the list of available runs.
-        
-        Special case: If a log file exists directly in the root folder, 
+
+        Special case: If a log file exists directly in the root folder,
         the root folder's name will be used as the run identifier.
 
         Returns:
@@ -85,11 +88,11 @@ class ResultsAggregator:
         # Check if log file exists directly in root
         root_log_file = self.root_folder / "final_grid_score_log.csv"
         run_folders = set()
-        
+
         if root_log_file.exists():
             # Use a special identifier for root-level CSV
             run_folders.add(f"__ROOT__{self.root_folder.name}")
-        
+
         # Recursively find all log files in subfolders
         for log_file in self.root_folder.rglob("final_grid_score_log.csv"):
             # Skip the root-level file (already handled)
@@ -97,18 +100,18 @@ class ResultsAggregator:
                 continue
             # Add the immediate parent folder name
             run_folders.add(log_file.parent.name)
-        
+
         return sorted(list(run_folders))
 
     def _resolve_run_path(self, run_name: str) -> Path:
         """Resolves a run name to its full path.
-        
+
         Args:
             run_name: The run folder name or special root identifier
-            
+
         Returns:
             Path to the run folder
-            
+
         Raises:
             FileNotFoundError: If the run cannot be found
         """
@@ -118,7 +121,7 @@ class ResultsAggregator:
             if root_log.exists():
                 return self.root_folder
             raise FileNotFoundError(f"Root log file not found: {root_log}")
-        
+
         # Search for the folder name within the root directory
         try:
             return next(self.root_folder.rglob(f"**/{run_name}"))
@@ -141,7 +144,7 @@ class ResultsAggregator:
         """
         # Resolve the run name to its full path. This handles nesting and the special root case.
         run_folder_path = self._resolve_run_path(timestamp_folder)
-        
+
         log_path = run_folder_path / "final_grid_score_log.csv"
         if not log_path.exists():
             raise FileNotFoundError(f"Log file not found: {log_path}")
@@ -190,7 +193,11 @@ class ResultsAggregator:
                 run_folder_path = self._resolve_run_path(run)
                 df = self.load_single_run(run)
                 # Add the relative path to the run for better context
-                df['run_path'] = str(run_folder_path.relative_to(self.root_folder)) if self.root_folder in run_folder_path.parents else '.'
+                df["run_path"] = (
+                    str(run_folder_path.relative_to(self.root_folder))
+                    if self.root_folder in run_folder_path.parents
+                    else "."
+                )
                 all_dataframes.append(df)
                 self.logger.info(f"Loaded run: {run} ({len(df)} records)")
             except Exception as e:
@@ -460,9 +467,9 @@ class DataValidator:
 
         # Check for outcome variables
         if "outcome_variable" in df.columns:
-            validation_report["outcome_variables"] = df[
-                "outcome_variable"
-            ].unique().tolist()
+            validation_report["outcome_variables"] = (
+                df["outcome_variable"].unique().tolist()
+            )
 
         # Check for algorithms
         if "method_name" in df.columns:
@@ -495,47 +502,49 @@ class DataValidator:
     @staticmethod
     def print_validation_report(validation_report: Dict[str, Any]) -> None:
         """Prints a formatted validation report to the console.
-    
+
         Args:
             validation_report (Dict[str, Any]): The validation report dictionary
                 generated by `validate_data_structure`.
         """
-        logger = logging.getLogger('ml_grid')
+        logger = logging.getLogger("ml_grid")
         logger.info("=" * 50)
         logger.info("DATA VALIDATION REPORT")
         logger.info("=" * 50)
-    
+
         logger.info(f"Total records: {validation_report['total_records']}")
         logger.info(f"Columns present: {len(validation_report['columns_present'])}")
-    
+
         if validation_report["missing_columns"]:
-            logger.warning(f"Missing expected columns: {validation_report['missing_columns']}")
-    
+            logger.warning(
+                f"Missing expected columns: {validation_report['missing_columns']}"
+            )
+
         if validation_report["outcome_variables"]:
             logger.info(
                 f"Outcome variables ({len(validation_report['outcome_variables'])}): "
                 f"{validation_report['outcome_variables']}"
             )
-    
+
         if validation_report["algorithms"]:
             logger.info(
                 f"Algorithms ({len(validation_report['algorithms'])}): "
                 f"{validation_report['algorithms'][:5]}{'...' if len(validation_report['algorithms']) > 5 else ''}"
             )
-    
+
         if validation_report["runs"]:
             logger.info(
                 f"Runs ({len(validation_report['runs'])}): "
                 f"{validation_report['runs'][:3]}{'...' if len(validation_report['runs']) > 3 else ''}"
             )
-    
+
         if validation_report["data_quality_issues"]:
             logger.warning("\nData Quality Issues:")
             for issue in validation_report["data_quality_issues"]:
                 logger.warning(f"  - {issue}")
         else:
             logger.info("\nNo data quality issues detected.")
-    
+
         logger.info("=" * 50)
 
 
@@ -583,7 +592,9 @@ def stratify_by_outcome(
         try:
             results[outcome] = func(outcome_data, *args, **kwargs)
         except Exception as e:
-            logging.getLogger('ml_grid').warning(f"Could not process outcome {outcome}: {e}")
+            logging.getLogger("ml_grid").warning(
+                f"Could not process outcome {outcome}: {e}"
+            )
             results[outcome] = None
-    
+
     return results

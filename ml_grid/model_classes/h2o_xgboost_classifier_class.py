@@ -5,7 +5,7 @@ from ml_grid.util.global_params import global_parameters
 from skopt.space import Real, Integer
 import logging
 
-logging.getLogger('ml_grid').debug("Imported h2o_xgboost_classifier_class")
+logging.getLogger("ml_grid").debug("Imported h2o_xgboost_classifier_class")
 
 PARAM_SPACE_GRID = {
     "xsmall": {
@@ -31,7 +31,7 @@ PARAM_SPACE_GRID = {
         "sample_rate": [0.6, 0.8, 1.0],
         "col_sample_rate_bytree": [0.6, 0.8, 1.0],
         "seed": [1, 42, 123],
-    }
+    },
 }
 
 PARAM_SPACE_BAYES = {
@@ -58,8 +58,9 @@ PARAM_SPACE_BAYES = {
         "sample_rate": Real(0.5, 1.0),
         "col_sample_rate_bytree": Real(0.5, 1.0),
         "seed": Integer(1, 2000),
-    }
+    },
 }
+
 
 class H2O_XGBoost_class:
     """H2OXGBoostClassifier with support for Bayesian and grid search parameter spaces."""
@@ -68,7 +69,7 @@ class H2O_XGBoost_class:
         self,
         X: Optional[pd.DataFrame] = None,
         y: Optional[pd.Series] = None,
-        parameter_space_size: str = 'small',
+        parameter_space_size: str = "small",
     ):
         self.X = X
         self.y = y
@@ -76,7 +77,9 @@ class H2O_XGBoost_class:
         self.method_name = "H2OXGBoostClassifier"
 
         if parameter_space_size not in PARAM_SPACE_GRID:
-            raise ValueError(f"Invalid parameter_space_size: '{parameter_space_size}'. Must be one of {list(PARAM_SPACE_GRID.keys())}")
+            raise ValueError(
+                f"Invalid parameter_space_size: '{parameter_space_size}'. Must be one of {list(PARAM_SPACE_GRID.keys())}"
+            )
 
         if global_parameters.bayessearch:
             # For Bayesian search, the parameter space is a single dictionary

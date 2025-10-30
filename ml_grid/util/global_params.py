@@ -33,7 +33,7 @@ def custom_roc_auc_score(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 
 class GlobalParameters:
     """A singleton class to manage global configuration parameters for ml_grid.
-    
+
     This class holds all global settings, making them accessible from any part
     of the application. To change a parameter, access the singleton instance
     `global_parameters` and set the attribute directly, or use the
@@ -97,7 +97,6 @@ class GlobalParameters:
     cache_embeddings: bool
     """Whether to cache computed embeddings for reuse. Defaults to False."""
 
-
     def __new__(cls, *args: Any, **kwargs: Any) -> "GlobalParameters":
         """Creates a new instance if one does not already exist (Singleton pattern)."""
         if cls._instance is None:
@@ -134,7 +133,7 @@ class GlobalParameters:
         self.max_param_space_iter_value = 10
         self.store_models = False
         self.use_embedding = False
-        self.embedding_method = None # "svd", "pca", "nmf", "lda", "random_gaussian", "random_sparse", "select_kbest_f", "select_kbest_mi"
+        self.embedding_method = None  # "svd", "pca", "nmf", "lda", "random_gaussian", "random_sparse", "select_kbest_f", "select_kbest_mi"
         self.embedding_dim = None
         self.scale_features_before_embedding = False
         self.cache_embeddings = False
@@ -160,10 +159,10 @@ class GlobalParameters:
             if hasattr(self, key):
                 setattr(self, key, value)
             else:
-                raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{key}'")
+                raise AttributeError(
+                    f"'{self.__class__.__name__}' object has no attribute '{key}'"
+                )
+
 
 # Singleton instance
 global_parameters = GlobalParameters()
-
-    
-    

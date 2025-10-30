@@ -14,7 +14,7 @@ from ml_grid.util import param_space
 from ml_grid.util.global_params import global_parameters
 import logging
 
-logging.getLogger('ml_grid').debug("Imported MLPClassifier class")
+logging.getLogger("ml_grid").debug("Imported MLPClassifier class")
 
 
 class MLPClassifierClass:
@@ -61,10 +61,14 @@ class MLPClassifierClass:
                 "alpha": Real(1e-5, 1e-2, prior="log-uniform"),
                 "batch_size": Categorical(["auto"]),  # Fixed value as per the original
                 "hidden_layer_sizes": Integer(10, 500),
-                "learning_rate": Categorical(["adaptive"]),  # Fixed value as per the original
+                "learning_rate": Categorical(
+                    ["adaptive"]
+                ),  # Fixed value as per the original
                 "momentum": Real(0.0, 1.0, prior="uniform"),
                 "random_state": Categorical([None]),  # Fixed value as per the original
-                "validation_fraction": Real(0.05, 0.2),  # Real value in a small range [0.1, 0.2]
+                "validation_fraction": Real(
+                    0.05, 0.2
+                ),  # Real value in a small range [0.1, 0.2]
                 "verbose": Categorical([False]),  # Fixed value as per the original
                 "warm_start": Categorical([False]),  # Fixed value as per the original
             }
@@ -72,18 +76,24 @@ class MLPClassifierClass:
             # Traditional Grid Search: Define parameter space using lists
             self.parameter_space = {
                 "activation": ["relu"],  # ["relu", "tanh", "logistic"]
-                "alpha": list(self.parameter_vector_space.param_dict.get("log_small")),  # (param_dict)
+                "alpha": list(
+                    self.parameter_vector_space.param_dict.get("log_small")
+                ),  # (param_dict)
                 "batch_size": ["auto"],  # ["auto", 32, 64]
                 # "beta_1": list(self.parameter_vector_space.param_dict.get("log_small")),
                 # "beta_2": list(self.parameter_vector_space.param_dict.get("log_small")),
                 # "early_stopping": list(self.parameter_vector_space.param_dict.get("bool_param")),
                 # "epsilon": list(self.parameter_vector_space.param_dict.get("log_small")),
-                "hidden_layer_sizes": list(self.parameter_vector_space.param_dict.get("log_large_long")),  # (param_dict)
+                "hidden_layer_sizes": list(
+                    self.parameter_vector_space.param_dict.get("log_large_long")
+                ),  # (param_dict)
                 "learning_rate": ["adaptive"],  # ["constant", "adaptive"]
                 # "learning_rate_init": list(self.parameter_vector_space.param_dict.get("log_small")),
                 # "max_fun": [20000],  # Example fixed value
                 # "max_iter": list(self.parameter_vector_space.param_dict.get("log_large_long")),
-                "momentum": list(self.parameter_vector_space.param_dict.get("lin_zero_one")),  # (param_dict)
+                "momentum": list(
+                    self.parameter_vector_space.param_dict.get("lin_zero_one")
+                ),  # (param_dict)
                 # "n_iter_no_change": list(self.parameter_vector_space.param_dict.get("log_med")),
                 # "nesterovs_momentum": [True],
                 # "power_t": list(self.parameter_vector_space.param_dict.get("log_small")),

@@ -16,7 +16,7 @@ class debug_print_statements_class:
                 and 'score_time'.
         """
         self.scores = scores
-        self.logger = logging.getLogger('ml_grid')
+        self.logger = logging.getLogger("ml_grid")
 
     def debug_print_scores(self) -> None:
         """Prints the mean and standard deviation of various scores.

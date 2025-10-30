@@ -10,7 +10,7 @@ from ml_grid.util.global_params import global_parameters
 from sklearn.naive_bayes import GaussianNB
 from skopt.space import Categorical, Real
 
-logging.getLogger('ml_grid').debug("Imported gaussiannb class")
+logging.getLogger("ml_grid").debug("Imported gaussiannb class")
 
 
 class GaussianNBWrapper(GaussianNB):
@@ -99,12 +99,14 @@ class GaussianNBClassifierClass:
         if global_parameters.bayessearch:
             # For BayesSearchCV, use distributions from skopt.space
             self.parameter_space = {
-                'var_smoothing': Real(1e-9, 1e-2, prior='log-uniform'),
-                'priors': Categorical([0, 1, 2])  # Integer mapping
+                "var_smoothing": Real(1e-9, 1e-2, prior="log-uniform"),
+                "priors": Categorical([0, 1, 2]),  # Integer mapping
             }
 
             # Log parameter space for verification
-            logging.getLogger('ml_grid').debug(f"Parameter Space: {self.parameter_space}")
+            logging.getLogger("ml_grid").debug(
+                f"Parameter Space: {self.parameter_space}"
+            )
 
         else:
             # For traditional grid search, use lists
@@ -119,5 +121,10 @@ class GaussianNBClassifierClass:
                     [0.6, 0.4],
                     [0.4, 0.6],
                 ],  # Enumerates possible values as a list
-                "var_smoothing": list(param_space.ParamSpace(parameter_space_size).param_dict.get("log_small")) + [1e-9],
+                "var_smoothing": list(
+                    param_space.ParamSpace(parameter_space_size).param_dict.get(
+                        "log_small"
+                    )
+                )
+                + [1e-9],
             }

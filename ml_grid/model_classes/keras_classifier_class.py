@@ -1,4 +1,5 @@
 import math
+
 """Keras Classifier.
 
 This module contains the kerasClassifier_class, which is a configuration
@@ -16,6 +17,7 @@ from keras.models import Sequential
 from keras.optimizers import Adam
 from ml_grid.util import param_space
 from scikeras.wrappers import KerasClassifier
+
 
 def create_model(
     layers: int = 1,
@@ -49,8 +51,9 @@ def create_model(
             Dense(
                 math.floor(width),
                 input_dim=input_dim_val,
-                kernel_initializer="uniform", activation="linear",
-                kernel_constraint=max_norm(4), 
+                kernel_initializer="uniform",
+                activation="linear",
+                kernel_constraint=max_norm(4),
                 kernel_regularizer=kernel_reg,
             )
         )
@@ -58,7 +61,7 @@ def create_model(
     model.add(Dropout(dropout_val))
     model.add(Dense(1, kernel_initializer="uniform", activation="sigmoid"))
     # Compile model
-    optimizer = Adam(learning_rate=learning_rate) 
+    optimizer = Adam(learning_rate=learning_rate)
     metric = tf.keras.metrics.AUC()
 
     model.compile(
@@ -68,6 +71,7 @@ def create_model(
     )
 
     return model
+
 
 class KerasClassifierClass:
     """Keras Sequential model classifier wrapped for use with scikit-learn."""
@@ -105,7 +109,6 @@ class KerasClassifierClass:
 
         self.method_name: str = "KerasClassifier"
         self.parameter_space: Dict[str, Any]
-
 
         self.algorithm_implementation = KerasClassifier(
             model=create_model,

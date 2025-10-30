@@ -8,7 +8,7 @@ Bayesian optimization.
 import logging
 from typing import Dict, List, Optional, Union
 
-import pandas as pd # type: ignore
+import pandas as pd  # type: ignore
 from skopt.space import Categorical, Integer
 
 from ml_grid.model_classes.H2ORuleFitClassifier import H2ORuleFitClassifier
@@ -106,10 +106,6 @@ class H2ORuleFitClass:
                 f"Must be one of {list(PARAM_SPACE_GRID.keys())}"
             )
         if global_parameters.bayessearch:
-            self.parameter_space = PARAM_SPACE_BAYES[
-                parameter_space_size
-            ]
+            self.parameter_space = PARAM_SPACE_BAYES[parameter_space_size]
         else:
-            self.parameter_space = [
-                PARAM_SPACE_GRID[parameter_space_size]
-            ]
+            self.parameter_space = [PARAM_SPACE_GRID[parameter_space_size]]

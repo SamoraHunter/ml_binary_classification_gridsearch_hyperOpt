@@ -5,8 +5,6 @@ class for the H2OAutoMLClassifier. It provides parameter spaces for
 grid search and Bayesian optimization.
 """
 
-
-
 from typing import Any, Dict, List, Optional
 
 import logging

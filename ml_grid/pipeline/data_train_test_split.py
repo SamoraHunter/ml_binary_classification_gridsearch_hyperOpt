@@ -38,7 +38,7 @@ def get_data_split(
             - X_test_orig: Original features for validation.
             - y_test_orig: Original target variable for validation.
     """
-    logger = logging.getLogger('ml_grid')
+    logger = logging.getLogger("ml_grid")
     random.seed(1234)
     np.random.seed(1234)
 
@@ -59,7 +59,9 @@ def get_data_split(
     # imblearn samplers require at least 2 samples in the minority class.
     minority_class_count = y_train_orig.value_counts().min()
     if minority_class_count < 2 and local_param_dict.get("resample") is not None:
-        logger.warning(f"Minority class has only {minority_class_count} sample(s) in the training fold. Disabling resampling to prevent errors.")
+        logger.warning(
+            f"Minority class has only {minority_class_count} sample(s) in the training fold. Disabling resampling to prevent errors."
+        )
         local_param_dict["resample"] = None
 
     # Now, handle resampling ONLY on the preliminary training set (X_train_orig)
@@ -71,11 +73,10 @@ def get_data_split(
         # Undersample data
         rus = RandomUnderSampler(random_state=1)
         X_train_res, y_train_res = rus.fit_resample(X_train_orig, y_train_orig)
-        
+
         # Reconstruct DataFrame and Series to ensure correct indices and names
         X_train_processed = pd.DataFrame(X_train_res, columns=original_columns)
         y_train_processed = pd.Series(y_train_res, name=y_name)
-        
 
     # Oversampling
     elif local_param_dict.get("resample") == "oversample":
@@ -87,14 +88,14 @@ def get_data_split(
         # --- CRITICAL FIX: Use 'auto' for sampling_strategy ---
         # 'auto' is equivalent to 'minority' and correctly handles cases where
         # the data is already balanced, preventing a ValueError.
-        ros = RandomOverSampler(sampling_strategy='auto', random_state=1)
+        ros = RandomOverSampler(sampling_strategy="auto", random_state=1)
         X_train_res, y_train_res = ros.fit_resample(X_train_orig, y_train_orig)
-        
+
         # Reconstruct DataFrame and Series
         X_train_processed = pd.DataFrame(X_train_res, columns=original_columns)
         y_train_processed = pd.Series(y_train_res, name=y_name)
-    
-    else: # No resampling
+
+    else:  # No resampling
         X_train_processed = X_train_orig
         y_train_processed = y_train_orig
 

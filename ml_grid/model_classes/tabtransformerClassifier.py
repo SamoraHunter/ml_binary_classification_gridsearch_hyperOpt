@@ -11,6 +11,7 @@ import torch.nn as nn
 from tab_transformer_pytorch import TabTransformer
 from sklearn.base import BaseEstimator, ClassifierMixin
 
+
 class TabTransformerClassifier(BaseEstimator, ClassifierMixin):
     """A scikit-learn compatible wrapper for the TabTransformer model.
 
@@ -105,7 +106,7 @@ class TabTransformerClassifier(BaseEstimator, ClassifierMixin):
         Returns:
             np.ndarray: The predicted class probabilities.
         """
-        self.model.eval() # type: ignore
+        self.model.eval()  # type: ignore
         with torch.no_grad():
             x_categ, x_cont = X
             pred = self.model(x_categ, x_cont)

@@ -17,7 +17,8 @@ import logging
 
 from ml_grid.util.global_params import global_parameters
 
-logging.getLogger('ml_grid').debug("Imported TabTransformerClassifier class")
+logging.getLogger("ml_grid").debug("Imported TabTransformerClassifier class")
+
 
 class TabTransformerWrapper(TabTransformerClassifier):
     """A wrapper for TabTransformerClassifier to handle tuple-based parameters.
@@ -92,7 +93,9 @@ class TabTransformerClass:
         self.y: Optional[pd.Series] = y
 
         self.method_name: str = "TabTransformerClassifier"
-        self.algorithm_implementation: Union[TabTransformerClassifier, TabTransformerWrapper]
+        self.algorithm_implementation: Union[
+            TabTransformerClassifier, TabTransformerWrapper
+        ]
         self.parameter_vector_space: param_space.ParamSpace
         self.parameter_space: Dict[str, Any]
 
@@ -111,8 +114,12 @@ class TabTransformerClass:
         num_continuous = df_cont.shape[1]
 
         # Print the results
-        logging.getLogger('ml_grid').info(f"TabTransformer: Number of unique values within each category: {categories}")
-        logging.getLogger('ml_grid').info(f"TabTransformer: Number of continuous columns: {num_continuous}")
+        logging.getLogger("ml_grid").info(
+            f"TabTransformer: Number of unique values within each category: {categories}"
+        )
+        logging.getLogger("ml_grid").info(
+            f"TabTransformer: Number of continuous columns: {num_continuous}"
+        )
 
         # Algorithm Implementation
         # self.algorithm_implementation = TabTransformerClassifier(categories, num_continuous)
@@ -123,7 +130,7 @@ class TabTransformerClass:
             )
         else:
             self.algorithm_implementation = TabTransformerWrapper(
-                categories, num_continuous # type: ignore
+                categories, num_continuous  # type: ignore
             )  # Wrapper necessary for passing priors to bayescv
 
         # Parameter Space
@@ -144,13 +151,17 @@ class TabTransformerClass:
                     [0, 1]
                 ),  # Indices for the tuple mapping  # Multipliers for hidden layer dimensions
                 "mlp_act": Categorical(["ReLU"]),  # Activation function as string
-                "continuous_mean_std": Categorical([None]),  # Handle tensor creation later
+                "continuous_mean_std": Categorical(
+                    [None]
+                ),  # Handle tensor creation later
             }
 
         else:
             # Traditional Grid Search: Define parameter space using lists
             self.parameter_space = {
-                "categories": [(10, 5, 6, 5, 8)],  # Example categories: Tuple of category counts
+                "categories": [
+                    (10, 5, 6, 5, 8)
+                ],  # Example categories: Tuple of category counts
                 "num_continuous": [10],  # Number of continuous features
                 "dim": [32],  # Dimensionality of token embeddings
                 "dim_out": [1],  # Output dimensionality
@@ -158,7 +169,11 @@ class TabTransformerClass:
                 "heads": [8],  # Number of attention heads
                 "attn_dropout": [0.1],  # Dropout rate for attention layers
                 "ff_dropout": [0.1],  # Dropout rate for feedforward layers
-                "mlp_hidden_mults": [(4, 2)],  # Multipliers for hidden layer dimensions in the MLP
+                "mlp_hidden_mults": [
+                    (4, 2)
+                ],  # Multipliers for hidden layer dimensions in the MLP
                 "mlp_act": [nn.ReLU()],  # Activation function for the MLP
-                "continuous_mean_std": [torch.randn(10, 2)],  # Mean and std of continuous features
+                "continuous_mean_std": [
+                    torch.randn(10, 2)
+                ],  # Mean and std of continuous features
             }

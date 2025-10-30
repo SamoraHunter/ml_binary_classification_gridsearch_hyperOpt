@@ -67,9 +67,7 @@ class OrdinalTDE_class:
                 20,
                 30,
             ],  # Max number of dimensions per classifier for multivariate data
-            "time_limit_in_minutes":
-                time_limit_param
-            ,  # Time contract to limit build time in minutes
+            "time_limit_in_minutes": time_limit_param,  # Time contract to limit build time in minutes
             "contract_max_n_parameter_samples": [
                 1000,
                 2000,

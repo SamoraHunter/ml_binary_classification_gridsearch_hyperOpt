@@ -101,7 +101,7 @@ class H2ODRFClass:
             ValueError: If `parameter_space_size` is not a valid key.
         """
         self.X = X
-        self.y = y # type: Optional[pd.Series]
+        self.y = y  # type: Optional[pd.Series]
         self.algorithm_implementation: H2ODRFClassifier = H2ODRFClassifier()
         self.method_name: str = "H2ODRFClassifier"
         self.parameter_space: Union[List[Dict[str, Any]], Dict[str, Any]]
@@ -112,10 +112,6 @@ class H2ODRFClass:
                 f"Must be one of {list(PARAM_SPACE_GRID.keys())}"
             )
         if global_parameters.bayessearch:
-            self.parameter_space = PARAM_SPACE_BAYES[
-                parameter_space_size
-            ]
+            self.parameter_space = PARAM_SPACE_BAYES[parameter_space_size]
         else:
-            self.parameter_space = [
-                PARAM_SPACE_GRID[parameter_space_size]
-            ]
+            self.parameter_space = [PARAM_SPACE_GRID[parameter_space_size]]

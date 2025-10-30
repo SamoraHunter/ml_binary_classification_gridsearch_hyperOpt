@@ -11,7 +11,7 @@ from ml_grid.util import param_space
 from ml_grid.model_classes.NeuralNetworkKerasClassifier import NeuralNetworkClassifier
 import logging
 
-logging.getLogger('ml_grid').debug("Imported NeuralNetworkClassifier class")
+logging.getLogger("ml_grid").debug("Imported NeuralNetworkClassifier class")
 
 
 class NeuralNetworkClassifier_class:
@@ -41,7 +41,9 @@ class NeuralNetworkClassifier_class:
         self.X: Optional[pd.DataFrame] = X
         self.y: Optional[pd.Series] = y
 
-        self.algorithm_implementation: NeuralNetworkClassifier = NeuralNetworkClassifier()
+        self.algorithm_implementation: NeuralNetworkClassifier = (
+            NeuralNetworkClassifier()
+        )
         self.method_name: str = "NeuralNetworkClassifier"
 
         self.parameter_vector_space: param_space.ParamSpace = param_space.ParamSpace(
@@ -52,6 +54,7 @@ class NeuralNetworkClassifier_class:
 
         from ml_grid.util.global_params import global_parameters
         import logging
+
         if global_parameters.bayessearch:
             from skopt.space import Categorical, Integer, Real
 
@@ -60,14 +63,11 @@ class NeuralNetworkClassifier_class:
                     # Changed from: Categorical([(8, 8), (16, 8), ...])
                     # To: Categorical(["(8, 8)", "(16, 8)", ...])
                     # Tuples encoded as strings to avoid skopt's .item() error
-                    "hidden_layer_sizes": Categorical([
-                        "(8, 8)",
-                        "(16, 8)", 
-                        "(32, 16, 8)",
-                        "(64, 32)"
-                    ]),
+                    "hidden_layer_sizes": Categorical(
+                        ["(8, 8)", "(16, 8)", "(32, 16, 8)", "(64, 32)"]
+                    ),
                     "dropout_rate": Real(0.2, 0.4),
-                    "learning_rate": Real(1e-4, 1e-2, prior='log-uniform'),
+                    "learning_rate": Real(1e-4, 1e-2, prior="log-uniform"),
                     "activation_func": Categorical(["relu", "tanh", "sigmoid"]),
                     "epochs": Integer(5, 15),
                     "batch_size": Categorical([16, 32, 64]),

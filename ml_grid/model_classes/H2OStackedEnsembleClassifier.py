@@ -10,7 +10,9 @@ except ImportError:
         "H2OStackedEnsembleEstimator could not be imported. "
         "H2OStackedEnsembleClassifier will not be available."
     )
+
     class H2OStackedEnsembleEstimator: ...
+
 
 # Import the base class
 from .H2OBaseClassifier import H2OBaseClassifier
@@ -49,10 +51,9 @@ class H2OStackedEnsembleClassifier(H2OBaseClassifier):
         """
         # Pass base_models along with other kwargs to the parent constructor.
         # This ensures it's treated as a standard sklearn parameter.
-        kwargs['base_models'] = base_models if base_models is not None else []
-        kwargs['estimator_class'] = H2OStackedEnsembleEstimator
+        kwargs["base_models"] = base_models if base_models is not None else []
+        kwargs["estimator_class"] = H2OStackedEnsembleEstimator
         super().__init__(**kwargs)
-
 
     def set_params(self, **kwargs):
         """Overrides set_params to correctly handle the `base_models` list.
@@ -93,9 +94,12 @@ class H2OStackedEnsembleClassifier(H2OBaseClassifier):
             float: The mean accuracy of the model.
         """
         from sklearn.metrics import accuracy_score
+
         return accuracy_score(y, self.predict(X))
 
-    def fit(self, X: pd.DataFrame, y: pd.Series, **kwargs) -> "H2OStackedEnsembleClassifier":
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series, **kwargs
+    ) -> "H2OStackedEnsembleClassifier":
         """Fits the H2O Stacked Ensemble model, making it compatible with scikit-learn's CV tools.
 
         This method encapsulates the entire two-stage fitting process:
@@ -126,19 +130,27 @@ class H2OStackedEnsembleClassifier(H2OBaseClassifier):
                 return self
 
             if not self.base_models:
-                raise ValueError("`base_models` parameter is empty. "
-                                 "H2OStackedEnsembleClassifier requires a "
-                                 "list of base model estimators.")
+                raise ValueError(
+                    "`base_models` parameter is empty. "
+                    "H2OStackedEnsembleClassifier requires a "
+                    "list of base model estimators."
+                )
 
             # 2. Fit each base model
-            self.logger.info(f"Fitting {len(self.base_models)} base models for StackedEnsemble...")
+            self.logger.info(
+                f"Fitting {len(self.base_models)} base models for StackedEnsemble..."
+            )
             base_models_list = []
-            for i, model_wrapper in enumerate(self.base_models): #type:H2OBaseClassifier
-                self.logger.debug(f"Fitting base model {i+1}: {type(model_wrapper).__name__}")
+            for i, model_wrapper in enumerate(
+                self.base_models
+            ):  # type:H2OBaseClassifier
+                self.logger.debug(
+                    f"Fitting base model {i+1}: {type(model_wrapper).__name__}"
+                )
                 model_wrapper.set_params(
                     nfolds=5,  # A reasonable default for base model CV
                     keep_cross_validation_predictions=True,
-                    fold_assignment="Modulo"
+                    fold_assignment="Modulo",
                 )
                 # CRITICAL FIX: Explicitly call the fit method from H2OBaseClassifier
                 # to ensure correct data handling (pandas -> H2OFrame) and avoid the
@@ -152,8 +164,7 @@ class H2OStackedEnsembleClassifier(H2OBaseClassifier):
             train_h2o, x_vars, outcome_var, model_params = self._prepare_fit(X, y)
 
             self.model_ = H2OStackedEnsembleEstimator(
-                base_models=base_models_list,
-                **model_params
+                base_models=base_models_list, **model_params
             )
             self.model_.train(x=x_vars, y=outcome_var, training_frame=train_h2o)
 
@@ -166,7 +177,7 @@ class H2OStackedEnsembleClassifier(H2OBaseClassifier):
         except Exception as e:
             self.logger.critical(
                 f"A critical, unrecoverable error occurred during H2OStackedEnsemble fit: {e}",
-                exc_info=True
+                exc_info=True,
             )
             raise e
 

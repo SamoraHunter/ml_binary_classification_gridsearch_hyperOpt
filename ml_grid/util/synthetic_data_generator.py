@@ -62,7 +62,9 @@ class SyntheticDataGenerator:
         if not 0 <= feature_strength <= 1:
             raise ValueError("feature_strength must be between 0 and 1.")
         if not 0 <= percent_binary_features + percent_int_features <= 1:
-            raise ValueError("The sum of binary and int feature percentages must be <= 1.")
+            raise ValueError(
+                "The sum of binary and int feature percentages must be <= 1."
+            )
 
         self.n_rows = n_rows
         self.n_features = n_features
@@ -76,70 +78,110 @@ class SyntheticDataGenerator:
 
         # Based on ml_grid/pipeline/column_names.py and sample data
         self._feature_prefixes = [
-            "Alkaline Phosphatase", "RBC", "PLT", "Sodium", "Potassium",
-            "C-reactive Protein", "Glycated Hb", "White Cell Count",
-            "Monocytes", "MCHC.", "Calcium measurement", "Neutrophils",
-            "Insertion - action (qualifier value)", "Routine (qualifier value)",
-            "General treatment (procedure)", "Research fellow (occupation)",
-            "Phlebotomy (procedure)", "Date of birth (observable entity)",
-            "Antibiotic (product)", "Hypercholesterolemia (disorder)",
-            "Sinus rhythm (finding)", "Capsule (basic dose form)",
-            "Transplantation of liver (procedure)", "History of clinical finding"
+            "Alkaline Phosphatase",
+            "RBC",
+            "PLT",
+            "Sodium",
+            "Potassium",
+            "C-reactive Protein",
+            "Glycated Hb",
+            "White Cell Count",
+            "Monocytes",
+            "MCHC.",
+            "Calcium measurement",
+            "Neutrophils",
+            "Insertion - action (qualifier value)",
+            "Routine (qualifier value)",
+            "General treatment (procedure)",
+            "Research fellow (occupation)",
+            "Phlebotomy (procedure)",
+            "Date of birth (observable entity)",
+            "Antibiotic (product)",
+            "Hypercholesterolemia (disorder)",
+            "Sinus rhythm (finding)",
+            "Capsule (basic dose form)",
+            "Transplantation of liver (procedure)",
+            "History of clinical finding",
         ]
         self._feature_suffixes = [
-            "_mean", "_median", "_mode", "_std", "_num-tests",
-            "_days-since-last-test", "_max", "_min", "_most-recent",
-            "_earliest-test", "_days-between-first-last",
-            "_contains-extreme-low", "_contains-extreme-high",
-            "_num-diagnostic-order", "_count", "_count_subject_present",
-            "_count_subject_not_present", "_count_relative_present",
-            "_count_relative_not_present", "_count_subject_present_mrc_cs"
+            "_mean",
+            "_median",
+            "_mode",
+            "_std",
+            "_num-tests",
+            "_days-since-last-test",
+            "_max",
+            "_min",
+            "_most-recent",
+            "_earliest-test",
+            "_days-between-first-last",
+            "_contains-extreme-low",
+            "_contains-extreme-high",
+            "_num-diagnostic-order",
+            "_count",
+            "_count_subject_present",
+            "_count_subject_not_present",
+            "_count_relative_present",
+            "_count_relative_not_present",
+            "_count_subject_present_mrc_cs",
         ]
         # Suffixes that imply integer or binary types
         self._int_suffixes = ["_count", "_num-tests", "_num-diagnostic-order"]
         self._binary_suffixes = ["_contains-extreme-low", "_contains-extreme-high"]
 
         self._special_features = [
-            "age", "male", "bmi_value", "census_ethnicity_white", "core_02_val",
-            "bed_type_A", "vte_status_1", "hosp_site_X", "core_resus_status",
-            "news_score", "client_idcode"
+            "age",
+            "male",
+            "bmi_value",
+            "census_ethnicity_white",
+            "core_02_val",
+            "bed_type_A",
+            "vte_status_1",
+            "hosp_site_X",
+            "core_resus_status",
+            "news_score",
+            "client_idcode",
         ]
 
     def _generate_column_names(self) -> List[str]:
         """Generates a list of realistic, structured feature names."""
         generated_names = set()
-        
+
         # Add some special features to ensure they are present
-        generated_names.update(random.sample(self._special_features, min(len(self._special_features), 5)))
+        generated_names.update(
+            random.sample(self._special_features, min(len(self._special_features), 5))
+        )
 
         # Generate structured feature groups
         while len(generated_names) < self.n_features:
             prefix = random.choice(self._feature_prefixes)
-            
+
             # For each prefix, create a few related features
             num_suffixes_for_prefix = random.randint(1, 4)
-            suffixes_to_add = random.sample(self._feature_suffixes, num_suffixes_for_prefix)
-            
+            suffixes_to_add = random.sample(
+                self._feature_suffixes, num_suffixes_for_prefix
+            )
+
             for suffix in suffixes_to_add:
                 if len(generated_names) >= self.n_features:
                     break
                 new_name = f"{prefix}{suffix}"
                 generated_names.add(new_name)
-        
+
         final_names = list(generated_names)
         random.shuffle(final_names)
-        
-        return final_names[:self.n_features]
+
+        return final_names[: self.n_features]
 
     def _assign_feature_types(self, df: pd.DataFrame):
         """Modifies DataFrame columns in-place to have more realistic data types."""
         for col in df.columns:
             # Handle special cases first
-            if col == 'age':
+            if col == "age":
                 df[col] = np.random.randint(20, 90, size=self.n_rows)
-            elif col == 'male' or 'vte_status' in col or 'bed_type' in col:
+            elif col == "male" or "vte_status" in col or "bed_type" in col:
                 df[col] = np.random.randint(0, 2, size=self.n_rows)
-            elif col == 'bmi_value':
+            elif col == "bmi_value":
                 df[col] = np.random.uniform(18, 45, size=self.n_rows)
             # Handle suffixes
             elif any(s in col for s in self._int_suffixes):
@@ -175,17 +217,23 @@ class SyntheticDataGenerator:
         n_important = max(1, n_important)  # Ensure at least one important feature
 
         self.logger.info(f"Generating {self.n_outcome_vars} outcome variables.")
-        
+
         # 3. Generate outcome variables
         for i in range(1, self.n_outcome_vars + 1):
             outcome_col_name = f"outcome_var_{i}"
 
             # Select a unique set of important features for *this* outcome
-            important_features = df.columns.to_series().sample(
-                n=n_important, random_state=42 + i  # Use index `i` to vary the seed
-            ).tolist()
+            important_features = (
+                df.columns.to_series()
+                .sample(
+                    n=n_important, random_state=42 + i  # Use index `i` to vary the seed
+                )
+                .tolist()
+            )
             outcome_to_features_map[outcome_col_name] = important_features
-            self.logger.info(f"  For '{outcome_col_name}', selected {len(important_features)} important features: {important_features[:3]}...")
+            self.logger.info(
+                f"  For '{outcome_col_name}', selected {len(important_features)} important features: {important_features[:3]}..."
+            )
 
             # Create signal from important features
             signal = df[important_features].sum(axis=1) * self.feature_strength
@@ -199,31 +247,39 @@ class SyntheticDataGenerator:
             # Use median as a threshold to get a balanced-ish outcome
             threshold = combined_signal.median()
             df[outcome_col_name] = (combined_signal > threshold).astype(int)
-            
+
             # Randomly flip some outcomes to make it harder
-            flip_mask = np.random.rand(self.n_rows) < 0.1 # Flip 10%
-            df.loc[flip_mask, outcome_col_name] = 1 - df.loc[flip_mask, outcome_col_name]
+            flip_mask = np.random.rand(self.n_rows) < 0.1  # Flip 10%
+            df.loc[flip_mask, outcome_col_name] = (
+                1 - df.loc[flip_mask, outcome_col_name]
+            )
 
             # Move the new outcome column to the dictionary for later concatenation
             new_cols_dict[outcome_col_name] = df.pop(outcome_col_name)
 
-
         # 4. Add metadata columns to match real data format
-        if 'client_idcode' not in df.columns:
-            new_cols_dict['client_idcode'] = [f'id_{j}' for j in range(self.n_rows)]
+        if "client_idcode" not in df.columns:
+            new_cols_dict["client_idcode"] = [f"id_{j}" for j in range(self.n_rows)]
 
         # Add 'Unnamed: 0' to mimic CSV read-in
-        new_cols_dict['Unnamed: 0'] = range(self.n_rows)
+        new_cols_dict["Unnamed: 0"] = range(self.n_rows)
 
         # Concatenate all new columns at once to avoid fragmentation
         new_cols_df = pd.DataFrame(new_cols_dict, index=df.index)
-        df = pd.concat([new_cols_df[['Unnamed: 0']], df, new_cols_df.drop(columns=['Unnamed: 0'])], axis=1)
+        df = pd.concat(
+            [new_cols_df[["Unnamed: 0"]], df, new_cols_df.drop(columns=["Unnamed: 0"])],
+            axis=1,
+        )
 
         # Introduce some missing values
         for col in df.columns:
-            if col.startswith('outcome_var') or col == 'client_idcode' or col == 'Unnamed: 0':
+            if (
+                col.startswith("outcome_var")
+                or col == "client_idcode"
+                or col == "Unnamed: 0"
+            ):
                 continue
-            if random.random() < 0.15: # 15% chance for a column to have NaNs
+            if random.random() < 0.15:  # 15% chance for a column to have NaNs
                 nan_mask = df.sample(frac=random.uniform(0.01, 0.2)).index
                 df.loc[nan_mask, col] = np.nan
 
@@ -278,14 +334,21 @@ def generate_synthetic_data(
     return synthetic_df, feature_map
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Example usage:
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-    
-    # Import necessary functions for imputation and saving
-    from ml_grid.util.impute_data_for_pipe import save_missing_percentage, mean_impute_dataframe
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    )
 
-    logging.info("Generating a sample synthetic dataset using the importable function...")
+    # Import necessary functions for imputation and saving
+    from ml_grid.util.impute_data_for_pipe import (
+        save_missing_percentage,
+        mean_impute_dataframe,
+    )
+
+    logging.info(
+        "Generating a sample synthetic dataset using the importable function..."
+    )
     synthetic_df, important_feature_map = generate_synthetic_data(
         n_rows=500,
         n_features=100,
@@ -300,7 +363,9 @@ if __name__ == '__main__':
 
     # 1. Calculate and save the percentage of missing values
     missing_pickle_filename = "percent_missing_synthetic_data_generated.pkl"
-    logging.info(f"\nCalculating missing value percentages and saving to '{missing_pickle_filename}'...")
+    logging.info(
+        f"\nCalculating missing value percentages and saving to '{missing_pickle_filename}'..."
+    )
     save_missing_percentage(synthetic_df, output_file=missing_pickle_filename)
     logging.info("Missing value pickle file saved.")
 
@@ -308,7 +373,9 @@ if __name__ == '__main__':
     logging.info("\nPerforming mean imputation on the dataset...")
     outcome_columns = list(important_feature_map.keys())
     imputed_df = mean_impute_dataframe(data=synthetic_df, y_vars=outcome_columns)
-    logging.info(f"Imputation complete. NaNs present after imputation: {imputed_df.isnull().sum().sum()}")
+    logging.info(
+        f"Imputation complete. NaNs present after imputation: {imputed_df.isnull().sum().sum()}"
+    )
 
     # 3. Save the imputed data to the final CSV file
     output_csv_filename = "synthetic_data_generated.csv"

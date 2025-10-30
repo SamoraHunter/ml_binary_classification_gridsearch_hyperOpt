@@ -15,6 +15,7 @@ from skopt.space import Real, Categorical, Integer
 
 from ml_grid.util.global_params import global_parameters
 
+
 class RandomForestClassifierClass:
     """RandomForestClassifier with support for both Bayesian and non-Bayesian parameter spaces."""
 
@@ -80,9 +81,15 @@ class RandomForestClassifierClass:
                 "max_depth": self.parameter_vector_space.param_dict.get("log_med"),
                 "max_features": ["sqrt", "log2"],
                 "max_samples": [None],
-                "min_samples_leaf": self.parameter_vector_space.param_dict.get("log_med"),
-                "min_samples_split": self._valid_min_samples_split(self.parameter_vector_space.param_dict.get("log_med")),  # patched line
-                "n_estimators": self.parameter_vector_space.param_dict.get("log_large_long"),
+                "min_samples_leaf": self.parameter_vector_space.param_dict.get(
+                    "log_med"
+                ),
+                "min_samples_split": self._valid_min_samples_split(
+                    self.parameter_vector_space.param_dict.get("log_med")
+                ),  # patched line
+                "n_estimators": self.parameter_vector_space.param_dict.get(
+                    "log_large_long"
+                ),
                 "n_jobs": [None],
                 "oob_score": [False],
                 "random_state": [None],
@@ -90,9 +97,7 @@ class RandomForestClassifierClass:
                 "warm_start": [False],
             }
 
-    def _valid_min_samples_split(
-        self, values: Any
-    ) -> List[Union[int, float]]:
+    def _valid_min_samples_split(self, values: Any) -> List[Union[int, float]]:
         """Ensures values for min_samples_split are valid.
 
         The `min_samples_split` parameter in RandomForestClassifier accepts
@@ -115,13 +120,22 @@ class RandomForestClassifierClass:
             min_val = int(np.floor(min_val))  # Convert to int
             max_val = int(np.floor(max_val))  # Convert to int
 
-            valid_values = [v for v in range(min_val, max_val + 1) if v >= 2]  # Ensure v >= 2 for integers
+            valid_values = [
+                v for v in range(min_val, max_val + 1) if v >= 2
+            ]  # Ensure v >= 2 for integers
         else:
             # If values is iterable (list or array), apply filtering logic
-            valid_values = [v for v in values if (isinstance(v, int) and v >= 2) or (isinstance(v, float) and 0.0 < v < 1.0)]
+            valid_values = [
+                v
+                for v in values
+                if (isinstance(v, int) and v >= 2)
+                or (isinstance(v, float) and 0.0 < v < 1.0)
+            ]
 
         # If no valid values were found, fallback to a default valid value (e.g., 2)
         if not valid_values:
-            valid_values = [2]  # Fallback to a default valid value if no valid value found
+            valid_values = [
+                2
+            ]  # Fallback to a default valid value if no valid value found
 
         return valid_values

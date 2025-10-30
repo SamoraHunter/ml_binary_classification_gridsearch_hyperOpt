@@ -34,11 +34,11 @@ def setup_logger(
     # Avoid reconfiguring the root logger if it's already set up.
     if logging.getLogger().handlers:
         logging.getLogger().handlers.clear()
-        
+
     # Get a specific logger instead of configuring the root
-    logger = logging.getLogger('ml_grid')
+    logger = logging.getLogger("ml_grid")
     logger.setLevel(logging.DEBUG)
-    
+
     # Prevent messages from being passed to the root logger
     logger.propagate = False
 
@@ -55,12 +55,11 @@ def setup_logger(
     file_handler = logging.FileHandler(log_file)
     file_handler.setLevel(logging.DEBUG)
     file_formatter = logging.Formatter(
-        "%(asctime)s - %(levelname)s - %(message)s", 
-        datefmt="%Y-%m-%d %H:%M:%S"
+        "%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
     )
     file_handler.setFormatter(file_formatter)
     logger.addHandler(file_handler)
-    
+
     # Console handler verbosity is controlled by the 'verbose' parameter
     # CRITICAL: Use sys.__stdout__ to prevent recursion loops
     console_log_level = logging.WARNING
@@ -77,7 +76,7 @@ def setup_logger(
 
     # Only disable redirection when using bayessearch (hyperopt manages its own stdout)
     should_redirect = redirect_stdout and not global_parameters.bayessearch
-    
+
     if should_redirect:
         # Capture the current stdout/stderr (which might be Jupyter's custom streams)
         original_stdout = sys.stdout
@@ -87,15 +86,15 @@ def setup_logger(
 
         class TeeWriter:
             """Writes to both original stream and a file, preserving all stream behaviors."""
-    
+
             def __init__(self, original_stream, log_file_path):
                 self.original_stream = original_stream
-                self.log_file = open(log_file_path, 'a', buffering=1, encoding='utf-8')
+                self.log_file = open(log_file_path, "a", buffering=1, encoding="utf-8")
                 # Preserve attributes from original stream
-                self.encoding = getattr(original_stream, 'encoding', 'utf-8')
-                self.errors = getattr(original_stream, 'errors', 'strict')
-                self.mode = getattr(original_stream, 'mode', 'w')
-    
+                self.encoding = getattr(original_stream, "encoding", "utf-8")
+                self.errors = getattr(original_stream, "errors", "strict")
+                self.mode = getattr(original_stream, "mode", "w")
+
             def write(self, message: str) -> int:
                 """Write to both streams, return bytes written."""
                 written = 0
@@ -106,15 +105,15 @@ def setup_logger(
                         written = result if result is not None else len(message)
                     except Exception:
                         written = len(message)
-                    
+
                     # Then append to log file
                     try:
                         self.log_file.write(message)
                     except Exception:
                         pass
-                
+
                 return written
-    
+
             def flush(self) -> None:
                 """Flush both streams."""
                 try:
@@ -125,28 +124,28 @@ def setup_logger(
                     self.log_file.flush()
                 except Exception:
                     pass
-            
+
             def close(self) -> None:
                 """Close only the log file, not the original stream."""
                 try:
                     self.log_file.close()
                 except Exception:
                     pass
-                    
+
             def isatty(self) -> bool:
                 """Check if original stream is a TTY."""
-                return getattr(self.original_stream, 'isatty', lambda: False)()
-            
+                return getattr(self.original_stream, "isatty", lambda: False)()
+
             def fileno(self):
                 """Return file descriptor of original stream if available."""
-                if hasattr(self.original_stream, 'fileno'):
+                if hasattr(self.original_stream, "fileno"):
                     return self.original_stream.fileno()
                 raise OSError("fileno not available")
-            
+
             def __getattr__(self, name):
                 """Delegate any other attributes to the original stream."""
                 return getattr(self.original_stream, name)
-    
+
         sys.stdout = TeeWriter(original_stdout, stdout_log)
         sys.stderr = TeeWriter(original_stderr, stderr_log)
 

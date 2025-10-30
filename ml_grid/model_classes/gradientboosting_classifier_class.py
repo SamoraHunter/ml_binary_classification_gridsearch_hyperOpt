@@ -14,6 +14,7 @@ from ml_grid.util.global_params import global_parameters
 from sklearn.ensemble import GradientBoostingClassifier
 from skopt.space import Categorical, Real, Integer
 
+
 class GradientBoostingClassifierClass:
     """GradientBoostingClassifier with support for both Bayesian and non-Bayesian parameter spaces."""
 
@@ -79,10 +80,14 @@ class GradientBoostingClassifierClass:
         else:
             # Define the parameter space for traditional grid search
             self.parameter_space = {
-                "ccp_alpha": list(self.parameter_vector_space.param_dict.get("log_small")),
+                "ccp_alpha": list(
+                    self.parameter_vector_space.param_dict.get("log_small")
+                ),
                 "criterion": ["friedman_mse"],
                 "init": [None],
-                "learning_rate": list(self.parameter_vector_space.param_dict.get("log_small")),
+                "learning_rate": list(
+                    self.parameter_vector_space.param_dict.get("log_small")
+                ),
                 "loss": ["log_loss", "exponential"],
                 # "max_depth": list(range(2, 11)),  # Uncomment if needed
                 "max_features": ["sqrt", "log2"],
@@ -91,9 +96,15 @@ class GradientBoostingClassifierClass:
                 # "min_samples_leaf": list(range(1, 11)),  # Uncomment if needed
                 # "min_samples_split": list(range(2, 21)),  # Uncomment if needed
                 # "min_weight_fraction_leaf": np.linspace(0.0, 0.5, 6).tolist(),  # Uncomment if needed
-                "n_estimators": list(self.parameter_vector_space.param_dict.get("log_large_long")),
+                "n_estimators": list(
+                    self.parameter_vector_space.param_dict.get("log_large_long")
+                ),
                 # "n_iter_no_change": list(range(5, 51)),  # Uncomment if needed
-                "subsample": list(np.delete(self.parameter_vector_space.param_dict.get("lin_zero_one"), 0)),
+                "subsample": list(
+                    np.delete(
+                        self.parameter_vector_space.param_dict.get("lin_zero_one"), 0
+                    )
+                ),
                 "tol": list(self.parameter_vector_space.param_dict.get("log_small")),
                 "validation_fraction": [0.1],
                 "verbose": [0],

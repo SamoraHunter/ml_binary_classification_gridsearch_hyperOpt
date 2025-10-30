@@ -23,13 +23,15 @@ from ml_grid.model_classes.h2o_deeplearning_classifier_class import (
 from ml_grid.model_classes.h2o_drf_classifier_class import H2ODRFClass as H2O_DRF_class
 from ml_grid.model_classes.h2o_gam_classifier_class import H2OGAMClass as H2O_GAM_class
 from ml_grid.model_classes.h2o_gbm_classifier_class import (
-    H2O_GBM_class, # No change needed here
+    H2O_GBM_class,  # No change needed here
 )  # Correctly named
 from ml_grid.model_classes.h2o_glm_classifier_class import H2O_GLM_class
 from ml_grid.model_classes.h2o_naive_bayes_classifier_class import (
     H2O_NaiveBayes_class,
 )
-from ml_grid.model_classes.h2o_rulefit_classifier_class import H2ORuleFitClass as H2O_RuleFit_class
+from ml_grid.model_classes.h2o_rulefit_classifier_class import (
+    H2ORuleFitClass as H2O_RuleFit_class,
+)
 from ml_grid.model_classes.h2o_stackedensemble_classifier_class import (
     H2O_StackedEnsemble_class,
 )

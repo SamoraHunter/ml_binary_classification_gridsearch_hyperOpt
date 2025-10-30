@@ -76,5 +76,4 @@ class LightGBMClassifierWrapper:
             ]
 
 
-
-logging.getLogger('ml_grid').debug("Imported LightGBM classifier wrapper class")
+logging.getLogger("ml_grid").debug("Imported LightGBM classifier wrapper class")

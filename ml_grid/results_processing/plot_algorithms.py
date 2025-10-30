@@ -94,7 +94,13 @@ class AlgorithmComparisonPlotter:
             algo_data = plot_data[plot_data["method_name"] == algo][metric]
             mean_val = algo_data.mean()
             plt.scatter(
-                i, mean_val, color="red", s=100, marker="D", zorder=10, label="Mean" if i == 0 else ""
+                i,
+                mean_val,
+                color="red",
+                s=100,
+                marker="D",
+                zorder=10,
+                label="Mean" if i == 0 else "",
             )
 
         plt.xticks(rotation=45, ha="right")
@@ -143,7 +149,7 @@ class AlgorithmComparisonPlotter:
                 f"Found {len(outcomes)} outcomes, which is more than the display limit of {MAX_OUTCOMES_FOR_STRATIFIED_PLOT}. "
                 f"Displaying the first {MAX_OUTCOMES_FOR_STRATIFIED_PLOT}. "
                 "Use the 'outcomes_to_plot' parameter to select specific outcomes.",
-                stacklevel=2
+                stacklevel=2,
             )
             outcomes = outcomes[:MAX_OUTCOMES_FOR_STRATIFIED_PLOT]
 
@@ -262,15 +268,24 @@ class AlgorithmComparisonPlotter:
         # Create pivot table
         if aggregation == "mean":
             heatmap_data = plot_data.pivot_table(
-                values=metric, index="method_name", columns="outcome_variable", aggfunc="mean"
+                values=metric,
+                index="method_name",
+                columns="outcome_variable",
+                aggfunc="mean",
             )
         elif aggregation == "median":
             heatmap_data = plot_data.pivot_table(
-                values=metric, index="method_name", columns="outcome_variable", aggfunc="median"
+                values=metric,
+                index="method_name",
+                columns="outcome_variable",
+                aggfunc="median",
             )
         elif aggregation == "max":
             heatmap_data = plot_data.pivot_table(
-                values=metric, index="method_name", columns="outcome_variable", aggfunc="max"
+                values=metric,
+                index="method_name",
+                columns="outcome_variable",
+                aggfunc="max",
             )
         else:
             raise ValueError("aggregation must be 'mean', 'median', or 'max'")
@@ -471,7 +486,12 @@ class AlgorithmComparisonPlotter:
                     ax.set_title(f"{outcome}", fontsize=11)
             else:
                 ax.text(
-                    0.5, 0.5, "No Data", ha="center", va="center", transform=ax.transAxes
+                    0.5,
+                    0.5,
+                    "No Data",
+                    ha="center",
+                    va="center",
+                    transform=ax.transAxes,
                 )
                 ax.set_title(f"{outcome}", fontsize=11)
 
@@ -605,7 +625,9 @@ class AlgorithmComparisonPlotter:
                 and plot_data[metric_x].max() / plot_data[metric_x].min() > 100
             ):
                 ax.set_xscale("log")
-                plt.xlabel(f'{metric_x.replace("_", " ").title()} (log scale)', fontsize=12)
+                plt.xlabel(
+                    f'{metric_x.replace("_", " ").title()} (log scale)', fontsize=12
+                )
             else:
                 plt.xlabel(metric_x.replace("_", " ").title(), fontsize=12)
 
@@ -759,7 +781,9 @@ class AlgorithmComparisonPlotter:
         title = f"Pairwise T-test P-values for {metric.upper()}"
         if outcome:
             if "outcome_variable" not in plot_data.columns:
-                raise ValueError("outcome_variable column not found for stratified analysis.")
+                raise ValueError(
+                    "outcome_variable column not found for stratified analysis."
+                )
             plot_data = plot_data[plot_data["outcome_variable"] == outcome]
             title += f" (Outcome: {outcome})"
 
@@ -773,7 +797,9 @@ class AlgorithmComparisonPlotter:
                 data1 = plot_data[plot_data["method_name"] == algo1][metric].dropna()
                 data2 = plot_data[plot_data["method_name"] == algo2][metric].dropna()
                 if len(data1) > 1 and len(data2) > 1:
-                    _, p_val = ttest_ind(data1, data2, equal_var=False, nan_policy="omit")
+                    _, p_val = ttest_ind(
+                        data1, data2, equal_var=False, nan_policy="omit"
+                    )
                     p_values.loc[algo1, algo2] = p_val
                     p_values.loc[algo2, algo1] = p_val
 
@@ -786,5 +812,5 @@ class AlgorithmComparisonPlotter:
             center=0.05,
             cbar_kws={"label": "P-value"},
         ).reset_index()
-        plt.title(title, fontsize=14, fontweight='bold')
+        plt.title(title, fontsize=14, fontweight="bold")
         plt.show()

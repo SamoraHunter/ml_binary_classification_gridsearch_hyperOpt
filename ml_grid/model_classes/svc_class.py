@@ -8,7 +8,7 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 import logging
 from skopt.space import Real, Categorical, Integer
 
-logging.getLogger('ml_grid').debug("Imported SVC class")
+logging.getLogger("ml_grid").debug("Imported SVC class")
 
 
 class SVCClass:
@@ -44,57 +44,65 @@ class SVCClass:
             try:
                 # Data validation checks before scaling
                 if self.X is None:
-                    raise ValueError(
-                        "Input data X is None - data not loaded properly"
-                    )
-                    
+                    raise ValueError("Input data X is None - data not loaded properly")
+
                 # If the dataframe is empty, there's nothing to scale.
                 # The pipeline will likely fail later, but we avoid a scaling error here.
                 if isinstance(self.X, pd.DataFrame) and self.X.empty:
-                    raise ValueError("SVC_class received an empty DataFrame. Halting execution.")
+                    raise ValueError(
+                        "SVC_class received an empty DataFrame. Halting execution."
+                    )
 
                 elif not self.X.empty:
-                    if not hasattr(self, 'scaler') or self.scaler is None:
-                        self.scaler = StandardScaler()  # or whichever scaler you're using
-                        
+                    if not hasattr(self, "scaler") or self.scaler is None:
+                        self.scaler = (
+                            StandardScaler()
+                        )  # or whichever scaler you're using
+
                     # Convert sparse matrices if needed
                     if sparse.issparse(self.X):
                         self.X = self.X.toarray()
-                        
+
                     # Ensure numeric data
-                    if isinstance(self.X, pd.DataFrame): # type: ignore
-                        non_numeric = self.X.select_dtypes(exclude=['number']).columns
+                    if isinstance(self.X, pd.DataFrame):  # type: ignore
+                        non_numeric = self.X.select_dtypes(exclude=["number"]).columns
                         if len(non_numeric) > 0:
                             raise ValueError(
                                 f"Non-numeric columns found: {list(non_numeric)}"
                             )
-                            
-                    # Debug logging 
-                    #print(f"Scaling data with shape: {self.X.shape}")
-                    #print(f"Sample values before scaling:\n{self.X.iloc[:3,:3] if isinstance(self.X, pd.DataFrame) else self.X[:3,:3]}")
-                    
+
+                    # Debug logging
+                    # print(f"Scaling data with shape: {self.X.shape}")
+                    # print(f"Sample values before scaling:\n{self.X.iloc[:3,:3] if isinstance(self.X, pd.DataFrame) else self.X[:3,:3]}")
+
                     # Perform scaling
                     self.X = pd.DataFrame(
-                        self.scaler.fit_transform(self.X), 
-                        columns=self.X.columns if hasattr(self.X, 'columns') else None,
-                        index=self.X.index if hasattr(self.X, 'index') else None
+                        self.scaler.fit_transform(self.X),
+                        columns=self.X.columns if hasattr(self.X, "columns") else None,
+                        index=self.X.index if hasattr(self.X, "index") else None,
                     )
-                    
-                    logging.getLogger('ml_grid').info("Data scaling completed successfully for SVC")
-                
+
+                    logging.getLogger("ml_grid").info(
+                        "Data scaling completed successfully for SVC"
+                    )
+
             except Exception as e:
                 error_msg = f"Data scaling failed: {str(e)}"
-                logging.getLogger('ml_grid').error(error_msg)
-                
+                logging.getLogger("ml_grid").error(error_msg)
+
                 # Additional debug info
-                if hasattr(self, 'X'):
-                    logging.getLogger('ml_grid').debug(f"Data type: {type(self.X)}")
-                    if hasattr(self.X, 'shape'):
-                        logging.getLogger('ml_grid').debug(f"Shape: {self.X.shape}")
+                if hasattr(self, "X"):
+                    logging.getLogger("ml_grid").debug(f"Data type: {type(self.X)}")
+                    if hasattr(self.X, "shape"):
+                        logging.getLogger("ml_grid").debug(f"Shape: {self.X.shape}")
                     if isinstance(self.X, pd.DataFrame):
-                        logging.getLogger('ml_grid').debug(f"Columns: {self.X.columns.tolist()}")
-                        logging.getLogger('ml_grid').debug(f"Data types:\n{self.X.dtypes}")
-                        
+                        logging.getLogger("ml_grid").debug(
+                            f"Columns: {self.X.columns.tolist()}"
+                        )
+                        logging.getLogger("ml_grid").debug(
+                            f"Data types:\n{self.X.dtypes}"
+                        )
+
                 raise RuntimeError(error_msg) from e
 
         self.algorithm_implementation: SVC = SVC()
@@ -109,44 +117,43 @@ class SVCClass:
 
         if global_parameters.bayessearch:
             # Bayesian Optimization: Define parameter space using pre-defined schemes
-            self.parameter_space = [{
-                
-                "C": Real(1e-5, 1e-2, prior="log-uniform"),
-                "break_ties": Categorical([False]),
-                # 'cache_size': self.parameter_vector_space.param_dict.get("log_large"),  # Uncomment if needed
-                # 'class_weight': self.parameter_vector_space.param_dict.get("enum_class_weights"),  # Example for enumerating class weights
-                "coef0": Real(1e-5, 1e-2, prior="log-uniform"),
-                "decision_function_shape": Categorical(["ovo"]),
-                "degree": Integer(2, 5),
-                "gamma": Categorical(["scale", "auto"]),
-                "kernel": Categorical(["rbf", "linear", "poly", "sigmoid"]),
-                "max_iter": Integer(100, 1000),
-                # 'probability': Categorical([True, False]),  # Uncomment if needed
-                # 'random_state': Categorical([None]),  # Example for random state
-                "shrinking": Categorical([True, False]),
-                "tol": Real(1e-5, 1e-2, prior="log-uniform"),
-                "verbose": Categorical([False]),
-            },{
-                
-                "C": Real(1e-5, 1e-2, prior="log-uniform"),
-                "break_ties": Categorical([True, False]),
-                # 'cache_size': self.parameter_vector_space.param_dict.get("log_large"),  # Uncomment if needed
-                # 'class_weight': self.parameter_vector_space.param_dict.get("enum_class_weights"),  # Example for enumerating class weights
-                "coef0": Real(1e-5, 1e-2, prior="log-uniform"),
-                "decision_function_shape": Categorical(["ovr"]),
-                "degree": Integer(2, 5),
-                "gamma": Categorical(["scale", "auto"]),
-                "kernel": Categorical(["rbf", "linear", "poly", "sigmoid"]),
-                "max_iter": Integer(100, 1000),
-                # 'probability': Categorical([True, False]),  # Uncomment if needed
-                # 'random_state': Categorical([None]),  # Example for random state
-                "shrinking": Categorical([True, False]),
-                "tol": Real(1e-5, 1e-2, prior="log-uniform"),
-                "verbose": Categorical([False]),
-            }
-                                    
-                                    ]
-            
+            self.parameter_space = [
+                {
+                    "C": Real(1e-5, 1e-2, prior="log-uniform"),
+                    "break_ties": Categorical([False]),
+                    # 'cache_size': self.parameter_vector_space.param_dict.get("log_large"),  # Uncomment if needed
+                    # 'class_weight': self.parameter_vector_space.param_dict.get("enum_class_weights"),  # Example for enumerating class weights
+                    "coef0": Real(1e-5, 1e-2, prior="log-uniform"),
+                    "decision_function_shape": Categorical(["ovo"]),
+                    "degree": Integer(2, 5),
+                    "gamma": Categorical(["scale", "auto"]),
+                    "kernel": Categorical(["rbf", "linear", "poly", "sigmoid"]),
+                    "max_iter": Integer(100, 1000),
+                    # 'probability': Categorical([True, False]),  # Uncomment if needed
+                    # 'random_state': Categorical([None]),  # Example for random state
+                    "shrinking": Categorical([True, False]),
+                    "tol": Real(1e-5, 1e-2, prior="log-uniform"),
+                    "verbose": Categorical([False]),
+                },
+                {
+                    "C": Real(1e-5, 1e-2, prior="log-uniform"),
+                    "break_ties": Categorical([True, False]),
+                    # 'cache_size': self.parameter_vector_space.param_dict.get("log_large"),  # Uncomment if needed
+                    # 'class_weight': self.parameter_vector_space.param_dict.get("enum_class_weights"),  # Example for enumerating class weights
+                    "coef0": Real(1e-5, 1e-2, prior="log-uniform"),
+                    "decision_function_shape": Categorical(["ovr"]),
+                    "degree": Integer(2, 5),
+                    "gamma": Categorical(["scale", "auto"]),
+                    "kernel": Categorical(["rbf", "linear", "poly", "sigmoid"]),
+                    "max_iter": Integer(100, 1000),
+                    # 'probability': Categorical([True, False]),  # Uncomment if needed
+                    # 'random_state': Categorical([None]),  # Example for random state
+                    "shrinking": Categorical([True, False]),
+                    "tol": Real(1e-5, 1e-2, prior="log-uniform"),
+                    "verbose": Categorical([False]),
+                },
+            ]
+
         else:
             # Traditional Grid Search: Define parameter space using lists
             # Split into two dictionaries to handle the 'ovo' and 'break_ties' constraint.
@@ -156,7 +163,9 @@ class SVCClass:
                 "degree": self.parameter_vector_space.param_dict.get("log_med"),
                 "gamma": ["scale", "auto"],
                 "kernel": ["rbf", "linear", "poly", "sigmoid"],
-                "max_iter": self.parameter_vector_space.param_dict.get("log_large_long"),
+                "max_iter": self.parameter_vector_space.param_dict.get(
+                    "log_large_long"
+                ),
                 "shrinking": self.parameter_vector_space.param_dict.get("bool_param"),
                 "tol": self.parameter_vector_space.param_dict.get("log_small"),
                 "verbose": [False],
@@ -164,17 +173,23 @@ class SVCClass:
 
             # Dictionary 1: For 'ovr', break_ties can be True or False
             params_ovr = base_params.copy()
-            params_ovr.update({
-                "decision_function_shape": ["ovr"],
-                "break_ties": self.parameter_vector_space.param_dict.get("bool_param"),
-            })
+            params_ovr.update(
+                {
+                    "decision_function_shape": ["ovr"],
+                    "break_ties": self.parameter_vector_space.param_dict.get(
+                        "bool_param"
+                    ),
+                }
+            )
 
             # Dictionary 2: For 'ovo', break_ties MUST be False
             params_ovo = base_params.copy()
-            params_ovo.update({
-                "decision_function_shape": ["ovo"],
-                "break_ties": [False],
-            })
+            params_ovo.update(
+                {
+                    "decision_function_shape": ["ovo"],
+                    "break_ties": [False],
+                }
+            )
 
             # Convert all skopt spaces to lists for GridSearchCV
             for p in [params_ovr, params_ovo]:
@@ -212,8 +227,7 @@ class SVCClass:
         return False
 
     def scale_data(self) -> None:
-        """Scales the feature matrix `X` using MinMaxScaler.
-        """
+        """Scales the feature matrix `X` using MinMaxScaler."""
         # Initialize MinMaxScaler
         self.scaler = MinMaxScaler(feature_range=(0, 1))
 

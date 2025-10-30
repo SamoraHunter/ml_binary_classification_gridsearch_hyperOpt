@@ -29,7 +29,7 @@ class TestConvertXyToTimeSeries(unittest.TestCase):
         self.max_seq_length = 10
 
         # Get the actual number of unique clients in the training set
-        self.num_unique_clients_train = self.X_train['client_idcode'].nunique()
+        self.num_unique_clients_train = self.X_train["client_idcode"].nunique()
 
         # Converting train data into time series format
         self.X_train_ts, self.y_train_ts = convert_Xy_to_time_series(

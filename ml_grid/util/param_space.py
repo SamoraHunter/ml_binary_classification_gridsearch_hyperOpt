@@ -92,8 +92,12 @@ class ParamSpace:
                         np.floor(np.logspace(0, 1.5, 3)).min(),
                         np.floor(np.logspace(0, 1.5, 3)).max(),
                     ),
-                    "log_small": Real(1e-5, 0.1, prior="log-uniform"),  # Correct usage of Real
-                    "bool_param": Categorical([True, False]),  # Categorical for discrete values
+                    "log_small": Real(
+                        1e-5, 0.1, prior="log-uniform"
+                    ),  # Correct usage of Real
+                    "bool_param": Categorical(
+                        [True, False]
+                    ),  # Categorical for discrete values
                     "log_large": Integer(
                         np.logspace(0, 2, 3).astype(int).min(),
                         np.logspace(0, 2, 3).astype(int).max(),
@@ -110,8 +114,12 @@ class ParamSpace:
                         np.floor(np.logspace(0, 1.5, 3)).min(),
                         np.floor(np.logspace(0, 1.5, 3)).max(),
                     ),
-                    "log_zero_one": Real(0.1, 1.0, prior="log-uniform"),  # Correct usage of Real
-                    "lin_zero_one": Real(0.0, 0.1, prior="uniform"),  # Correct usage of Real
+                    "log_zero_one": Real(
+                        0.1, 1.0, prior="log-uniform"
+                    ),  # Correct usage of Real
+                    "lin_zero_one": Real(
+                        0.0, 0.1, prior="uniform"
+                    ),  # Correct usage of Real
                 }
             elif size == "xsmall" or size == "small":
                 nstep = 2
@@ -120,8 +128,12 @@ class ParamSpace:
                         np.floor(np.logspace(-1, 1, 3)).min(),
                         np.floor(np.logspace(-1, 1, 3)).max(),
                     ),
-                    "log_small": Real(1e-5, 0.1, prior="log-uniform"),  # Correct usage of Real
-                    "bool_param": Categorical([True, False]),  # Categorical for discrete values
+                    "log_small": Real(
+                        1e-5, 0.1, prior="log-uniform"
+                    ),  # Correct usage of Real
+                    "bool_param": Categorical(
+                        [True, False]
+                    ),  # Categorical for discrete values
                     "log_large": Integer(
                         np.logspace(0, 2, 2).astype(int).min(),
                         np.logspace(0, 2, 2).astype(int).max(),
@@ -138,8 +150,12 @@ class ParamSpace:
                         np.floor(np.logspace(0, 1.5, 2)).min(),
                         np.floor(np.logspace(0, 1.5, 2)).max(),
                     ),
-                    "log_zero_one": Real(0.1, 1.0, prior="log-uniform"),  # Correct usage of Real
-                    "lin_zero_one": Real(0.0, 0.1, prior="uniform"),  # Correct usage of Real
+                    "log_zero_one": Real(
+                        0.1, 1.0, prior="log-uniform"
+                    ),  # Correct usage of Real
+                    "lin_zero_one": Real(
+                        0.0, 0.1, prior="uniform"
+                    ),  # Correct usage of Real
                 }
             elif size == "xwide":
                 nstep = 2
@@ -148,8 +164,12 @@ class ParamSpace:
                         np.floor(np.logspace(-2, 2, 3)).min(),
                         np.floor(np.logspace(-2, 2, 3)).max(),
                     ),
-                    "log_small": Real(1e-5, 0.1, prior="log-uniform"),  # Correct usage of Real
-                    "bool_param": Categorical([True, False]),  # Categorical for discrete values
+                    "log_small": Real(
+                        1e-5, 0.1, prior="log-uniform"
+                    ),  # Correct usage of Real
+                    "bool_param": Categorical(
+                        [True, False]
+                    ),  # Categorical for discrete values
                     "log_large": Integer(
                         np.logspace(0, 2, 2).astype(int).min(),
                         np.logspace(0, 2, 2).astype(int).max(),
@@ -166,6 +186,10 @@ class ParamSpace:
                         np.floor(np.logspace(0, 1.5, 2)).min(),
                         np.floor(np.logspace(0, 1.5, 2)).max(),
                     ),
-                    "log_zero_one": Real(0.01, 1.0, prior="log-uniform"),  # Correct usage of Real
-                    "lin_zero_one": Real(0.0, 0.1, prior="uniform"),  # Correct usage of Real
+                    "log_zero_one": Real(
+                        0.01, 1.0, prior="log-uniform"
+                    ),  # Correct usage of Real
+                    "lin_zero_one": Real(
+                        0.0, 0.1, prior="uniform"
+                    ),  # Correct usage of Real
                 }

@@ -15,7 +15,7 @@ class TestSyntheticDataGenerator(unittest.TestCase):
             n_rows=self.n_rows,
             n_features=self.n_features,
             n_outcome_vars=self.n_outcome_vars,
-            verbose=False
+            verbose=False,
         )
         self.df, self.feature_map = self.generator.generate()
 
@@ -32,14 +32,16 @@ class TestSyntheticDataGenerator(unittest.TestCase):
 
     def test_number_of_outcome_vars(self):
         """Test that the correct number of outcome variables are generated."""
-        outcome_cols = [col for col in self.df.columns if col.startswith('outcome_var_')]
+        outcome_cols = [
+            col for col in self.df.columns if col.startswith("outcome_var_")
+        ]
         self.assertEqual(len(outcome_cols), self.n_outcome_vars)
         self.assertEqual(len(self.feature_map), self.n_outcome_vars)
 
     def test_outcome_variables_are_binary(self):
         """Test that the outcome variables are binary (0 or 1)."""
         for i in range(1, self.n_outcome_vars + 1):
-            outcome_col = f'outcome_var_{i}'
+            outcome_col = f"outcome_var_{i}"
             self.assertIn(outcome_col, self.df.columns)
             unique_outcomes = self.df[outcome_col].unique()
             # Using a set for comparison is robust to the order and presence of NaNs
@@ -48,10 +50,11 @@ class TestSyntheticDataGenerator(unittest.TestCase):
     def test_feature_map_correctness(self):
         """Test that the feature map contains correct keys and non-empty lists of features."""
         for i in range(1, self.n_outcome_vars + 1):
-            outcome_col = f'outcome_var_{i}'
+            outcome_col = f"outcome_var_{i}"
             self.assertIn(outcome_col, self.feature_map)
             self.assertIsInstance(self.feature_map[outcome_col], list)
             self.assertGreater(len(self.feature_map[outcome_col]), 0)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
