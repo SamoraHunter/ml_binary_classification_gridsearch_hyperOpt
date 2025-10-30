@@ -6,21 +6,22 @@ import numpy as np
 from sklearn.model_selection import cross_val_score, KFold
 from sklearn.utils.estimator_checks import check_estimator
 import logging
+from typing import List
 
 from ml_grid.pipeline.grid_search_cross_validate import grid_search_crossvalidate
 from ml_grid.util.global_params import global_parameters
 
 # Import a selection of non-H2O model definition classes
-from ml_grid.model_classes.adaboost_classifier_class import adaboost_class
+from ml_grid.model_classes.adaboost_classifier_class import AdaBoostClassifierClass
 from ml_grid.model_classes.gradientboosting_classifier_class import (
-    GradientBoostingClassifier_class,
+    GradientBoostingClassifierClass,
 )
-from ml_grid.model_classes.logistic_regression_class import LogisticRegression_class
+from ml_grid.model_classes.logistic_regression_class import LogisticRegressionClass
 from ml_grid.model_classes.randomforest_classifier_class import (
-    RandomForestClassifier_class,
+    RandomForestClassifierClass,
 )
 from ml_grid.model_classes.light_gbm_class import LightGBMClassifierWrapper
-from ml_grid.model_classes.xgb_classifier_class import XGB_class_class
+from ml_grid.model_classes.xgb_classifier_class import XGBClassifierClass
 
 
 @pytest.fixture
@@ -38,12 +39,12 @@ def tiny_problematic_data():
 
 # A list of all non-H2O model definition classes to be tested
 NON_H2O_MODEL_CLASSES = [
-    adaboost_class,
-    GradientBoostingClassifier_class,
-    LogisticRegression_class,
-    RandomForestClassifier_class,
+    AdaBoostClassifierClass,
+    GradientBoostingClassifierClass,
+    LogisticRegressionClass,
+    RandomForestClassifierClass,
     LightGBMClassifierWrapper,
-    XGB_class_class,
+    XGBClassifierClass,
 ]
 
 # This fixture will be parameterized to create an instance of each model class

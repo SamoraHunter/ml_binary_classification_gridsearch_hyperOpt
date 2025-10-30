@@ -63,7 +63,7 @@ class TestDataIntegrity(unittest.TestCase):
                 'also_highly_correlated': True
             }
         }
-        self.model_class_dict = {'LogisticRegression_class': True}
+        self.model_class_dict = {'LogisticRegressionClass': True}
 
     def tearDown(self):
         """Clean up the temporary directory after each test."""

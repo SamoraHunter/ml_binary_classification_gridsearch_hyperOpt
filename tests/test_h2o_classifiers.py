@@ -4,6 +4,7 @@ import numpy as np
 from sklearn.model_selection import cross_val_score, KFold
 from sklearn.utils.estimator_checks import check_estimator
 import h2o
+from typing import List
 import logging
 
 from ml_grid.pipeline.grid_search_cross_validate import grid_search_crossvalidate
@@ -19,7 +20,7 @@ from ml_grid.model_classes.h2o_naive_bayes_classifier_class import H2O_NaiveBaye
 from ml_grid.model_classes.h2o_rulefit_classifier_class import H2ORuleFitClass as H2O_RuleFit_class
 from ml_grid.model_classes.h2o_xgboost_classifier_class import H2O_XGBoost_class
 from ml_grid.model_classes.h2o_stackedensemble_classifier_class import H2O_StackedEnsemble_class
-from ml_grid.model_classes.h2o_classifier_class import H2OAutoMLConfig as H2O_class # This is the AutoML class
+from ml_grid.model_classes.h2o_classifier_class import H2OAutoMLClass as H2O_class # This is the AutoML class
 
 
 @pytest.fixture

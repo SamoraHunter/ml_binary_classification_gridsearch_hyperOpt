@@ -16,7 +16,7 @@ import logging
 
 logging.getLogger('ml_grid').debug("Imported KNeighborsClassifier class")
 
-class knn_classifiers_class:
+class KNeighborsClassifierClass:
     """KNeighborsClassifier with support for both Bayesian and non-Bayesian parameter spaces."""
 
     def __init__(
@@ -25,7 +25,7 @@ class knn_classifiers_class:
         y: Optional[pd.Series] = None,
         parameter_space_size: Optional[str] = None,
     ):
-        """Initializes the knn_classifiers_class.
+        """Initializes the KNeighborsClassifierClass.
 
         Args:
             X (Optional[pd.DataFrame]): Feature matrix for training.

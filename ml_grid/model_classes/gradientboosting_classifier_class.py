@@ -14,7 +14,7 @@ from ml_grid.util.global_params import global_parameters
 from sklearn.ensemble import GradientBoostingClassifier
 from skopt.space import Categorical, Real, Integer
 
-class GradientBoostingClassifier_class:
+class GradientBoostingClassifierClass:
     """GradientBoostingClassifier with support for both Bayesian and non-Bayesian parameter spaces."""
 
     def __init__(
@@ -23,7 +23,7 @@ class GradientBoostingClassifier_class:
         y: Optional[pd.Series] = None,
         parameter_space_size: Optional[str] = None,
     ):
-        """Initializes the GradientBoostingClassifier_class.
+        """Initializes the GradientBoostingClassifierClass.
 
         Args:
             X (Optional[pd.DataFrame]): Feature matrix for training.
@@ -99,5 +99,3 @@ class GradientBoostingClassifier_class:
                 "verbose": [0],
                 "warm_start": [False],
             }
-
-        return None

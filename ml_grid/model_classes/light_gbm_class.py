@@ -39,10 +39,12 @@ class LightGBMClassifierWrapper:
 
         self.algorithm_implementation = (
             LightGBMClassifier()
-        )  # lgb.LGBMClassifier() #custom skelarn wrapper
+        )  # Custom scikit-learn wrapper
         self.method_name = "LightGBMClassifier"
 
         self.parameter_vector_space = param_space.ParamSpace(parameter_space_size)
+
+        self.parameter_space: Union[Dict[str, Any], List[Dict[str, Any]]]
 
         if global_params.bayessearch:
             self.parameter_space = {
@@ -51,31 +53,28 @@ class LightGBMClassifierWrapper:
                 "learning_rate": Real(1e-5, 1e-1, prior="log-uniform"),
                 "n_estimators": Integer(50, 500),
                 "objective": Categorical(("binary",)),
-                "num_class": Categorical((1,)),
                 "metric": Categorical(("logloss",)),
-                "feature_fraction": Categorical((0.8, 0.9, 1.0)),
-                "early_stopping_rounds": Categorical((None, 10, 20)),
+                "feature_fraction": Real(0.8, 1.0),
             }
         else:
-            self.parameter_space = {
-                "boosting_type": ("gbdt", "dart", "goss"),
-                "num_leaves": list(
-                    self.parameter_vector_space.param_dict.get("log_large_long", [])
-                ),
-                "learning_rate": list(
-                    self.parameter_vector_space.param_dict.get("log_small", [])
-                ),
-                "n_estimators": list(
-                    self.parameter_vector_space.param_dict.get("log_large_long", [])
-                ),
-                "objective": ("binary",),
-                "num_class": (1,),
-                "metric": ("logloss",),
-                "feature_fraction": (0.8, 0.9, 1.0),
-                "early_stopping_rounds": (None, 10, 20),
-            }
+            self.parameter_space = [
+                {
+                    "boosting_type": ["gbdt", "dart", "goss"],
+                    "num_leaves": list(
+                        self.parameter_vector_space.param_dict.get("log_large_long", [])
+                    ),
+                    "learning_rate": list(
+                        self.parameter_vector_space.param_dict.get("log_small", [])
+                    ),
+                    "n_estimators": list(
+                        self.parameter_vector_space.param_dict.get("log_large_long", [])
+                    ),
+                    "objective": ["binary"],
+                    "metric": ["logloss"],
+                    "feature_fraction": [0.8, 0.9, 1.0],
+                }
+            ]
 
 
 
 logging.getLogger('ml_grid').debug("Imported LightGBM classifier wrapper class")
-# light_gbm_class LightGBMClassifierWrapper

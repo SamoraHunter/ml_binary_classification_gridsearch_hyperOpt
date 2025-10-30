@@ -6,7 +6,7 @@ import logging
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
-from ml_grid.model_classes.knn_gpu_classifier_class import knn__gpu_wrapper_class
+from ml_grid.model_classes.knn_gpu_classifier_class import KNNGpuWrapperClass
 from ml_grid.model_classes.knn_wrapper_class import KNNWrapper
 
 
@@ -112,13 +112,13 @@ def validate_parameters_helper(
 
         return parameters
     
-    elif type(algorithm_implementation) == knn__gpu_wrapper_class:
+    elif isinstance(algorithm_implementation, KNNGpuWrapperClass):
 
         parameters = validate_knn_parameters(parameters, ml_grid_object)
 
         return parameters
 
-    elif type(algorithm_implementation) == XGBClassifier:
+    elif isinstance(algorithm_implementation, XGBClassifier):
         parameters = validate_XGB_parameters(parameters, ml_grid_object)
 
         return parameters

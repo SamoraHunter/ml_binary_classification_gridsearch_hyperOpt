@@ -7,14 +7,27 @@ from ml_grid.util.param_space import ParamSpace
 
 
 class ResNetClassifier_class:
-    """A wrapper for the aeon ResNetClassifier time-series classifier."""
+    """A wrapper for the aeon ResNetClassifier time-series classifier.
+
+    This class provides a consistent interface for the ResNetClassifier,
+    including defining a hyperparameter search space.
+
+    Attributes:
+        algorithm_implementation: An instance of the aeon ResNetClassifier.
+        method_name (str): The name of the classifier method.
+        parameter_space (Dict[str, List[Any]]): The hyperparameter search space
+            for the classifier.
+    """
+
+    algorithm_implementation: ResNetClassifier
+    method_name: str
+    parameter_space: Dict[str, List[Any]]
 
     def __init__(self, ml_grid_object: pipe):
         """Initializes the ResNetClassifier_class.
 
         Args:
-            ml_grid_object (pipe): The main data pipeline object, which contains
-                data and global parameters.
+            ml_grid_object (pipe): An instance of the main data pipeline object.
         """
 
         random_state_val = ml_grid_object.global_params.random_state_val
@@ -29,11 +42,10 @@ class ResNetClassifier_class:
 
         log_epoch = param_space.param_dict.get("log_epoch")
 
-        self.algorithm_implementation: ResNetClassifier = ResNetClassifier()
+        self.algorithm_implementation = ResNetClassifier()
+        self.method_name = "ResNetClassifier"
 
-        self.method_name: str = "ResNetClassifier"
-
-        self.parameter_space: Dict[str, List[Any]] = {
+        self.parameter_space = {
             "n_residual_blocks": [
                 2,
                 3,

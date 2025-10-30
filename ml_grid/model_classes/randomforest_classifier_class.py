@@ -15,7 +15,7 @@ from skopt.space import Real, Categorical, Integer
 
 from ml_grid.util.global_params import global_parameters
 
-class RandomForestClassifier_class:
+class RandomForestClassifierClass:
     """RandomForestClassifier with support for both Bayesian and non-Bayesian parameter spaces."""
 
     def __init__(
@@ -24,7 +24,7 @@ class RandomForestClassifier_class:
         y: Optional[pd.Series] = None,
         parameter_space_size: Optional[str] = None,
     ):
-        """Initializes the RandomForestClassifier_class.
+        """Initializes the RandomForestClassifierClass.
 
         Args:
             X (Optional[pd.DataFrame]): Feature matrix for training.

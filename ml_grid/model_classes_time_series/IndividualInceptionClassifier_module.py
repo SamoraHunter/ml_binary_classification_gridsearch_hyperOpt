@@ -9,14 +9,28 @@ from ml_grid.util.param_space import ParamSpace
 
 
 class IndividualInceptionClassifier_class:
-    """A wrapper for the aeon IndividualInceptionClassifier time-series classifier."""
+    """A wrapper for the aeon IndividualInceptionClassifier.
+
+    This class provides a consistent interface for the IndividualInceptionClassifier,
+    including defining a hyperparameter search space.
+
+    Attributes:
+        algorithm_implementation: An instance of the aeon
+            IndividualInceptionClassifier.
+        method_name (str): The name of the classifier method.
+        parameter_space (Dict[str, List[Any]]): The hyperparameter search space
+            for the classifier.
+    """
+
+    algorithm_implementation: IndividualInceptionClassifier
+    method_name: str
+    parameter_space: Dict[str, List[Any]]
 
     def __init__(self, ml_grid_object: pipe):
         """Initializes the IndividualInceptionClassifier_class.
 
         Args:
-            ml_grid_object (pipe): The main data pipeline object, which contains
-                data and global parameters.
+            ml_grid_object (pipe): An instance of the main data pipeline object.
         """
 
         random_state_val = ml_grid_object.global_params.random_state_val
@@ -29,13 +43,10 @@ class IndividualInceptionClassifier_class:
 
         log_epoch = param_space.param_dict.get("log_epoch")
 
-        self.algorithm_implementation: IndividualInceptionClassifier = (
-            IndividualInceptionClassifier()
-        )
+        self.algorithm_implementation = IndividualInceptionClassifier()
+        self.method_name = "IndividualInceptionClassifier"
 
-        self.method_name: str = "IndividualInceptionClassifier"
-
-        self.parameter_space: Dict[str, List[Any]] = {
+        self.parameter_space = {
             "depth": [6, 8, 10],
             "nb_filters": [32, 64, 128],
             "nb_conv_per_layer": [3, 4, 5],

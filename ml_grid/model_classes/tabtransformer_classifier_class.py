@@ -65,7 +65,7 @@ class TabTransformerWrapper(TabTransformerClassifier):
         return super().set_params(**params)
 
 
-class TabTransformer_class:
+class TabTransformerClass:
     """TabTransformerClassifier with support for Bayesian and Grid Search parameter spaces."""
 
     def __init__(
@@ -74,7 +74,7 @@ class TabTransformer_class:
         y: Optional[pd.Series] = None,
         parameter_space_size: Optional[str] = None,
     ):
-        """Initializes the TabTransformer_class.
+        """Initializes the TabTransformerClass.
 
         This class wraps the TabTransformerClassifier for use in hyperparameter
         search frameworks. It automatically determines the number of categories
@@ -162,5 +162,3 @@ class TabTransformer_class:
                 "mlp_act": [nn.ReLU()],  # Activation function for the MLP
                 "continuous_mean_std": [torch.randn(10, 2)],  # Mean and std of continuous features
             }
-
-        return None

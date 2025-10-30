@@ -1,5 +1,4 @@
 import logging
-import inspect
 import pandas as pd
 from typing import List
 
@@ -22,28 +21,28 @@ logger = logging.getLogger(__name__)
 
 class H2OStackedEnsembleClassifier(H2OBaseClassifier):
     """A scikit-learn compatible wrapper for the H2O Stacked Ensemble classifier.
-    
+
     This class adheres to the scikit-learn API (fit, predict, predict_proba)
     by inheriting from H2OBaseClassifier and uses H2OStackedEnsembleEstimator
     as its underlying model.
-    
+
     This wrapper is designed to be used within the ml_grid pipeline, but has
     known limitations with scikit-learn's cross-validation (like GridSearchCV)
     due to H2O's management of base model CV predictions.
-    
+
     The `fit` method is overridden to handle the specific requirements of
     a stacked ensemble, namely the `base_models` parameter.
-    
+
     The `predict` and `predict_proba` methods are inherited from H2OBaseClassifier.
     """
 
     def __init__(self, base_models: List[H2OBaseClassifier] = None, **kwargs):
         """Initializes the H2OStackedEnsembleClassifier.
-        
+
         Args:
-            base_models (List[H2OBaseClassifier]): A list of *fitted*
-                H2OBaseClassifier (or compatible) instances. These models
-                *must* have been trained with `nfolds > 1` and 
+            base_models (List[H2OBaseClassifier], optional): A list of *unfitted*
+                H2O classifier wrapper instances that will be trained as base
+                learners. These models *must* be trained with `nfolds > 1` and
                 `keep_cross_validation_predictions=True`.
             **kwargs: Keyword arguments passed to the H2OStackedEnsembleEstimator.
                 Common arguments include `metalearner_algorithm`, `seed`, etc.
@@ -56,20 +55,26 @@ class H2OStackedEnsembleClassifier(H2OBaseClassifier):
 
 
     def set_params(self, **kwargs):
-        """
-        Overrides set_params to correctly handle the `base_models` list,
-        which is critical for scikit-learn's `clone` function.
+        """Overrides set_params to correctly handle the `base_models` list.
+
+        This is critical for scikit-learn's `clone` function to work correctly
+        during cross-validation.
+
+        Returns:
+            H2OStackedEnsembleClassifier: The instance with updated parameters.
         """
         super().set_params(**kwargs)
         return self
 
     def get_params(self, deep: bool = True) -> dict:
+        """Overrides get_params to ensure `base_models` is included.
+
+        This allows scikit-learn's `clone` to work correctly.
+
+        Returns:
+            dict: A dictionary of the estimator's parameters.
+        which is critical for scikit-learn's `clone` function.
         """
-        Overrides get_params to ensure `base_models` is included,
-        allowing scikit-learn's `clone` to work correctly.
-        """
-        # Rely on the parent's get_params, which will correctly handle all attributes
-        # set in __init__, including `base_models`.
         return super().get_params(deep=deep)
 
     def score(self, X: pd.DataFrame, y: pd.Series, sample_weight=None) -> float:
@@ -80,12 +85,12 @@ class H2OStackedEnsembleClassifier(H2OBaseClassifier):
         for use with tools like GridSearchCV when no `scoring` is specified.
 
         Args:
-            X: Test samples.
-            y: True labels for X.
-            sample_weight: Sample weights (not used by H2O models).
+            X (pd.DataFrame): Test samples.
+            y (pd.Series): True labels for X.
+            sample_weight: Sample weights (ignored, for API compatibility).
 
         Returns:
-            The mean accuracy.
+            float: The mean accuracy of the model.
         """
         from sklearn.metrics import accuracy_score
         return accuracy_score(y, self.predict(X))
@@ -101,15 +106,15 @@ class H2OStackedEnsembleClassifier(H2OBaseClassifier):
            base models.
 
         Args:
-            X: Feature matrix
-            y: Target vector
+            X (pd.DataFrame): The feature matrix.
+            y (pd.Series): The target vector.
+            **kwargs: Additional keyword arguments (not used).
 
         Returns:
-            self
+            H2OStackedEnsembleClassifier: The fitted classifier instance.
 
         Raises:
             ValueError: If `base_models` is empty or not provided.
-            Exception: Re-raises any exception from H2O's `train` method.
         """
         try:
             # 1. Initial validation

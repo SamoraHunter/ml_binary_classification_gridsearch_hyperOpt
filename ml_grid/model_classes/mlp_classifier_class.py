@@ -17,7 +17,7 @@ import logging
 logging.getLogger('ml_grid').debug("Imported MLPClassifier class")
 
 
-class mlp_classifier_class:
+class MLPClassifierClass:
     """MLPClassifier with support for both Bayesian and non-Bayesian parameter spaces."""
 
     def __init__(
@@ -26,7 +26,7 @@ class mlp_classifier_class:
         y: Optional[pd.Series] = None,
         parameter_space_size: Optional[str] = None,
     ):
-        """Initializes the mlp_classifier_class.
+        """Initializes the MLPClassifierClass.
 
         Args:
             X (Optional[pd.DataFrame]): Feature matrix for training.
@@ -95,5 +95,3 @@ class mlp_classifier_class:
                 "verbose": [False],
                 "warm_start": [False],
             }
-
-        return None

@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 logger.debug("Imported h2o_classifier_class")
 
 
-class H2OAutoMLConfig:
+class H2OAutoMLClass:
     """Configuration class for H2OAutoMLClassifier.
 
     This class holds an instance of the H2OAutoMLClassifier and defines its
@@ -36,7 +36,7 @@ class H2OAutoMLConfig:
         self,
         parameter_space_size: Optional[str] = None,
     ) -> None:
-        """Initializes the H2OAutoMLConfig.
+        """Initializes the H2OAutoMLClass.
 
         Args:
             parameter_space_size (Optional[str]): A string indicating the size of
@@ -48,7 +48,7 @@ class H2OAutoMLConfig:
                 implementation does not explicitly raise this).
         """
         global_params = global_parameters
-        logger.debug("Initializing H2OAutoMLConfig")
+        logger.debug("Initializing H2OAutoMLClass")
 
         self.algorithm_implementation = H2OAutoMLClassifier()
         self.method_name: str = "H2OAutoMLClassifier"

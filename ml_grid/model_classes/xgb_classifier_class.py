@@ -17,7 +17,7 @@ import logging
 
 logging.getLogger('ml_grid').debug("Imported XGB class")
 
-class XGB_class_class:
+class XGBClassifierClass:
     """XGBoost classifier with support for Bayesian and Grid Search parameter spaces."""
 
     def __init__(
@@ -26,7 +26,7 @@ class XGB_class_class:
         y: Optional[pd.Series] = None,
         parameter_space_size: Optional[str] = None,
     ):
-        """Initializes the XGB_class_class.
+        """Initializes the XGBClassifierClass.
 
         The XGB_class_class wraps the XGBoost classifier algorithm, allowing for
         easy configuration and use within a grid search or Bayesian optimization
@@ -168,5 +168,3 @@ class XGB_class_class:
                 # "tree_method": ["auto", "gpu_hist", "hist"],  # Tree method for GPU (optional)
                 # "validate_parameters": [None],  # Validate parameters during training
             }
-
-        return None

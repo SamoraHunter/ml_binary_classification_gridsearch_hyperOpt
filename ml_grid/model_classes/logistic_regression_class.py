@@ -16,7 +16,7 @@ import logging
 
 logging.getLogger('ml_grid').debug("Imported logistic regression class")
 
-class LogisticRegression_class:
+class LogisticRegressionClass:
     """LogisticRegression with support for both Bayesian and non-Bayesian parameter spaces."""
 
     def __init__(
@@ -25,7 +25,7 @@ class LogisticRegression_class:
         y: Optional[pd.Series] = None,
         parameter_space_size: Optional[str] = None,
     ):
-        """Initializes the LogisticRegression_class.
+        """Initializes the LogisticRegressionClass.
 
         Args:
             X (Optional[pd.DataFrame]): Feature matrix for training.
@@ -161,13 +161,3 @@ class LogisticRegression_class:
                     "warm_start": [False],
                 },
             ]
-
-        return None
-
-    def __repr__(self) -> str:
-        """Returns the representation of the LogisticRegression class."""
-        return "LogisticRegression_class"
-
-    def __str__(self) -> str:
-        """Returns the string representation of the LogisticRegression class."""
-        return "LogisticRegression_class"

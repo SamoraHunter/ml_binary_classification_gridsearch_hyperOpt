@@ -6,24 +6,24 @@ import os
 from typing import Any, Dict, List, Optional
 
 import torch
-from ml_grid.model_classes.adaboost_classifier_class import adaboost_class
+from ml_grid.model_classes.adaboost_classifier_class import AdaBoostClassifierClass
 from ml_grid.model_classes.catboost_classifier_class import (
-    CatBoostClassifierClass as CatBoost_class,
+    CatBoostClassifierClass,
 )
 from ml_grid.model_classes.gaussiannb_class import (
-    GaussianNBClassifierClass as GaussianNB_class,
+    GaussianNBClassifierClass,
 )
 from ml_grid.model_classes.gradientboosting_classifier_class import (
-    GradientBoostingClassifier_class,
+    GradientBoostingClassifierClass,
 )
-from ml_grid.model_classes.h2o_classifier_class import H2OAutoMLConfig as H2O_class
+from ml_grid.model_classes.h2o_classifier_class import H2OAutoMLClass
 from ml_grid.model_classes.h2o_deeplearning_classifier_class import (
     H2O_DeepLearning_class,
 )
 from ml_grid.model_classes.h2o_drf_classifier_class import H2ODRFClass as H2O_DRF_class
 from ml_grid.model_classes.h2o_gam_classifier_class import H2OGAMClass as H2O_GAM_class
 from ml_grid.model_classes.h2o_gbm_classifier_class import (
-    H2O_GBM_class,
+    H2O_GBM_class, # No change needed here
 )  # Correctly named
 from ml_grid.model_classes.h2o_glm_classifier_class import H2O_GLM_class
 from ml_grid.model_classes.h2o_naive_bayes_classifier_class import (
@@ -34,24 +34,24 @@ from ml_grid.model_classes.h2o_stackedensemble_classifier_class import (
     H2O_StackedEnsemble_class,
 )
 from ml_grid.model_classes.h2o_xgboost_classifier_class import H2O_XGBoost_class
-from ml_grid.model_classes.keras_classifier_class import kerasClassifier_class
-from ml_grid.model_classes.knn_classifier_class import knn_classifiers_class
-from ml_grid.model_classes.knn_gpu_classifier_class import knn__gpu_wrapper_class
+from ml_grid.model_classes.keras_classifier_class import KerasClassifierClass
+from ml_grid.model_classes.knn_classifier_class import KNeighborsClassifierClass
+from ml_grid.model_classes.knn_gpu_classifier_class import KNNGpuWrapperClass
 from ml_grid.model_classes.light_gbm_class import LightGBMClassifierWrapper
-from ml_grid.model_classes.logistic_regression_class import LogisticRegression_class
-from ml_grid.model_classes.mlp_classifier_class import mlp_classifier_class
+from ml_grid.model_classes.logistic_regression_class import LogisticRegressionClass
+from ml_grid.model_classes.mlp_classifier_class import MLPClassifierClass
 from ml_grid.model_classes.NeuralNetworkClassifier_class import (
     NeuralNetworkClassifier_class,
 )
 from ml_grid.model_classes.quadratic_discriminant_class import (
-    quadratic_discriminant_analysis_class,
+    QuadraticDiscriminantAnalysisClass,
 )
 from ml_grid.model_classes.randomforest_classifier_class import (
-    RandomForestClassifier_class,
+    RandomForestClassifierClass,
 )
-from ml_grid.model_classes.svc_class import SVC_class
-from ml_grid.model_classes.tabtransformer_classifier_class import TabTransformer_class
-from ml_grid.model_classes.xgb_classifier_class import XGB_class_class
+from ml_grid.model_classes.svc_class import SVCClass
+from ml_grid.model_classes.tabtransformer_classifier_class import TabTransformerClass
+from ml_grid.model_classes.xgb_classifier_class import XGBClassifierClass
 from ml_grid.pipeline.data import pipe
 
 
@@ -95,23 +95,23 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
             logger.info("model_class_dict is None, using default model_class_dict")
 
         model_class_dict = {
-            "LogisticRegression_class": True,
-            "knn_classifiers_class": True,
-            "quadratic_discriminant_analysis_class": True,
-            "SVC_class": True,
-            "XGB_class_class": True,
-            "mlp_classifier_class": True,
-            "RandomForestClassifier_class": True,
-            "GradientBoostingClassifier_class": True,
-            "CatBoost_class": True,
-            "GaussianNB_class": True,
+            "LogisticRegressionClass": True,
+            "KNeighborsClassifierClass": True,
+            "QuadraticDiscriminantAnalysisClass": True,
+            "SVCClass": True,
+            "XGBClassifierClass": True,
+            "MLPClassifierClass": True,
+            "RandomForestClassifierClass": True,
+            "GradientBoostingClassifierClass": True,
+            "CatBoostClassifierClass": True,
+            "GaussianNBClassifierClass": True,
             "LightGBMClassifierWrapper": True,
-            "adaboost_class": True,
-            "kerasClassifier_class": gpu_available,
-            "knn__gpu_wrapper_class": gpu_available,
+            "AdaBoostClassifierClass": True,
+            "KerasClassifierClass": gpu_available,
+            "KNNGpuWrapperClass": gpu_available,
             "NeuralNetworkClassifier_class": False,  # NNI based,
-            "TabTransformer_class": False,  # PyTorch based
-            "H2O_class": False,  # H2O AutoML
+            "TabTransformerClass": False,  # PyTorch based
+            "H2OAutoMLClass": False,  # H2O AutoML
             "H2O_GBM_class": True,  # H2O Gradient Boosting Machine
             "H2O_DRF_class": True,  # H2O Distributed Random Forest
             "H2O_DeepLearning_class": True,  # H2O Deep Learning
@@ -129,9 +129,9 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
             "CI environment detected. Disabling GPU-heavy and resource-intensive models."
         )
         models_to_disable = [
-            "kerasClassifier_class",
-            "knn__gpu_wrapper_class",
-            "H2O_class",
+            "KerasClassifierClass",
+            "KNNGpuWrapperClass",
+            "H2OAutoMLClass",
             "H2O_GBM_class",
             "H2O_DRF_class",
             "H2O_DeepLearning_class",
@@ -141,7 +141,7 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
             "H2O_XGBoost_class",
             "H2O_StackedEnsemble_class",
             "H2O_GAM_class",
-            "TabTransformer_class",
+            "TabTransformerClass",
         ]
         for model_name in models_to_disable:
             if model_name in model_class_dict:

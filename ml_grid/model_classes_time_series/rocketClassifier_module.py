@@ -5,25 +5,36 @@ from ml_grid.pipeline.data import pipe
 
 
 class RocketClassifier_class:
-    """A wrapper for the aeon RocketClassifier time-series classifier."""
+    """A wrapper for the aeon RocketClassifier time-series classifier.
+
+    This class provides a consistent interface for the RocketClassifier,
+    including defining a hyperparameter search space.
+
+    Attributes:
+        algorithm_implementation: An instance of the aeon RocketClassifier.
+        method_name (str): The name of the classifier method.
+        parameter_space (Dict[str, List[Any]]): The hyperparameter search space
+            for the classifier.
+    """
+
+    algorithm_implementation: RocketClassifier
+    method_name: str
+    parameter_space: Dict[str, List[Any]]
 
     def __init__(self, ml_grid_object: pipe):
         """Initializes the RocketClassifier_class.
 
         Args:
-            ml_grid_object (pipe): The main data pipeline object, which contains
-                data and global parameters.
+            ml_grid_object (pipe): An instance of the main data pipeline object.
         """
 
         random_state_val = ml_grid_object.global_params.random_state_val
 
         n_jobs_model_val = ml_grid_object.global_params.n_jobs_model_val
 
-        self.algorithm_implementation: RocketClassifier = RocketClassifier()
-
-        self.method_name: str = "RocketClassifier"
-
-        self.parameter_space: Dict[str, List[Any]] = {
+        self.algorithm_implementation = RocketClassifier()
+        self.method_name = "RocketClassifier"
+        self.parameter_space = {
             "num_kernels": [
                 5000,
                 10000,

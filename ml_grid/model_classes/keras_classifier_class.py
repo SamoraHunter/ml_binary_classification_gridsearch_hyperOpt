@@ -69,7 +69,7 @@ def create_model(
 
     return model
 
-class kerasClassifier_class:
+class KerasClassifierClass:
     """Keras Sequential model classifier wrapped for use with scikit-learn."""
 
     def __init__(
@@ -78,7 +78,7 @@ class kerasClassifier_class:
         y: pd.Series,
         parameter_space_size: Optional[str] = None,
     ):
-        """Initializes the kerasClassifier_class.
+        """Initializes the KerasClassifierClass.
 
         This configures a Keras Sequential model for binary classification,
         wrapped in a KerasClassifier to be compatible with scikit-learn's
@@ -103,7 +103,7 @@ class kerasClassifier_class:
 
         self.x_train_col_val: int = len(X.columns)
 
-        self.method_name: str = "kerasClassifier_class"
+        self.method_name: str = "KerasClassifier"
         self.parameter_space: Dict[str, Any]
 
 

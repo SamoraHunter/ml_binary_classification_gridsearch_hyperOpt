@@ -6,27 +6,36 @@ from ml_grid.pipeline.data import pipe
 
 # unknown ts
 class OrdinalTDE_class:
-    """A wrapper for the aeon OrdinalTDE time-series classifier."""
+    """A wrapper for the aeon OrdinalTDE time-series classifier.
+
+    This class provides a consistent interface for the OrdinalTDE classifier,
+    including defining a hyperparameter search space.
+
+    Attributes:
+        algorithm_implementation: An instance of the aeon OrdinalTDE classifier.
+        method_name (str): The name of the classifier method.
+        parameter_space (Dict[str, List[Any]]): The hyperparameter search space
+            for the classifier.
+    """
+
+    algorithm_implementation: OrdinalTDE
+    method_name: str
+    parameter_space: Dict[str, List[Any]]
 
     def __init__(self, ml_grid_object: pipe):
         """Initializes the OrdinalTDE_class.
 
         Args:
-            ml_grid_object (pipe): The main data pipeline object, which contains
-                data and global parameters.
+            ml_grid_object (pipe): An instance of the main data pipeline object.
         """
 
         random_state_val = ml_grid_object.global_params.random_state_val
-
         n_jobs_model_val = ml_grid_object.global_params.n_jobs_model_val
-
         time_limit_param = ml_grid_object.global_params.time_limit_param
 
-        self.algorithm_implementation: OrdinalTDE = OrdinalTDE()
-
-        self.method_name: str = "OrdinalTDE"
-
-        self.parameter_space: Dict[str, List[Any]] = {
+        self.algorithm_implementation = OrdinalTDE()
+        self.method_name = "OrdinalTDE"
+        self.parameter_space = {
             "n_parameter_samples": [
                 100,
                 250,

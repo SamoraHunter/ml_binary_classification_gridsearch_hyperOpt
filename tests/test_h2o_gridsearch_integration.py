@@ -2,6 +2,7 @@ import pandas as pd
 import pandas as pd
 import pytest
 import numpy as np
+from typing import List
 import h2o
 import logging
 
@@ -19,7 +20,7 @@ from ml_grid.model_classes.h2o_naive_bayes_classifier_class import H2O_NaiveBaye
 from ml_grid.model_classes.h2o_rulefit_classifier_class import H2ORuleFitClass as H2O_RuleFit_class
 from ml_grid.model_classes.h2o_xgboost_classifier_class import H2O_XGBoost_class
 from ml_grid.model_classes.h2o_stackedensemble_classifier_class import H2O_StackedEnsemble_class
-from ml_grid.model_classes.h2o_classifier_class import H2OAutoMLConfig as H2O_class # AutoML
+from ml_grid.model_classes.h2o_classifier_class import H2OAutoMLClass as H2O_class # AutoML
 
 # A mock class to simulate the main 'pipe' object for integration testing
 class MockMlGridObject:

@@ -15,7 +15,7 @@ from sklearn.base import is_classifier, BaseEstimator
 from ml_grid.util.validate_parameters import validate_parameters_helper
 from ml_grid.util.global_params import global_parameters
 from ml_grid.model_classes.knn_wrapper_class import KNNWrapper
-from ml_grid.model_classes.keras_classifier_class import kerasClassifier_class
+from ml_grid.model_classes.keras_classifier_class import KerasClassifierClass
 from ml_grid.model_classes.H2OAutoMLClassifier import H2OAutoMLClassifier
 from ml_grid.model_classes.H2OGBMClassifier import H2OGBMClassifier
 from ml_grid.model_classes.H2ODRFClassifier import H2ODRFClassifier
@@ -111,8 +111,8 @@ class HyperparameterSearch:
             H2ORuleFitClassifier,
             H2OXGBoostClassifier,
             H2OStackedEnsembleClassifier,
-            NeuralNetworkClassifier,
-            kerasClassifier_class,
+            NeuralNetworkClassifier, # type: ignore
+            KerasClassifierClass,
         )
 
         # Check if it's a valid classifier
@@ -183,7 +183,7 @@ class HyperparameterSearch:
         is_h2o_model = isinstance(self.algorithm, h2o_models)
 
         # Also limit n_jobs for Bayesian search and other specific wrappers to avoid issues.
-        is_single_threaded_search = isinstance(self.algorithm, (KNNWrapper, kerasClassifier_class, NeuralNetworkClassifier))
+        is_single_threaded_search = isinstance(self.algorithm, (KNNWrapper, KerasClassifierClass, NeuralNetworkClassifier))
 
         if is_h2o_model or is_single_threaded_search or bayessearch:
             if verbose > 0:

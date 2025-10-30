@@ -48,7 +48,7 @@ from sklearn.model_selection import (
     cross_validate,
 )
 
-from ml_grid.model_classes.keras_classifier_class import kerasClassifier_class
+from ml_grid.model_classes.keras_classifier_class import KerasClassifierClass
 from ml_grid.pipeline.hyperparameter_search import HyperparameterSearch
 from ml_grid.util.debug_print_statements import debug_print_statements_class
 from ml_grid.util.global_params import global_parameters
@@ -417,7 +417,7 @@ class grid_search_crossvalidate:
         )
         
         # Keras/TensorFlow models also require single-threaded execution.
-        keras_model_types = (NeuralNetworkClassifier, kerasClassifier_class)
+        keras_model_types = (NeuralNetworkClassifier, KerasClassifierClass)
 
         is_h2o_model = isinstance(current_algorithm, h2o_model_types)
         is_keras_model = isinstance(current_algorithm, keras_model_types)
@@ -438,7 +438,7 @@ class grid_search_crossvalidate:
 
             # --- FIX for UnboundLocalError ---
             # Consolidate Keras and non-Keras logic to ensure 'scores' is always assigned.
-            if isinstance(current_algorithm, (KerasClassifier, kerasClassifier_class)):
+            if isinstance(current_algorithm, (KerasClassifier, KerasClassifierClass)):
                 self.logger.debug("Fitting Keras model with internal CV handling.")
                 y_train_values = self.y_train.values
                 current_algorithm.fit(self.X_train, y_train_values, cv=self.cv)
@@ -470,7 +470,7 @@ class grid_search_crossvalidate:
                 # --- TENSORFLOW PERFORMANCE FIX (Corrected Position) ---
                 # Pre-compile the predict function for Keras/TF models to avoid retracing warnings.
                 # This is done AFTER fitting and before cross-validation.
-                if isinstance(current_algorithm, (KerasClassifier, kerasClassifier_class, NeuralNetworkClassifier)):
+                if isinstance(current_algorithm, (KerasClassifier, KerasClassifierClass, NeuralNetworkClassifier)):
                     try:
                         self.logger.debug("Pre-compiling TensorFlow predict function to avoid retracing.")
                         n_features = self.X_train.shape[1]

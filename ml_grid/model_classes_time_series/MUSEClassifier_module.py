@@ -5,25 +5,36 @@ from ml_grid.pipeline.data import pipe
 
 
 class MUSE_class:
-    """A wrapper for the aeon MUSE (MUltivariate Symbolic Extension) time-series classifier."""
+    """A wrapper for the aeon MUSE time-series classifier.
+
+    MUSE stands for MUltivariate Symbolic Extension. This class provides a
+    consistent interface for the classifier, including defining a
+    hyperparameter search space.
+
+    Attributes:
+        algorithm_implementation: An instance of the aeon MUSE classifier.
+        method_name (str): The name of the classifier method.
+        parameter_space (Dict[str, List[Any]]): The hyperparameter search space
+            for the classifier.
+    """
+
+    algorithm_implementation: MUSE
+    method_name: str
+    parameter_space: Dict[str, List[Any]]
 
     def __init__(self, ml_grid_object: pipe):
         """Initializes the MUSE_class.
 
         Args:
-            ml_grid_object (pipe): The main data pipeline object, which contains
-                data and global parameters.
+            ml_grid_object (pipe): An instance of the main data pipeline object.
         """
 
         random_state_val = ml_grid_object.global_params.random_state_val
-
         n_jobs_model_val = ml_grid_object.global_params.n_jobs_model_val
 
-        self.algorithm_implementation: MUSE = MUSE()
-
-        self.method_name: str = "MUSE"
-
-        self.parameter_space: Dict[str, List[Any]] = {
+        self.algorithm_implementation = MUSE()
+        self.method_name = "MUSE"
+        self.parameter_space = {
             "anova": [
                 True,
                 False,

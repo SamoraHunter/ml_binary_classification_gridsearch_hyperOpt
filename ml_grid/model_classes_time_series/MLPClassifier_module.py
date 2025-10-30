@@ -6,14 +6,27 @@ from ml_grid.pipeline.data import pipe
 
 
 class MLPClassifier_class:
-    """A wrapper for the aeon MLPClassifier time-series classifier."""
+    """A wrapper for the aeon MLPClassifier time-series classifier.
+
+    This class provides a consistent interface for the MLPClassifier,
+    including defining a hyperparameter search space.
+
+    Attributes:
+        algorithm_implementation: An instance of the aeon MLPClassifier.
+        method_name (str): The name of the classifier method.
+        parameter_space (Dict[str, List[Any]]): The hyperparameter search space
+            for the classifier.
+    """
+
+    algorithm_implementation: MLPClassifier
+    method_name: str
+    parameter_space: Dict[str, List[Any]]
 
     def __init__(self, ml_grid_object: pipe):
         """Initializes the MLPClassifier_class.
 
         Args:
-            ml_grid_object (pipe): The main data pipeline object, which contains
-                data and global parameters.
+            ml_grid_object (pipe): An instance of the main data pipeline object.
         """
 
         random_state_val = ml_grid_object.global_params.random_state_val
@@ -25,11 +38,10 @@ class MLPClassifier_class:
         # For now, we'll default to a reasonable value if it's not found.
         log_epoch = ml_grid_object.local_param_dict.get("log_epoch", [100])
 
-        self.algorithm_implementation: MLPClassifier = MLPClassifier()
+        self.algorithm_implementation = MLPClassifier()
+        self.method_name = "MLPClassifier"
 
-        self.method_name: str = "MLPClassifier"
-
-        self.parameter_space: Dict[str, List[Any]] = {
+        self.parameter_space = {
             "n_epochs": [log_epoch],  # Number of epochs to train the model
             "batch_size": [8, 16, 32],  # Number of samples per gradient update
             "random_state": [random_state_val],  # Seed for random number generation

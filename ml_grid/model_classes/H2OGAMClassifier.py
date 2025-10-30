@@ -1,6 +1,6 @@
 import logging
-import inspect # Make sure inspect is imported
 from h2o.estimators import H2OGeneralizedAdditiveEstimator, H2OGeneralizedLinearEstimator
+from typing import Any, Dict, List, Tuple
 from .H2OBaseClassifier import H2OBaseClassifier
 import pandas as pd
 import numpy as np
@@ -11,15 +11,17 @@ logger = logging.getLogger(__name__) # Use module-level logger for consistency
 
 class H2OGAMClassifier(H2OBaseClassifier):
     """A scikit-learn compatible wrapper for H2O's Generalized Additive Models."""
+
     def __init__(self, _suppress_low_cardinality_error=True, **kwargs):
         """Initializes the H2OGAMClassifier.
 
-        All keyword arguments are passed directly to the H2OGeneralizedAdditiveEstimator.
-        Example args: family='binomial', gam_columns=['feature1']
-        
         Args:
-            _suppress_low_cardinality_error (bool): If True, safely removes GAM columns with
-                insufficient unique values. If False, raises a ValueError.
+            _suppress_low_cardinality_error (bool, optional): If True, safely
+                removes GAM columns with insufficient unique values to define
+                knots. If False, raises a `ValueError`. Defaults to True.
+            **kwargs: Additional keyword arguments passed directly to the
+                `H2OGeneralizedAdditiveEstimator`. Common arguments include
+                `family='binomial'`, `gam_columns=['feature1']`, etc.
         """
         kwargs.pop('estimator_class', None)
         super().__init__(estimator_class=H2OGeneralizedAdditiveEstimator, **kwargs)
@@ -27,8 +29,18 @@ class H2OGAMClassifier(H2OBaseClassifier):
         self._fallback_to_glm = False
 
     def _prepare_fit(self, X: pd.DataFrame, y: pd.Series):
-        """
-        Overrides the base _prepare_fit to handle GAM-specific logic and fallback.
+        """Overrides the base _prepare_fit to handle GAM-specific logic.
+
+        This method validates `gam_columns`, checks for sufficient cardinality
+        to create knots, and determines if a fallback to a standard GLM is
+        necessary.
+
+        Returns:
+            A tuple containing:
+                - train_h2o (h2o.H2OFrame): The training data as an H2OFrame.
+                - x_vars (List[str]): The list of feature column names.
+                - outcome_var (str): The name of the outcome variable.
+                - model_params (Dict[str, Any]): The processed parameters for the estimator.
         """
         # Call the base class's _prepare_fit to get the initial setup
         train_h2o, x_vars, outcome_var, initial_model_params = super()._prepare_fit(X, y)
@@ -156,6 +168,7 @@ class H2OGAMClassifier(H2OBaseClassifier):
              needs_fallback = True
 
         # --- 3. Apply Fallback if Needed ---
+        import inspect
         if needs_fallback:
             self.logger.warning("Setting up fallback to H2OGeneralizedLinearEstimator.")
             self._fallback_to_glm = True
@@ -163,6 +176,12 @@ class H2OGAMClassifier(H2OBaseClassifier):
             model_params = {k: v for k, v in initial_model_params.items() if k in glm_param_keys}
 
         return train_h2o, x_vars, outcome_var, model_params
+
+    def get_params(self, deep: bool = True) -> Dict[str, Any]:
+        """Gets parameters for this estimator, including the custom suppression flag."""
+        params = super().get_params(deep=deep)
+        params['_suppress_low_cardinality_error'] = self._suppress_low_cardinality_error
+        return params
 
     def fit(self, X: pd.DataFrame, y: pd.Series, **kwargs) -> "H2OGAMClassifier":
         """Fits the H2O GAM model, falling back to GLM if necessary."""

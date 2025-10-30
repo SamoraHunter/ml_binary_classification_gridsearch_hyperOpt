@@ -1,5 +1,5 @@
-from typing import Any, Dict, Optional
 import inspect
+from typing import Any, Dict, List, Optional, Tuple
 import logging
 import h2o
 import numpy as np
@@ -21,12 +21,21 @@ _SHARED_CHECKPOINT_DIR = tempfile.mkdtemp(prefix="h2o_checkpoints_")
 
 class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
     """A base class for scikit-learn compatible H2O classifier wrappers.
-
+    
     This class provides common functionality for H2O model wrappers, including:
     - H2O cluster management (initialization and shutdown).
     - scikit-learn API compatibility (`get_params`, `set_params`).
     - Common `predict` and `predict_proba` implementations.
     - Robust handling of small datasets in the `fit` method.
+    
+    Attributes:
+        estimator_class: The H2O estimator class to be wrapped.
+        logger: A logger instance for logging messages.
+        model_ (Optional[Any]): The fitted H2O model object.
+        classes_ (Optional[np.ndarray]): The class labels seen during fit.
+        feature_names_ (Optional[list]): The names of the features seen during fit.
+        feature_types_ (Optional[Dict[str, str]]): The H2O types of features.
+        model_id (Optional[str]): The ID of the fitted H2O model.
     """
 
     MIN_SAMPLES_FOR_STABLE_FIT = 10
@@ -35,9 +44,10 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         """Initializes the H2OBaseClassifier.
 
         Args:
-            estimator_class: The H2O estimator class (e.g., H2OGradientBoostingEstimator).
-                Can be passed as positional or keyword argument.
-            **kwargs: Keyword arguments passed to the H2O estimator.
+            estimator_class (Optional[type]): The H2O estimator class to be
+                wrapped (e.g., `H2OGradientBoostingEstimator`).
+            **kwargs: Additional keyword arguments to be passed to the H2O
+                estimator during initialization.
         """
         # Handle estimator_class - it might come in kwargs during cloning
         self.estimator_class = kwargs.pop('estimator_class', estimator_class)
@@ -119,15 +129,15 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         # Set progress bar visibility based on the global parameter
         h2o.no_progress() if not show_progress else h2o.show_progress()
 
-    def _validate_input_data(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> tuple[pd.DataFrame, Optional[pd.Series]]:
+    def _validate_input_data(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> Tuple[pd.DataFrame, Optional[pd.Series]]:
         """Validates and converts input data to proper format.
         
         Args:
-            X: Feature matrix
-            y: Target vector (optional, for fit-time validation)
+            X (pd.DataFrame): The feature matrix.
+            y (Optional[pd.Series]): The target vector (optional, for fit-time validation).
             
         Returns:
-            Tuple of (Validated DataFrame, Validated Series)
+            A tuple containing the validated DataFrame and Series.
             
         Raises:
             ValueError: If data is invalid
@@ -214,11 +224,15 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         
         return X, y
 
-    def _prepare_fit(self, X: pd.DataFrame, y: pd.Series):
+    def _prepare_fit(self, X: pd.DataFrame, y: pd.Series) -> Tuple[h2o.H2OFrame, List[str], str, Dict[str, Any]]:
         """Prepares data and parameters for fitting.
         
         Returns:
-            Tuple of (train_h2o, x_vars, outcome_var, model_params)
+            A tuple containing:
+                - train_h2o (h2o.H2OFrame): The training data as an H2OFrame.
+                - x_vars (List[str]): The list of feature column names.
+                - outcome_var (str): The name of the outcome variable.
+                - model_params (Dict[str, Any]): The dictionary of parameters for the H2O estimator.
         """
         if X.empty:
             raise ValueError("Input data (X) is empty. This can happen during cross-validation with very small datasets. "
@@ -288,7 +302,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         """Extracts model parameters from instance attributes.
         
         Returns:
-            Dictionary of parameters to pass to H2O estimator
+            A dictionary of parameters to pass to the H2O estimator.
         """
         all_params = {k: v for k, v in self.get_params(deep=False).items() 
                       if k != 'estimator_class'}
@@ -316,11 +330,11 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         """Handles datasets smaller than MIN_SAMPLES_FOR_STABLE_FIT by fitting a dummy model.
 
         Args:
-            X: Feature matrix
-            y: Target vector
+            X (pd.DataFrame): The feature matrix.
+            y (pd.Series): The target vector.
 
         Returns:
-            True if a dummy model was fit, False otherwise.
+            bool: True if a dummy model was fit, False otherwise.
         """
         if len(X) < self.MIN_SAMPLES_FOR_STABLE_FIT:
             self._using_dummy_model = True
@@ -334,14 +348,12 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         """Fits the H2O model.
         
         Args:
-            X: Feature matrix
-            y: Target vector
+            X (pd.DataFrame): The feature matrix.
+            y (pd.Series): The target vector.
+            **kwargs: Additional keyword arguments (not used).
             
         Returns:
-            self
-            
-        Raises:
-            ValueError: If input data is invalid
+            H2OBaseClassifier: The fitted classifier instance.
         """
         try:
             self.logger.debug(f"=== fit() ENTRY on instance {id(self)} ===")
@@ -388,14 +400,13 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         """Predicts class labels for samples in X.
         
         Args:
-            X: Feature matrix
+            X (pd.DataFrame): The feature matrix for prediction.
             
         Returns:
-            Array of predicted class labels
+            np.ndarray: An array of predicted class labels.
             
         Raises:
-            ValueError: If input data is invalid
-            RuntimeError: If prediction fails
+            RuntimeError: If the model is not fitted or if prediction fails.
         """
         # CRITICAL: Check that model was fitted
         # sklearn's check_is_fitted will check for these attributes
@@ -468,14 +479,13 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         """Predicts class probabilities for samples in X.
         
         Args:
-            X: Feature matrix
+            X (pd.DataFrame): The feature matrix for prediction.
             
         Returns:
-            Array of shape (n_samples, n_classes) with class probabilities
+            np.ndarray: An array of shape (n_samples, n_classes) with class probabilities.
             
         Raises:
-            ValueError: If input data is invalid
-            RuntimeError: If prediction fails
+            RuntimeError: If the model is not fitted or if prediction fails.
         """
         # CRITICAL: Check that model was fitted
         try:
@@ -629,12 +639,12 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         return sorted(init_params + extra_params)
 
     def set_params(self: "H2OBaseClassifier", **kwargs: Any) -> "H2OBaseClassifier":
-        """Sets the parameters of this estimator.
-
-        This is a scikit-learn compatible set_params method.
+        """Sets the parameters of this estimator, compatible with scikit-learn.
         
-        CRITICAL: This method is called by sklearn during cloning and parameter updates.
-        We must NEVER overwrite fitted attributes (those ending in _) when set_params is called.
+        Args:
+            **kwargs: Keyword arguments representing the parameters to set.
+        Returns:
+            H2OBaseClassifier: The classifier instance with updated parameters.
         """
         self.logger.debug(f">>> set_params() called on instance {id(self)} with keys: {list(kwargs.keys())}")
         

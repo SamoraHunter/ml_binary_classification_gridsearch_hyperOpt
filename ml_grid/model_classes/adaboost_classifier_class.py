@@ -15,7 +15,7 @@ from skopt.space import Categorical, Real, Integer
 
 import logging
 
-class adaboost_class:
+class AdaBoostClassifierClass:
     """A class for AdaBoostClassifier that handles both Bayesian and grid search.
 
     This class encapsulates the AdaBoostClassifier, providing a flexible way to

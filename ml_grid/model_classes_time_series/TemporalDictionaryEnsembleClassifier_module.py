@@ -7,14 +7,29 @@ from ml_grid.util.global_params import global_parameters
 
 
 class TemporalDictionaryEnsemble_class:
-    """A wrapper for the aeon TemporalDictionaryEnsemble time-series classifier."""
+    """A wrapper for the aeon TemporalDictionaryEnsemble classifier.
+
+    This class provides a consistent interface for the
+    TemporalDictionaryEnsemble classifier, including defining a hyperparameter
+    search space.
+
+    Attributes:
+        algorithm_implementation: An instance of the aeon
+            TemporalDictionaryEnsemble classifier.
+        method_name (str): The name of the classifier method.
+        parameter_space (Dict[str, List[Any]]): The hyperparameter search space
+            for the classifier.
+    """
+
+    algorithm_implementation: TemporalDictionaryEnsemble
+    method_name: str
+    parameter_space: Dict[str, List[Any]]
 
     def __init__(self, ml_grid_object: pipe):
         """Initializes the TemporalDictionaryEnsemble_class.
 
         Args:
-            ml_grid_object (pipe): The main data pipeline object, which contains
-                data and global parameters.
+            ml_grid_object (pipe): An instance of the main data pipeline object.
         """
 
         verbose_param = ml_grid_object.verbose
@@ -25,13 +40,10 @@ class TemporalDictionaryEnsemble_class:
 
         n_jobs_model_val = ml_grid_object.global_params.n_jobs_model_val
 
-        self.algorithm_implementation: TemporalDictionaryEnsemble = (
-            TemporalDictionaryEnsemble()
-        )
+        self.algorithm_implementation = TemporalDictionaryEnsemble()
+        self.method_name = "TemporalDictionaryEnsemble"
 
-        self.method_name: str = "TemporalDictionaryEnsemble"
-
-        self.parameter_space: Dict[str, List[Any]] = {
+        self.parameter_space = {
             "n_parameter_samples": [100, 250, 500],
             "max_ensemble_size": [25, 50, 100],
             "max_win_len_prop": [0.5, 1.0],

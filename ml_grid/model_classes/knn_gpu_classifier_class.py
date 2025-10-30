@@ -16,7 +16,7 @@ import logging
 
 logging.getLogger('ml_grid').debug("Imported knn__gpu class")
 
-class knn__gpu_wrapper_class:
+class KNNGpuWrapperClass:
     """KNN with GPU support, including Bayesian and non-Bayesian parameter space."""
 
     def __init__(
@@ -25,7 +25,7 @@ class knn__gpu_wrapper_class:
         y: Optional[pd.Series] = None,
         parameter_space_size: Optional[str] = None,
     ):
-        """Initializes the knn__gpu_wrapper_class.
+        """Initializes the KNNGpuWrapperClass.
 
         Args:
             X (Optional[pd.DataFrame]): Feature matrix for training.

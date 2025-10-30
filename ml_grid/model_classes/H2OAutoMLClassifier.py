@@ -24,9 +24,17 @@ class H2OAutoMLClassifier(H2OBaseClassifier):
 
     def fit(self, X: pd.DataFrame, y: pd.Series, **kwargs) -> "H2OAutoMLClassifier":
         """Fits the H2O AutoML process.
-
+    
         If the dataset is too small or AutoML fails to find a leader model,
         it gracefully falls back to a simple GLM model.
+    
+        Args:
+            X (pd.DataFrame): The feature matrix.
+            y (pd.Series): The target vector.
+            **kwargs: Additional keyword arguments (not used by this implementation).
+    
+        Returns:
+            H2OAutoMLClassifier: The fitted classifier instance.
         """
         # --- 1. Standard Validation and Preparation ---
         # Use base class methods for validation. This also handles small data errors.

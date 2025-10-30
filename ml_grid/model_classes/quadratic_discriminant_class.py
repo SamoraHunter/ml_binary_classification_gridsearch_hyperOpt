@@ -12,7 +12,7 @@ import logging
 logging.getLogger('ml_grid').debug("Imported QuadraticDiscriminantAnalysis class")
 
 
-class quadratic_discriminant_analysis_class:
+class QuadraticDiscriminantAnalysisClass:
     """QuadraticDiscriminantAnalysis with support for hyperparameter tuning."""
 
     def __init__(
@@ -21,7 +21,7 @@ class quadratic_discriminant_analysis_class:
         y: Optional[pd.Series] = None,
         parameter_space_size: Optional[str] = None,
     ):
-        """Initializes the quadratic_discriminant_analysis_class.
+        """Initializes the QuadraticDiscriminantAnalysisClass.
 
         Args:
             X (Optional[pd.DataFrame]): Feature matrix for training.
@@ -64,5 +64,3 @@ class quadratic_discriminant_analysis_class:
                 "store_covariance": [False],
                 "tol": self.parameter_vector_space.param_dict.get("log_small"),
             }
-
-        return None

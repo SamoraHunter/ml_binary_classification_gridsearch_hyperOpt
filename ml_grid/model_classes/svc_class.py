@@ -11,7 +11,7 @@ from skopt.space import Real, Categorical, Integer
 logging.getLogger('ml_grid').debug("Imported SVC class")
 
 
-class SVC_class:
+class SVCClass:
     """SVC with support for Bayesian and traditional grid search parameter spaces."""
 
     def __init__(
@@ -20,7 +20,7 @@ class SVC_class:
         y: Optional[pd.Series] = None,
         parameter_space_size: Optional[str] = None,
     ):
-        """Initializes the SVC_class.
+        """Initializes the SVCClass.
 
         This class requires scaled data. If the input data `X` is not detected
         as scaled, it will be automatically scaled using `StandardScaler`.
@@ -183,8 +183,6 @@ class SVC_class:
                         p[k] = list(v)
 
             self.parameter_space = [params_ovr, params_ovo]
-
-        return None
 
     def is_data_scaled(self) -> bool:
         """Checks if the feature matrix `X` is scaled.
