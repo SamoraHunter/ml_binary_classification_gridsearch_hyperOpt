@@ -103,11 +103,16 @@ class TestRemoveConstantColumnsWithDebug(unittest.TestCase):
         )
         X_test_orig = X_test.copy()
 
-        train_out, test_out, orig_out = remove_constant_columns_with_debug(
+        (
+            train_out,
+            test_out,
+            orig_out,
+        ) = remove_constant_columns_with_debug(
             X_train, X_test, X_test_orig, verbosity=0
         )
 
-        # Expecting feature 1 (index 0) and 2 (index 2) to be kept, feature 2 (index 1) to be dropped
+        # Expecting feature 1 (index 0) and 2 (index 2) to be kept,
+        # feature 2 (index 1) to be dropped
         self.assertEqual(train_out.shape[1], 2)
         self.assertEqual(test_out.shape[1], 2)
         self.assertEqual(orig_out.shape[1], 2)

@@ -1,21 +1,20 @@
-import logging
-import pickle
-import time
-import warnings
 from pathlib import Path
-from typing import Any, Dict, List
-
-import h2o
+import time
+import traceback
 import numpy as np
 import pandas as pd
+from ml_grid.util.global_params import global_parameters
 from sklearn import metrics
+from sklearn.metrics import *
+import pickle
+import os
+import logging
+import warnings
+from typing import Any, Dict, List, Optional
+import h2o
 
 # from sklearn.utils.testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.metrics import *
-
-from ml_grid.util.global_params import global_parameters
-
 
 def _get_score_log_columns(metric_list: List[str]) -> List[str]:
     """Generates the list of column names for the score log file.
@@ -27,57 +26,17 @@ def _get_score_log_columns(metric_list: List[str]) -> List[str]:
         List[str]: A comprehensive list of column names for the log.
     """
     column_list: List[str] = [
-        "algorithm_implementation",
-        "parameter_sample",
-        "method_name",
-        "nb_size",
-        "f_list",
-        "auc",
-        "mcc",
-        "f1",
-        "precision",
-        "recall",
-        "accuracy",
-        "resample",
-        "scale",
-        "n_features",
-        "param_space_size",
-        "n_unique_out",
-        "outcome_var_n",
-        "percent_missing",
-        "corr",
-        "age",
-        "sex",
-        "bmi",
-        "ethnicity",
-        "bloods",
-        "diagnostic_order",
-        "drug_order",
-        "annotation_n",
-        "meta_sp_annotation_n",
-        "meta_sp_annotation_mrc_n",
-        "annotation_mrc_n",
-        "use_embedding",
-        "embedding_method",
-        "embedding_dim",
-        "scale_features_before_embedding",
-        "cache_embeddings",
-        "core_02",
-        "bed",
-        "vte_status",
-        "hosp_site",
-        "core_resus",
-        "news",
-        "date_time_stamp",
-        "X_train_size",
-        "X_test_orig_size",
-        "X_test_size",
-        "run_time",
-        "n_fits",
-        "t_fits",
-        "i",
-        "outcome_variable",
-        "failed",
+        "algorithm_implementation", "parameter_sample", "method_name", "nb_size",
+        "f_list", "auc", "mcc", "f1", "precision", "recall", "accuracy",
+        "resample", "scale", "n_features", "param_space_size", "n_unique_out",
+        "outcome_var_n", "percent_missing", "corr", "age", "sex", "bmi",
+        "ethnicity", "bloods", "diagnostic_order", "drug_order", "annotation_n",
+        "meta_sp_annotation_n", "meta_sp_annotation_mrc_n", "annotation_mrc_n", 
+        "use_embedding", "embedding_method", "embedding_dim", 
+        "scale_features_before_embedding", "cache_embeddings",
+        "core_02", "bed", "vte_status", "hosp_site", "core_resus", "news",
+        "date_time_stamp", "X_train_size", "X_test_orig_size", "X_test_size",
+        "run_time", "n_fits", "t_fits", "i", "outcome_variable", 'failed'
     ]
 
     metric_names: List[str] = []
@@ -87,7 +46,6 @@ def _get_score_log_columns(metric_list: List[str]) -> List[str]:
 
     column_list.extend(metric_names)
     return column_list
-
 
 class project_score_save_class:
     """Handles the creation and updating of the project's score log file."""
@@ -175,14 +133,14 @@ class project_score_save_class:
         y_test_orig = ml_grid_object_iter.y_test_orig
 
         param_space_index = ml_grid_object.param_space_index
-
+        
         bayessearch = global_params.bayessearch
 
         store_models = global_params.store_models
         # n_iter_v = np.nan ##????????????
 
         try:
-            logger = logging.getLogger("ml_grid")
+            logger = logging.getLogger('ml_grid')
             logger.info("Writing grid permutation to log")
             # write line to best grid scores---------------------
             column_list = _get_score_log_columns(list(global_params.metric_list.keys()))
@@ -193,9 +151,9 @@ class project_score_save_class:
                 auc = metrics.roc_auc_score(y_test, best_pred_orig)
             except Exception as e:
                 logger.warning(f"Could not calculate AUC score: {e}")
-                logger.debug(f"y_test unique values: {y_test.unique()}")
+                logger.debug(f"y_test unique values: {y_test.unique()!s}")
                 logger.debug(
-                    f"best_pred_orig unique values: {np.unique(best_pred_orig)}"
+                    f"best_pred_orig unique values: {np.unique(best_pred_orig)!s}"
                 )
                 auc = np.nan
 
@@ -250,39 +208,43 @@ class project_score_save_class:
             line["X_test_size"] = [len(X_test)]
 
             end = time.time()
-
+            
             logger.debug(f"Cross-validation scores: {scores}")
-            line["run_time"] = end - start
+            line["run_time"] = (end - start)
             line["t_fits"] = pg
             line["n_fits"] = n_iter_v
             line["i"] = param_space_index  # 0 # should be index of the iterator
-            line["outcome_variable"] = ml_grid_object_iter.outcome_variable
-            line["failed"] = failed
-
+            line['outcome_variable'] = ml_grid_object_iter.outcome_variable
+            line['failed'] = failed
+            
             if bayessearch:
                 try:
                     line["fit_time_m"] = np.array([scores["fit_time"]]).mean()
                     line["fit_time_std"] = np.array([scores["fit_time"]]).std()
-
+                    
                     line["score_time_m"] = np.array(scores["score_time"]).mean()
                     line["score_time_std"] = np.array(scores["score_time"]).std()
-
+                    
                     for metric in global_params.metric_list:
                         line[f"{metric}_m"] = np.array(scores[f"test_{metric}"]).mean()
                         line[f"{metric}_std"] = np.array(scores[f"test_{metric}"]).std()
-
+                    
                 except Exception as e:
                     logger.error(f"Error processing scores for BayesSearch: {e}")
                     logger.debug(f"Scores dictionary: {scores}")
             else:
-                line["fit_time_m"] = scores["fit_time"].mean()  # deprecated for bayes
+                line["fit_time_m"] = scores["fit_time"].mean() #deprecated for bayes
                 line["fit_time_std"] = scores["fit_time"].std()
                 line["score_time_m"] = scores["score_time"].mean()
                 line["score_time_std"] = scores["score_time"].std()
-
+                
                 for metric in global_params.metric_list:
                     line[f"{metric}_m"] = scores[f"test_{metric}"].mean()
                     line[f"{metric}_std"] = scores[f"test_{metric}"].std()
+
+            
+            
+            
 
             logger.info(f"Logged results for method '{method_name}'")
             logger.debug(f"Log line data: \n{line.to_string()}")
@@ -298,39 +260,26 @@ class project_score_save_class:
 
             if store_models:
                 # Check if the model is an H2O model by inspecting its base classes
-                is_h2o_model = any(
-                    "h2o" in str(base_class).lower()
-                    for base_class in current_algorithm.__class__.__bases__
-                )
+                is_h2o_model = any("h2o" in str(base_class).lower() for base_class in current_algorithm.__class__.__bases__)
 
-                if (
-                    is_h2o_model
-                    and hasattr(current_algorithm, "model")
-                    and current_algorithm.model is not None
-                ):
+                if is_h2o_model and hasattr(current_algorithm, 'model') and current_algorithm.model is not None:
                     # H2O models have a .model attribute which is the actual H2O estimator
                     model_path = self.models_dir / str(param_space_index)
                     try:
-                        h2o.save_model(
-                            model=current_algorithm.model,
-                            path=str(model_path),
-                            force=True,
-                        )
+                        h2o.save_model(model=current_algorithm.model, path=str(model_path), force=True)
                         logger.info(f"Saved H2O model to {model_path}")
                     except Exception as e:
-                        logger.error(
-                            f"Failed to save H2O model {param_space_index}: {e}"
-                        )
+                        logger.error(f"Failed to save H2O model {param_space_index}: {e}")
                 elif "keras" not in method_name.lower():
                     try:
                         model_path = self.models_dir / f"{str(param_space_index)}.pkl"
-                        with open(model_path, "wb") as f:
+                        with open(model_path, 'wb') as f:
                             pickle.dump(current_algorithm, f)
                     except Exception as e:
                         logger.error(f"Failed to save model {param_space_index}: {e}")
             # ---------------------------
         except Exception as e:
-            logger = logging.getLogger("ml_grid")
+            logger = logging.getLogger('ml_grid')
             logger.error(f"Failed to update score log: {e}", exc_info=True)
             if global_params.error_raise:
                 raise e

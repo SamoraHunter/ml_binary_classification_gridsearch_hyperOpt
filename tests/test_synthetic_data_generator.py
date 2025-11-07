@@ -25,7 +25,10 @@ class TestSyntheticDataGenerator(unittest.TestCase):
         self.assertIsInstance(self.df, pd.DataFrame)
 
     def test_dataframe_shape(self):
-        """Test the shape of the generated DataFrame. It should have features + outcomes + metadata columns."""
+        """
+        Test the shape of the generated DataFrame.
+        It should have features + outcomes + metadata columns.
+        """
         expected_rows = self.n_rows
         # n_features + n_outcome_vars + 'Unnamed: 0' + 'client_idcode'
         expected_cols = self.n_features + self.n_outcome_vars + 2
@@ -49,7 +52,10 @@ class TestSyntheticDataGenerator(unittest.TestCase):
             self.assertTrue(set(unique_outcomes).issubset({0, 1}))
 
     def test_feature_map_correctness(self):
-        """Test that the feature map contains correct keys and non-empty lists of features."""
+        """
+        Test that the feature map contains correct keys and non-empty lists
+        of features.
+        """
         for i in range(1, self.n_outcome_vars + 1):
             outcome_col = f"outcome_var_{i}"
             self.assertIn(outcome_col, self.feature_map)

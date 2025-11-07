@@ -1,50 +1,64 @@
-import logging
 import time
+import traceback
+import logging
 import warnings
 from typing import Any, Dict, List, Optional, Union
 
+import keras
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 import torch
 from IPython.display import clear_output
-from pandas.testing import assert_index_equal
+from numpy import absolute, mean, std
 from scikeras.wrappers import KerasClassifier
 from sklearn import metrics
+from IPython.display import display
+from catboost import CatBoostError
+from pandas.testing import assert_index_equal
+from xgboost.core import XGBoostError
+from ml_grid.model_classes.H2OAutoMLClassifier import H2OAutoMLClassifier
+from ml_grid.model_classes.H2OGBMClassifier import H2OGBMClassifier
+from ml_grid.model_classes.H2ODRFClassifier import H2ODRFClassifier
+from ml_grid.model_classes.H2OGAMClassifier import H2OGAMClassifier
+from ml_grid.model_classes.H2ODeepLearningClassifier import H2ODeepLearningClassifier
+from ml_grid.model_classes.H2OGLMClassifier import H2OGLMClassifier
+from ml_grid.model_classes.H2ONaiveBayesClassifier import H2ONaiveBayesClassifier
+from ml_grid.model_classes.H2ORuleFitClassifier import H2ORuleFitClassifier
+from ml_grid.model_classes.H2OXGBoostClassifier import H2OXGBoostClassifier
+from ml_grid.model_classes.H2OStackedEnsembleClassifier import (
+    H2OStackedEnsembleClassifier,
+)
+from ml_grid.model_classes.NeuralNetworkKerasClassifier import NeuralNetworkClassifier
 
 # from sklearn.utils.testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.metrics import *
+from sklearn.metrics import (
+    classification_report,
+    f1_score,
+    make_scorer,
+    matthews_corrcoef,
+    roc_auc_score,
+)
 from sklearn.model_selection import (
-    KFold,
+    GridSearchCV,
     ParameterGrid,
+    RandomizedSearchCV,
     RepeatedKFold,
+    KFold,
     cross_validate,
 )
-from sklearn.preprocessing import MinMaxScaler
-from skopt.space import Categorical
-from xgboost.core import XGBoostError
 
-from ml_grid.model_classes.H2OAutoMLClassifier import H2OAutoMLClassifier
-from ml_grid.model_classes.H2ODeepLearningClassifier import H2ODeepLearningClassifier
-from ml_grid.model_classes.H2ODRFClassifier import H2ODRFClassifier
-from ml_grid.model_classes.H2OGAMClassifier import H2OGAMClassifier
-from ml_grid.model_classes.H2OGBMClassifier import H2OGBMClassifier
-from ml_grid.model_classes.H2OGLMClassifier import H2OGLMClassifier
-from ml_grid.model_classes.H2ONaiveBayesClassifier import H2ONaiveBayesClassifier
-from ml_grid.model_classes.H2ORuleFitClassifier import H2ORuleFitClassifier
-from ml_grid.model_classes.H2OStackedEnsembleClassifier import (
-    H2OStackedEnsembleClassifier,
-)
-from ml_grid.model_classes.H2OXGBoostClassifier import H2OXGBoostClassifier
 from ml_grid.model_classes.keras_classifier_class import KerasClassifierClass
-from ml_grid.model_classes.NeuralNetworkKerasClassifier import NeuralNetworkClassifier
 from ml_grid.pipeline.hyperparameter_search import HyperparameterSearch
-from ml_grid.util.bayes_utils import is_skopt_space
 from ml_grid.util.debug_print_statements import debug_print_statements_class
 from ml_grid.util.global_params import global_parameters
 from ml_grid.util.project_score_save import project_score_save_class
 from ml_grid.util.validate_parameters import validate_parameters_helper
+from sklearn.preprocessing import MinMaxScaler
+from ml_grid.util.bayes_utils import calculate_combinations, is_skopt_space
+from skopt.space import Categorical
 
 
 class grid_search_crossvalidate:
@@ -412,10 +426,10 @@ class grid_search_crossvalidate:
 
         # Catch only one class present AUC not defined:
 
-        # dummy_auc_scorer = make_scorer(dummy_auc)
         if len(np.unique(self.y_train)) < 2:
             raise ValueError(
-                "Only one class present in y_train. ROC AUC score is not defined in that case. grid_search_cross_validate>>>cross_validate"
+                "Only one class present in y_train. ROC AUC score is not defined "
+                "in that case. grid_search_cross_validate>>>cross_validate"
             )
 
         if self.global_parameters.verbose >= 1:
@@ -434,12 +448,10 @@ class grid_search_crossvalidate:
         # Default scores if cross-validation fails
         default_scores = {
             "test_accuracy": [
-                0.5
-            ],  # Default to random classifier performance (0.5 for binary classification)
+                0.5  # Default to random classifier performance
+            ],
             "test_f1": [0.5],  # Default F1 score (again, 0.5 for random classification)
-            "test_auc": [
-                0.5
-            ],  # Default ROC AUC score (0.5 for random classifier) #is only auc not roc_auc?
+            "test_auc": [0.5],  # Default ROC AUC score (0.5 for random classifier)
             "fit_time": [0],  # No fitting time if the model fails
             "score_time": [0],  # No scoring time if the model fails
             "train_score": [0.5],  # Default train score
@@ -625,7 +637,8 @@ class grid_search_crossvalidate:
             # Print a warning if the execution time exceeds the threshold
             if elapsed_time > time_threshold:
                 self.logger.warning(
-                    f"Cross-validation took too long ({elapsed_time:.2f} seconds). Consider optimizing the parameters or reducing CV folds."
+                    f"Cross-validation took too long ({elapsed_time:.2f} seconds). "
+                    "Consider optimizing the parameters or reducing CV folds."
                 )
             else:
                 self.logger.info(

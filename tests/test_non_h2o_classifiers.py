@@ -114,7 +114,8 @@ def test_classifiers_with_cross_validation(model_class, tiny_problematic_data):
     # Use 5-fold CV.
     cv = KFold(n_splits=5, shuffle=True, random_state=42)
 
-    # This test simply checks if cross-validation completes without raising an unhandled error.
+    # This test simply checks if cross-validation completes without raising an
+    # unhandled error.
     try:
         scores = cross_val_score(estimator, X, y, cv=cv, error_score="raise", n_jobs=1)
         assert len(scores) == 5, "Cross-validation did not complete for all folds."
@@ -171,7 +172,8 @@ def test_full_grid_search_pipeline(model_class, synthetic_data):
 
     # --- Fix parameter names and types for non-Bayesian search ---
 
-    # For RandomizedSearchCV, skopt distribution objects must be converted to lists or appropriate distributions.
+    # For RandomizedSearchCV, skopt distribution objects must be converted to lists
+    # or appropriate distributions.
     # We process the parameter space, handling both single dicts and lists of dicts.
 
     param_space = instance.parameter_space

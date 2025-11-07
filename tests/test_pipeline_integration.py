@@ -26,7 +26,8 @@ H2O_MODELS_TO_TEST = [
     "H2O_RuleFit_class",
     "H2O_XGBoost_class",
     "H2O_GAM_class",
-    # 'H2O_StackedEnsemble_class' is excluded because it requires pre-trained base models, which is outside the scope of this test.
+    # 'H2O_StackedEnsemble_class' is excluded because it requires pre-trained
+    # base models, which is outside the scope of this test.
 ]
 
 
@@ -94,7 +95,7 @@ def test_h2o_model_execution(pipeline_config, model_to_test, h2o_session_fixture
     # The h2o_session_fixture ensures the H2O cluster is already running.
     test_config = pipeline_config["base_config"].copy()
     # Create a model dictionary that includes all models but only enables the one being tested.
-    test_config["models"] = {
+    test_config["models"] = {  # pylint: disable=duplicate-key
         model: (model == model_to_test) for model in H2O_MODELS_TO_TEST
     }
 
@@ -123,15 +124,19 @@ def test_h2o_model_execution(pipeline_config, model_to_test, h2o_session_fixture
     # 4. Execute the pipeline and assert success
     try:
         run_instance = run(local_param_dict, ml_grid_object=ml_grid_object)
-        # The following lines are commented out as they are not directly relevant to the user's issue
-        # and might cause confusion. The primary goal is to ensure the run completes without exceptions.
+        # The following lines are commented out as they are not directly relevant
+        # to the user's issue and might cause confusion. The primary goal is to
+        # ensure the run completes without exceptions.
         # model_errors, highest_score = run_instance.execute()
-        # assert len(model_errors) == 0, f"The pipeline for {model_to_test} should execute without any model errors."
+        # assert len(model_errors) == 0, (
+        #     f"The pipeline for {model_to_test} should execute without any model errors."
+        # )
         model_errors, highest_score = run_instance.execute()
-        assert (
-            len(model_errors) == 0
-        ), f"The pipeline for {model_to_test} should execute without any model errors."
+        assert len(model_errors) == 0, (
+            f"The pipeline for {model_to_test} should execute without any model errors."
+        )
     except Exception as e:
         pytest.fail(
-            f"The `run.execute()` method for {model_to_test} raised an unexpected exception: {e}"
+            f"The `run.execute()` method for {model_to_test} raised an "
+            f"unexpected exception: {e}"
         )

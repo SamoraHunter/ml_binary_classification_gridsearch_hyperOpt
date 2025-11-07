@@ -18,7 +18,7 @@ import pandas as pd
 
 # Ensure the project root is in the Python path to allow for module imports
 try:
-    from ml_grid.pipeline.data import NoFeaturesError, pipe
+    from ml_grid.pipeline.data import pipe
     from ml_grid.util.global_params import global_parameters
 except ImportError:
     # This allows the test to be run from the project root directory
@@ -394,7 +394,8 @@ class TestDataPipeline(unittest.TestCase):
         self.assertEqual(
             len(constant_columns_train),
             0,
-            f"Found constant columns in final X_train after embedding: {constant_columns_train}",
+            "Found constant columns in final X_train after embedding: "
+            f"{constant_columns_train}",
         )
 
         # 2. Check for index alignment in all final data splits

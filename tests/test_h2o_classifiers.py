@@ -5,10 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from sklearn.model_selection import KFold, cross_val_score
-
-from ml_grid.model_classes.h2o_classifier_class import (
-    H2OAutoMLClass as H2O_class,
-)  # This is the AutoML class
+from ml_grid.model_classes.h2o_classifier_class import H2OAutoMLClass
 from ml_grid.model_classes.h2o_deeplearning_classifier_class import (
     H2O_DeepLearning_class,
 )
@@ -18,7 +15,9 @@ from ml_grid.model_classes.h2o_gam_classifier_class import H2OGAMClass as H2O_GA
 # Import all the H2O *model definition* classes, which is more realistic
 from ml_grid.model_classes.h2o_gbm_classifier_class import H2O_GBM_class
 from ml_grid.model_classes.h2o_glm_classifier_class import H2O_GLM_class
-from ml_grid.model_classes.h2o_naive_bayes_classifier_class import H2O_NaiveBayes_class
+from ml_grid.model_classes.h2o_naive_bayes_classifier_class import (
+    H2O_NaiveBayes_class,
+)
 from ml_grid.model_classes.h2o_rulefit_classifier_class import (
     H2ORuleFitClass as H2O_RuleFit_class,
 )
@@ -34,16 +33,12 @@ def tiny_problematic_data():
     models during cross-validation if parameters are not handled carefully.
     A 10-sample dataset with 5-fold CV results in 8-sample training folds.
     """
-    X = pd.DataFrame(
-        {
-            # A single, nearly-constant feature to reliably trigger constant column errors.
-            "feature1": [0] * 9
-            + [1],
-        }
-    )
+    X = pd.DataFrame({
+        # A single, nearly-constant feature to reliably trigger constant column errors.
+        'feature1': [0] * 9 + [1],
+    })
     y = pd.Series(np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1]), name="outcome")
     return X, y
-
 
 # A list of all H2O model definition classes to be tested
 
@@ -56,12 +51,13 @@ H2O_MODEL_CLASSES = [
     H2O_NaiveBayes_class,
     H2O_RuleFit_class,
     H2O_XGBoost_class,
-    # H2O_StackedEnsemble_class, # Known issues - skipping for now
-    H2O_class,  # AutoML,
+    # H2O_StackedEnsemble_class, # Known issues - skipping for now,
+    H2OAutoMLClass, # AutoML
 ]
 
-# To reduce runtime and ensure consistent test runs, select a fixed, smaller set of models.
-# For full coverage, you would test all, but for speed, a representative subset is better.
+# To reduce runtime and ensure consistent test runs, select a fixed, smaller set of
+# models. For full coverage, you would test all, but for speed, a representative
+# subset is better.
 H2O_MODEL_CLASSES = [H2O_GLM_class, H2O_DRF_class]
 
 
@@ -78,12 +74,16 @@ def h2o_model_instance(request, synthetic_data):
 
     # The H2OAutoMLConfig class has a different constructor signature
     # and doesn't accept X, y during initialization.
-    if model_class == H2O_class:
+    if model_class == H2OAutoMLClass:
         instance = model_class(parameter_space_size="small")
     else:
+        # Ensure y is a Series for consistency, which some model classes might expect
+        if not isinstance(y, pd.Series):
+            y = pd.Series(y, name="outcome")
+        if not isinstance(X, pd.DataFrame):
+            X = pd.DataFrame(X)
         instance = model_class(X=X, y=y, parameter_space_size="small")
     return instance.algorithm_implementation
-
 
 # Use pytest.mark.parametrize to run the same test for all classifiers
 def test_h2o_classifier_fit_predict(
@@ -111,9 +111,8 @@ def test_h2o_classifier_fit_predict(
     assert isinstance(
         proba_predictions, np.ndarray
     ), "predict_proba() should return a numpy array"
-    assert proba_predictions.shape == (
-        X.shape[0],
-        2,
+    assert (
+        proba_predictions.shape == (X.shape[0], 2)
     ), "Probability array has incorrect shape"
     assert np.allclose(
         np.sum(proba_predictions, axis=1), 1.0
@@ -142,9 +141,14 @@ def test_h2o_classifiers_with_cross_validation(
         h2o.remove_all()
 
     # Handle special instantiation for AutoML class
-    if model_class == H2O_class:
+    if model_class == H2OAutoMLClass:
         instance = model_class(parameter_space_size="small")
     else:
+        # Ensure y is a Series for consistency
+        if not isinstance(y, pd.Series):
+            y = pd.Series(y, name="outcome")
+        if not isinstance(X, pd.DataFrame):
+            X = pd.DataFrame(X)
         instance = model_class(X=X, y=y, parameter_space_size="small")
 
     estimator = instance.algorithm_implementation
@@ -161,8 +165,10 @@ def test_h2o_classifiers_with_cross_validation(
     # We expect this test to either complete successfully OR fail gracefully with
     # our custom RuntimeError. Any other error will still fail the test.
     try:
-        scores = cross_val_score(estimator, X, y, cv=cv, error_score="raise", n_jobs=1)
-        assert len(scores) == 5, "Cross-validation did not complete for all folds."
+        scores = cross_val_score(estimator, X, y, cv=cv, error_score='raise', n_jobs=1)
+        assert (
+            len(scores) == 5
+        ), "Cross-validation did not complete for all folds."
     except RuntimeError as e:
         assert "fit on a single constant feature" in str(
             e
@@ -179,26 +185,25 @@ def test_h2o_gam_knot_cardinality_error(h2o_session_fixture):
     h2o.remove_all()
 
     # Create data where 'feature2' has low cardinality
-    X = pd.DataFrame(
-        {
-            "feature1": np.random.rand(20),
-            "feature2": [0, 1] * 10,  # Only 2 unique values
-        }
-    )
+    X = pd.DataFrame({
+        'feature1': np.random.rand(20),
+        'feature2': [0, 1] * 10,  # Only 2 unique values
+    })
     y = pd.Series(np.random.randint(0, 2, 20), name="outcome")
 
     # Instantiate the GAM class
-    gam_class_instance = H2O_GAM_class(X=X, y=y)
-    estimator = gam_class_instance.algorithm_implementation
+    estimator = H2O_GAM_class(X=X, y=y, parameter_space_size="small").algorithm_implementation
 
-    # Set parameters that will cause the error: 5 knots for a feature with 2 unique values.
-    # Also, we must disable the wrapper's internal error handling that suppresses this
+    # Set parameters that will cause the error: 5 knots for a feature with 2
+    # unique values. # noqa: E501
+    # Also, we must disable the wrapper's internal error handling that
+    # suppresses this
     # specific error, so that cross_val_score can raise it as intended.
     estimator.set_params(
-        gam_columns=["feature2"],
+        gam_columns=['feature2'],
         num_knots=5,
         # This is a custom parameter in the H2OGAMClassifier wrapper
-        _suppress_low_cardinality_error=False,
+        _suppress_low_cardinality_error=False
     )
 
     # Use 2-fold CV. One fold could get only one unique value for feature2.
@@ -210,7 +215,7 @@ def test_h2o_gam_knot_cardinality_error(h2o_session_fixture):
         match=r"Number of knots .* must be at least one less than the number of unique values",
     ):
         # The error_score='raise' is crucial for pytest.raises to catch the exception
-        cross_val_score(estimator, X, y, cv=cv, error_score="raise", n_jobs=1)
+        cross_val_score(estimator, X, y, cv=cv, error_score='raise', n_jobs=1)
 
 
 # A mock class to simulate the main 'pipe' object for integration testing
@@ -222,9 +227,9 @@ class MockMlGridObject:
         self.y_test = y
         self.X_test_orig = X
         self.y_test_orig = y
-        self.local_param_dict = {"param_space_size": "small"}
+        self.local_param_dict = {'param_space_size': 'small'}
         self.global_params = global_parameters
-        self.base_project_dir = "test_experiments/test_run"  # Add this line
+        self.base_project_dir = "test_experiments/test_run" # Add this line
         # Configure global params for a fast, non-verbose test run
         self.verbose = 0
         self.global_params.verbose = 0
@@ -235,13 +240,13 @@ class MockMlGridObject:
         # --- PERFORMANCE FIX: Use RandomizedSearchCV with a small n_iter ---
         self.global_params.random_grid_search = True
         self.global_params.bayessearch = False
-        self.global_params.max_param_space_iter_value = 2  # Only test 2 combinations
+        self.global_params.max_param_space_iter_value = 2 # Only test 2 combinations
         # --- PERFORMANCE FIX: Reduce CV folds for the grid search test ---
         self.global_params.cv_folds = 2
         # --- PERFORMANCE FIX: Add a test_mode flag to skip final CV ---
         self.global_params.test_mode = True
-        self.global_params.sub_sample_param_space_pct = 1.0  # Use a small sample
-        self.logger = logging.getLogger("test_logger")
+        self.global_params.sub_sample_param_space_pct = 1.0 # Use a small sample
+        self.logger = logging.getLogger('test_logger')
         self.logger.setLevel(logging.DEBUG)
 
 
@@ -257,14 +262,15 @@ def test_h2o_full_grid_search_pipeline(
     X, y = synthetic_data
 
     # 1. Instantiate the model definition class, handling AutoML's unique constructor
-    if model_class == H2O_class:
+    if model_class == H2OAutoMLClass:
         # H2OAutoMLConfig does not accept X, y in its constructor
-        instance = model_class(parameter_space_size="small")
+        instance = H2OAutoMLClass(parameter_space_size="small")
     else:
         instance = model_class(X=X, y=y, parameter_space_size="small")
 
     # 2. Create a mock pipeline object
     mock_ml_grid_object = MockMlGridObject(X, y)
+
 
     # RandomizedSearchCV expects a single dictionary for the parameter space.
     # Some model classes might return a list `[{...}]`. We flatten it here.
@@ -281,7 +287,7 @@ def test_h2o_full_grid_search_pipeline(
     # We iterate through the parameter space and convert them.
     for key, value in instance.parameter_space.items():
         # Check if it's a skopt Categorical object
-        if hasattr(value, "rvs") and hasattr(value, "categories"):
+        if hasattr(value, 'rvs') and hasattr(value, 'categories'):
             # H2O DeepLearning 'hidden' param requires a list, not a tuple.
             # Convert categories of tuples to categories of lists.
             categories = value.categories
@@ -323,7 +329,7 @@ def test_h2o_full_grid_search_pipeline(
         algorithm_implementation=instance.algorithm_implementation,
         parameter_space=instance.parameter_space,
         method_name=instance.method_name,
-        ml_grid_object=mock_ml_grid_object,
+        ml_grid_object=mock_ml_grid_object
     )
     # 4. Assert that the process completed and returned a score
     assert isinstance(result.grid_search_cross_validate_score_result, float)

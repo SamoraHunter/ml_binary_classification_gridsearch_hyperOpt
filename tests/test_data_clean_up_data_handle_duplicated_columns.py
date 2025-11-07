@@ -1,7 +1,5 @@
 import unittest
-
 import pandas as pd
-
 from ml_grid.pipeline.data_clean_up import clean_up_class
 
 
@@ -10,8 +8,8 @@ class TestHandleDuplicatedColumns(unittest.TestCase):
     def test_handle_duplicated_columns_normal_case(self):
         # Prepare input DataFrame with duplicated columns
         # Create a sample DataFrame with duplicate columns
-        data = {"A": [1, 2, 3], "B": [4, 5, 6], "A": [7, 8, 9]}  # 'A' is duplicated
-        df = pd.DataFrame(data)
+        df = pd.DataFrame([[1, 4, 7], [2, 5, 8], [3, 6, 9]])
+        df.columns = ["A", "B", "A"]  # 'A' is duplicated
 
         # Apply the operation to remove duplicate columns
         df = df.loc[:, ~df.columns.duplicated()]

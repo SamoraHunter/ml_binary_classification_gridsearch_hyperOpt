@@ -3,9 +3,7 @@ import logging
 import pandas as pd
 import pytest
 
-from ml_grid.model_classes.h2o_classifier_class import (
-    H2OAutoMLClass as H2O_class,
-)  # AutoML
+from ml_grid.model_classes.h2o_classifier_class import H2OAutoMLClass
 from ml_grid.model_classes.h2o_deeplearning_classifier_class import (
     H2O_DeepLearning_class,
 )
@@ -15,7 +13,9 @@ from ml_grid.model_classes.h2o_gam_classifier_class import H2OGAMClass as H2O_GA
 # Import all H2O model definition classes
 from ml_grid.model_classes.h2o_gbm_classifier_class import H2O_GBM_class
 from ml_grid.model_classes.h2o_glm_classifier_class import H2O_GLM_class
-from ml_grid.model_classes.h2o_naive_bayes_classifier_class import H2O_NaiveBayes_class
+from ml_grid.model_classes.h2o_naive_bayes_classifier_class import (
+    H2O_NaiveBayes_class,
+)
 from ml_grid.model_classes.h2o_rulefit_classifier_class import (
     H2ORuleFitClass as H2O_RuleFit_class,
 )
@@ -82,7 +82,7 @@ def _prepare_h2o_param_space(instance, model_class, search_strategy):
     # For random/bayes, we can use small lists for sampling
 
     # 1. For AutoML, force a very short runtime
-    if model_class == H2O_class:
+    if model_class == H2OAutoMLClass:
         if search_strategy == "grid":
             param_space["max_runtime_secs"] = [5]
             param_space["max_models"] = [2]
@@ -165,12 +165,8 @@ def test_h2o_search_integrations(
     X_df = pd.DataFrame(X)
     y_series = pd.Series(y)
 
-    if model_class == H2O_class:
-        instance = model_class(parameter_space_size="small")
-    elif model_class == H2O_GAM_class:
-        instance = model_class(X=X_df, y=y_series)
-    else:
-        instance = model_class(X=X_df, y=y_series, parameter_space_size="small")
+    # All model classes in this test require X, y, and parameter_space_size
+    instance = model_class(X=X_df, y=y_series, parameter_space_size="small")
 
     mock_ml_grid_object = MockMlGridObject(
         X_df, y_series, search_strategy=search_strategy
@@ -205,11 +201,8 @@ def test_h2o_slow_models(
 
     X_df = pd.DataFrame(X)
     y_series = pd.Series(y)
-    if model_class == H2O_GAM_class:
-        instance = model_class(X=X_df, y=y_series)
-    else:
-        instance = model_class(X=X_df, y=y_series, parameter_space_size="small")
-    mock_ml_grid_object = MockMlGridObject(
+    instance = model_class(X=X_df, y=y_series, parameter_space_size="small")
+    mock_ml_grid_object = MockMlGridObject( # noqa: F841
         X_df, y_series, search_strategy=search_strategy
     )
 

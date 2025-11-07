@@ -18,7 +18,8 @@ class TestAddDateOrderSequenceColumn(unittest.TestCase):
         self.assertTrue(result_df["timestamp"].dtype == "datetime64[ns, UTC]")
 
     def test_group_by_and_assign_sequence(self):
-        # Test grouping by 'client_idcode' and assigning a sequential order based on timestamp
+        # Test grouping by 'client_idcode' and assigning a sequential order based
+        # on timestamp
         df = pd.DataFrame(
             {
                 "timestamp": ["2022-01-01", "2022-01-01", "2022-01-02"],
