@@ -31,16 +31,16 @@ data:
 
 # Models to be used during the hyperopt search
 models:
-  LogisticRegression_class: true
-  knn_classifiers_class: true
-  quadratic_discriminant_analysis_class: true
-  SVC_class: true
-  XGB_class_class: true
-  mlp_classifier_class: true
-  RandomForestClassifier_class: true
-  GradientBoostingClassifier_class: true
-  CatBoost_class: true
-  GaussianNB_class: true
+  LogisticRegressionClass: true
+  KNeighborsClassifierClass: true
+  QuadraticDiscriminantAnalysisClass: true
+  SVCClass: true
+  XGBClassifierClass: true
+  MLPClassifierClass: true
+  RandomForestClassifierClass: true
+  GradientBoostingClassifierClass: true
+  CatBoostClassifierClass: true
+  GaussianNBClassifierClass: true
   H2O_class: false # H2O AutoML
   H2O_GBM_class: true
   H2O_DRF_class: true
@@ -51,10 +51,10 @@ models:
   H2O_XGBoost_class: true
   H2O_StackedEnsemble_class: false
   H2O_GAM_class: true
-  LightGBMClassifierWrapper: true
-  adaboost_class: true
-  NeuralNetworkClassifier_class: true
-  TabTransformer_class: false
+  LightGBMClassifierWrapper: true # noqa
+  AdaBoostClassifierClass: true
+  NeuralNetworkClassifier_class: true # noqa
+  TabTransformerClass: false
   # Set the following to true if a GPU is available and configured
   kerasClassifier_class: false
   knn__gpu_wrapper_class: false

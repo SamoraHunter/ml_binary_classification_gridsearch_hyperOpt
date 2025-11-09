@@ -53,6 +53,8 @@ dependencies = [
 [project.optional-dependencies]
 # Dependencies for running tests, including notebook tests
 test = [
+    "black",
+    "ruff",
     "pytest",
     "nbmake",
     "scikit-optimize",
@@ -97,3 +99,28 @@ docs = [
 
 [tool.setuptools.packages.find]
 include = ["ml_grid"]
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+
+[tool.ruff]
+# Set the maximum line length to match Black.
+line-length = 88
+
+# Enable the Pyflakes (F) and pycodestyle (E, W) rules by default.
+# I for isort for import sorting.
+select = ["E", "F", "W", "I"]
+
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".git",
+    ".ruff_cache",
+    ".venv",
+    "__pypackages__",
+    "build",
+    "dist",
+    "ml_grid_env",
+    "ml_grid_ts_env",
+    "venv",
+]
