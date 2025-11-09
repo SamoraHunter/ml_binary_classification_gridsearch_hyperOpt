@@ -143,46 +143,30 @@ class H2OGAMClassifier(H2OBaseClassifier):
                 model_params["num_knots"] = num_knots_list
 
             for i, col in enumerate(gam_columns):
+                # --- FIX: Ensure column exists before trying to access it ---
                 if col not in X.columns:
                     self.logger.warning(
                         f"GAM column '{col}' not found in input data X. Skipping."
                     )
                     continue
 
+                # --- FIX: Validate knot count against unique values in the data ---
                 n_unique = X[col].nunique()
                 required_knots = num_knots_list[i]
 
-                # H2O's backend requires num_knots < n_unique.
-                if n_unique <= required_knots:
+                # --- ROBUSTNESS FIX for java.lang.AssertionError in H2O quantile calculation ---
+                # The quantile calculation can fail on sparse data or data with low cardinality.
+                # Enforce a stricter requirement: the number of unique values must be at least
+                # double the number of knots. This provides a safer margin for the algorithm.
+                if n_unique < (required_knots * 2):
                     if not self._suppress_low_cardinality_error:
                         raise ValueError(
-                            f"Number of knots ({required_knots}) must be at least one less than the number of unique values ({n_unique}) for feature '{col}'."
+                            f"Feature '{col}' has {n_unique} unique values, which is insufficient "
+                            f"for the requested {required_knots} knots. At least {required_knots * 2} unique values are required."
                         )
                     self.logger.warning(
                         f"Excluding GAM column '{col}': {n_unique} unique values "
-                        f"insufficient for {required_knots} knots (require >= {required_knots + 1})."
-                    )
-                    continue
-
-                # Pre-check for well-defined knots
-                try:
-                    quantiles = np.linspace(0, 1, required_knots)
-                    knot_values = X[col].quantile(quantiles)
-                    # Check for enough unique values AND that they are monotonically increasing
-                    # The diff() will be > 0 for all elements in a strictly increasing series.
-                    are_knots_valid = (knot_values.nunique() >= required_knots) and (
-                        np.all(np.diff(knot_values.to_numpy()) > 0)
-                    )
-
-                    if not are_knots_valid:
-                        self.logger.warning(
-                            f"Excluding GAM column '{col}': Not enough unique values to generate distinct, "
-                            f"monotonically increasing knots."
-                        )
-                        continue
-                except Exception as e:
-                    self.logger.warning(
-                        f"Excluding GAM column '{col}' due to an error during knot pre-check: {e}"
+                        f"is insufficient for {required_knots} knots (requires at least {required_knots * 2}). Skipping."
                     )
                     continue
 

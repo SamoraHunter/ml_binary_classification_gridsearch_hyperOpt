@@ -85,7 +85,7 @@ class TestDataPipeline(unittest.TestCase):
             },
         }
         self.drop_term_list = ["chrom", "hfe", "phlebo"]
-        self.model_class_dict = {"LogisticRegression_class": True}
+        self.model_class_dict = {"LogisticRegressionClass": True}
 
     def tearDown(self):
         """Clean up the temporary directory after each test."""

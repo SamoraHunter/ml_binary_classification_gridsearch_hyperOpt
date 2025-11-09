@@ -195,10 +195,9 @@ def test_h2o_gam_knot_cardinality_error(h2o_session_fixture):
     estimator = H2O_GAM_class(X=X, y=y, parameter_space_size="small").algorithm_implementation
 
     # Set parameters that will cause the error: 5 knots for a feature with 2
-    # unique values. # noqa: E501
+    # unique values.
     # Also, we must disable the wrapper's internal error handling that
-    # suppresses this
-    # specific error, so that cross_val_score can raise it as intended.
+    # suppresses this specific error, so that cross_val_score can raise it as intended.
     estimator.set_params(
         gam_columns=['feature2'],
         num_knots=5,
@@ -210,9 +209,10 @@ def test_h2o_gam_knot_cardinality_error(h2o_session_fixture):
     cv = KFold(n_splits=2, shuffle=True, random_state=42)
 
     # We expect cross_val_score to fail and raise our specific ValueError
+    # Updated regex to match the actual error message from the code
     with pytest.raises(
         ValueError,
-        match=r"Number of knots .* must be at least one less than the number of unique values",
+        match=r"Feature .* has \d+ unique values, which is insufficient for the requested \d+ knots\. At least \d+ unique values are required\.",
     ):
         # The error_score='raise' is crucial for pytest.raises to catch the exception
         cross_val_score(estimator, X, y, cv=cv, error_score='raise', n_jobs=1)

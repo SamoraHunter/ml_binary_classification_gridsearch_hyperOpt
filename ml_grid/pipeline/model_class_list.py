@@ -40,13 +40,58 @@ from ml_grid.model_classes.keras_classifier_class import KerasClassifierClass
 from ml_grid.model_classes.light_gbm_class import LightGBMClassifierWrapper
 from ml_grid.model_classes.logistic_regression_class import LogisticRegressionClass
 from ml_grid.model_classes.mlp_classifier_class import MLPClassifierClass as MLPClassifierClass
+from ml_grid.model_classes.NeuralNetworkClassifier_class import (
+    NeuralNetworkClassifier_class,
+)
+
 from ml_grid.model_classes.quadratic_discriminant_class import (
     QuadraticDiscriminantAnalysisClass,
 )
 from ml_grid.model_classes.randomforest_classifier_class import (
     RandomForestClassifierClass,
 )
+from ml_grid.model_classes.svc_class import SVCClass
 from ml_grid.model_classes.xgb_classifier_class import XGBClassifierClass
+
+
+# --- ROBUST MAPPING of config names to class objects ---
+# This dictionary provides a direct, secure, and explicit mapping from the
+# string names used in the YAML config files to the actual imported Python classes.
+# This avoids the use of `eval()` and makes the code easier to maintain.
+MODEL_CLASS_MAP = {
+    # Scikit-learn and similar
+    "LogisticRegression": LogisticRegressionClass,
+    "LogisticRegressionClass": LogisticRegressionClass,
+    "RandomForestClassifier": RandomForestClassifierClass,
+    "RandomForestClassifierClass": RandomForestClassifierClass,
+    "XGB_class": XGBClassifierClass,
+    "XGBClassifierClass": XGBClassifierClass,
+    "AdaBoostClassifierClass": AdaBoostClassifierClass,
+    "CatBoostClassifierClass": CatBoostClassifierClass,
+    "GaussianNBClassifierClass": GaussianNBClassifierClass,
+    "GradientBoostingClassifierClass": GradientBoostingClassifierClass,
+    "KNeighborsClassifierClass": KNeighborsClassifierClass,
+    "LightGBMClassifierWrapper": LightGBMClassifierWrapper,
+    "MLPClassifierClass": MLPClassifierClass,
+    "QuadraticDiscriminantAnalysisClass": QuadraticDiscriminantAnalysisClass,
+    "SVCClass": SVCClass,
+    "NeuralNetworkClassifier_class": NeuralNetworkClassifier_class, # Corrected mapping
+    # GPU specific
+    "KerasClassifierClass": KerasClassifierClass,
+    "KNNGpuWrapperClass": KNNGpuWrapperClass,
+    # H2O Models
+    "H2O_class": H2OAutoMLClass,  # Alias for AutoML
+    "H2OAutoMLClass": H2OAutoMLClass,
+    "H2O_GBM_class": H2O_GBM_class,
+    "H2O_DRF_class": H2O_DRF_class,
+    "H2O_DeepLearning_class": H2O_DeepLearning_class,
+    "H2O_GLM_class": H2O_GLM_class,
+    "H2O_NaiveBayes_class": H2O_NaiveBayes_class,
+    "H2O_RuleFit_class": H2O_RuleFit_class,
+    "H2O_XGBoost_class": H2O_XGBoost_class,
+    "H2O_StackedEnsemble_class": H2O_StackedEnsemble_class,
+    "H2O_GAM_class": H2O_GAM_class,
+}
 
 
 def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
@@ -153,17 +198,16 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
                     f"Skipping '{class_name}' because it requires a GPU, but no CUDA-enabled GPU is available."
                 )
                 continue
-            # Try the exact name first, then try with '_class' appended for convenience
-            try:
-                model_class = eval(class_name)
-            except NameError:
-                class_name_with_suffix = f"{class_name}_class"
-                try:
-                    model_class = eval(class_name_with_suffix)
-                except NameError:
-                    raise NameError(
-                        f"Could not find model class '{class_name}' or '{class_name_with_suffix}'. Please check the name and ensure it's imported."
-                    )
+            
+            # Look up the class in our explicit mapping dictionary
+            model_class = MODEL_CLASS_MAP.get(class_name)
+            
+            if model_class is None:
+                raise KeyError(
+                    f"Could not find model class '{class_name}' in MODEL_CLASS_MAP. "
+                    f"Please check the model name in your configuration and ensure it is imported and mapped in model_class_list.py."
+                )
+
             # Pass X and y to constructors that accept them (like H2OStackedEnsemble)
             init_signature = inspect.signature(model_class.__init__)
             init_params = {}
