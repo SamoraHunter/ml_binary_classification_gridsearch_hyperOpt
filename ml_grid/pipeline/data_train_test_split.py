@@ -47,11 +47,26 @@ def get_data_split(
         local_param_dict["resample"] = None
         logger.warning("Input data is not 2D, overriding resample strategy to None.")
 
-    # No resampling
+    # --- SAFEGUARD for Stratification ---
+    # Check if any class has fewer than 2 samples for stratified splitting
+    class_counts = y.value_counts()
+    min_class_count = class_counts.min()
+    use_stratify = min_class_count >= 2
+    
+    if not use_stratify:
+        logger.warning(
+            f"Cannot use stratified split: smallest class has only {min_class_count} sample(s). "
+            f"Class distribution: {class_counts.to_dict()}. Using random split instead."
+        )
+        # Also disable resampling since we can't properly balance with so few samples
+        if local_param_dict.get("resample") is not None:
+            logger.warning("Disabling resampling due to insufficient samples in minority class.")
+            local_param_dict["resample"] = None
+
     # First, split into a preliminary training set and a final hold-out test set.
     # This original test set will NOT be resampled.
     X_train_orig, X_test_orig, y_train_orig, y_test_orig = train_test_split(
-        X, y, test_size=0.25, random_state=1, stratify=y
+        X, y, test_size=0.25, random_state=1, stratify=y if use_stratify else None
     )
 
     # --- SAFEGUARD for Resampling ---
@@ -60,7 +75,8 @@ def get_data_split(
     minority_class_count = y_train_orig.value_counts().min()
     if minority_class_count < 2 and local_param_dict.get("resample") is not None:
         logger.warning(
-            f"Minority class has only {minority_class_count} sample(s) in the training fold. Disabling resampling to prevent errors."
+            f"Minority class has only {minority_class_count} sample(s) in the training fold. "
+            f"Disabling resampling to prevent errors."
         )
         local_param_dict["resample"] = None
 
@@ -85,9 +101,6 @@ def get_data_split(
         y_name = y_train_orig.name
 
         # Oversample training set
-        # --- CRITICAL FIX: Use 'auto' for sampling_strategy ---
-        # 'auto' is equivalent to 'minority' and correctly handles cases where
-        # the data is already balanced, preventing a ValueError.
         ros = RandomOverSampler(sampling_strategy="auto", random_state=1)
         X_train_res, y_train_res = ros.fit_resample(X_train_orig, y_train_orig)
 
@@ -99,6 +112,17 @@ def get_data_split(
         X_train_processed = X_train_orig
         y_train_processed = y_train_orig
 
+    # Check again if we can stratify the second split
+    train_class_counts = y_train_processed.value_counts()
+    min_train_class_count = train_class_counts.min()
+    use_stratify_second = min_train_class_count >= 2
+    
+    if not use_stratify_second:
+        logger.warning(
+            f"Cannot use stratified split for train/validation: smallest class has only "
+            f"{min_train_class_count} sample(s). Using random split instead."
+        )
+
     # Finally, split the (potentially resampled) training data into the final
     # training and validation sets for the grid search.
     X_train, X_test, y_train, y_test = train_test_split(
@@ -106,7 +130,7 @@ def get_data_split(
         y_train_processed,
         test_size=0.25,
         random_state=1,
-        stratify=y_train_processed,
+        stratify=y_train_processed if use_stratify_second else None,
     )
 
     return X_train, X_test, y_train, y_test, X_test_orig, y_test_orig
