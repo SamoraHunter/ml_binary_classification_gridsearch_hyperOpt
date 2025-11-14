@@ -92,7 +92,8 @@ ts = [
 docs = [
     "sphinx",
     "sphinx-rtd-theme",
-    "myst_parser" 
+    "myst_parser",
+    "sphinx-autoapi" 
 ]
 
 # Add this section to fix the package discovery error
