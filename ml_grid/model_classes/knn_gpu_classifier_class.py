@@ -11,7 +11,7 @@ from typing import Any, Dict, Optional
 import pandas as pd
 from skopt.space import Categorical, Integer
 
-from ml_grid.model_classes.knn_wrapper_class import KNNWrapper
+#from ml_grid.model_classes.knn_wrapper_class import KNNWrapper
 from ml_grid.util import param_space
 from ml_grid.util.global_params import global_parameters
 
@@ -45,7 +45,7 @@ class KNNGpuWrapperClass:
         self.y: Optional[pd.Series] = y
 
         # Initialize KNNWrapper for GPU support
-        self.algorithm_implementation: KNNWrapper = KNNWrapper()
+        #self.algorithm_implementation: KNNWrapper = KNNWrapper()
         self.method_name: str = "knn__gpu"
 
         # Define the parameter vector space

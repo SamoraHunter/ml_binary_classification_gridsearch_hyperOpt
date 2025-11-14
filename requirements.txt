@@ -579,7 +579,8 @@ secretstorage==3.3.3
     # via keyring
 shap==0.46.0
     # via -r requirements.in
-simbsig==0.1.2
+#simbsig==0.1.2
+    # deprecated
     # via -r requirements.in
 six==1.16.0
     # via

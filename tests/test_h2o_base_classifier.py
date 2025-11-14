@@ -138,11 +138,13 @@ def test_predict_successful(mock_h2o_cluster, mock_h2o_frame, mock_h2o_assign, m
     
     # --- Setup Mocks ---
     # Mock the H2OFrame that will be created from the input data
-    mock_tmp_frame = MagicMock(spec=h2o.H2OFrame)
+    # FIX: Don't use spec parameter with a mock object - just create a plain MagicMock
+    mock_tmp_frame = MagicMock()
     mock_h2o_frame.return_value = mock_tmp_frame
 
     # Mock the final frame that get_frame will return
-    mock_final_frame = MagicMock(spec=h2o.H2OFrame)
+    # FIX: Same here - remove the spec parameter
+    mock_final_frame = MagicMock()
     mock_final_frame.nrows = len(X)
     mock_h2o_get_frame.return_value = mock_final_frame
     # Mock the model object that `h2o.get_model` will return

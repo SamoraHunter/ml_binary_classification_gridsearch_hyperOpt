@@ -3,124 +3,91 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ml-grid"
+name = "ml_grid"
 version = "0.1.0"
-description = "A framework for binary classification using grid search and hyperparameter optimization."
+authors = [
+  { name="SamoraHunter" },
+]
+description = "A grid search and hyperparameter optimization framework for binary classification."
 readme = "README.md"
-license = { file = "LICENSE" }
 requires-python = ">=3.10"
+license = { file = "LICENSE" }
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 
-# Core dependencies for the project to run.
-# These should be the minimal set required.
+# Core runtime dependencies for the project
 dependencies = [
-    "pandas",
-    "scikit-learn",
-    "numpy",
-    "hyperopt",
-    "ipython",
-    "matplotlib",
-    "seaborn",
-    "xgboost",
-    "lightgbm",
-    "catboost",
-    "imbalanced-learn",
-    "loguru",
-    "polars",
-    "pyarrow",
-    "fitter",
-    "shap",
-    "pydotplus",
-    "jinja2",
-    "filelock",
-    "fsspec",
-    "upsetplot",
-    "pyimpetus",
-    "torch",
-    "torchvision",
-    "tab-transformer-pytorch",
-    "simbsig",
-    "google-auth-oauthlib",
-    "lxml",
-    "pyyaml",
-    "sympy",
-    "pickleshare"
+    # Core data and ML libraries
+    "pandas==2.0.3",
+    "polars==1.9.0",
+    "numpy==1.26.4",
+    "scikit-learn==1.5.2",
+    "imbalanced-learn==0.12.4",
+
+    # ML frameworks
+    "tensorflow==2.17.0",
+    "torch>=2.0.0",  # Updated: removed strict version pin
+    "torchvision>=0.15.0",  # Updated: compatible with torch 2.x
+    "tab_transformer_pytorch==0.3.0",
+    "lightgbm==4.5.0",
+    "xgboost==2.1.1",
+    "catboost==1.2.7",
+    "h2o==3.46.0.5",
+    "scikeras==0.13.0",
+
+    # Hyperparameter optimization and feature tools
+    "hyperopt==0.2.7",
+    "scikit-optimize==0.10.2",
+    "shap==0.46.0",
+    "pyimpetus==4.1.2",
+    "fitter==1.7.1",
+    "fuzzysearch==0.7.3",
+    # "simbsig",  # Commented out: conflicts with torch 2.x requirement
+
+    # Visualization and notebook integration
+    "matplotlib==3.9.2",
+    "seaborn==0.13.2",
+    "upsetplot==0.9.0",
+    "ipykernel==6.29.5",
+    "ipywidgets==8.1.5",
+    "tabulate==0.9.0",
+    "pydotplus==2.0.2",
+    "graphviz==0.20.3",
+
+    # Other utilities
+    "statsmodels==0.14.4",
+    "pyarrow==18.1.0",
+    "pyyaml==6.0.2",
+    "lxml==5.3.0",
 ]
+
+[project.urls]
+"Homepage" = "https://github.com/SamoraHunter/ml_binary_classification_gridsearch_hyperOpt"
+"Bug Tracker" = "https://github.com/SamoraHunter/ml_binary_classification_gridsearch_hyperOpt/issues"
 
 [project.optional-dependencies]
-# Dependencies for running tests, including notebook tests
 test = [
-    "black",
-    "ruff",
     "pytest",
-    "nbmake",
-    "scikit-optimize",
-    "h2o",
-    "ipywidgets",
-    "nbconvert",
-    "nbformat",
-    "fuzzysearch",
-    "ipykernel",
-    "tensorflow",
-    "scikeras",
-    "keras-applications",
-    "keras-preprocessing",
-    "tensorflow-addons",
-    "tensorflow-estimator",
-    "tensorflow-intel",
-    "tensorboard-plugin-wit"
+    "nbmake==1.4.6",
 ]
-# Additional dependencies for time-series functionality
 ts = [
-    "aeon[dl]",
-    "tensorflow",
-    "scikeras",
+    # Time-series specific libraries
+    "aeon[dl]==0.11.1",
+    # Removed tensorflow-addons: deprecated and incompatible with Python 3.12
     "tsfresh",
-    "tensorflow-probability[tf]",
-    "keras-self-attention",
-    "pmdarima",
-    "prophet",
-    "gluonts",
-    "statsmodels"
+    "tensorflow_probability",
+    "keras-self-attention==0.51.0",
+    "prophet==1.1.3",
+    "pmdarima==2.0.3",
+    "gluonts==0.13.2",
 ]
 
-# Dependencies for building documentation
-docs = [
-    "sphinx",
-    "sphinx-rtd-theme",
-    "myst-parser",
-    "sphinx-autoapi",
-    "myst-nb"
-]
-
-
+# Add this section to fix the package discovery error
 [tool.setuptools.packages.find]
-include = ["ml_grid"]
-
-[tool.black]
-line-length = 88
-target-version = ['py310']
-
-[tool.ruff]
-# Set the maximum line length to match Black.
-line-length = 88
-
-# Enable the Pyflakes (F) and pycodestyle (E, W) rules by default.
-# I for isort for import sorting.
-select = ["E", "F", "W", "I"]
-
-# Exclude a variety of commonly ignored directories.
-exclude = [
-    ".git",
-    ".ruff_cache",
-    ".venv",
-    "__pypackages__",
-    "build",
-    "dist",
-    "ml_grid_env",
-    "ml_grid_ts_env",
-    "venv",
-]
+where = ["."]
+include = ["ml_grid*"]
+exclude = ["assets*", "notebooks*", "*_env*", "tests*", "*.egg-info", "__pycache__"]

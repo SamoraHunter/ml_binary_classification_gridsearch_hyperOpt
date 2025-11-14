@@ -5,6 +5,12 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
+    
+    
+    env:
+      NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ca-certificates.crt
+      SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+      REQUESTS_CA_BUNDLE: /etc/ssl/certs/ca-certificates.crt
 
     steps:
       - name: Check out repository
@@ -25,12 +31,15 @@ jobs:
       - name: Install Act dependencies 
         if: ${{ env.ACT }} 
         run: | 
-          apt-get update && apt-get install sudo -y 
+          apt-get update && apt-get install -y sudo
 
-      - name: Install CA cert tools and trust internal CA
+      - name: Install Runner Dependencies & Configure CA
         run: |
           sudo apt-get update
-          sudo apt-get install -y ca-certificates
+          # Install Node.js (for JS-based actions) & ca-certificates
+          sudo apt-get install -y nodejs ca-certificates
+          
+          # This trusts your mounted certificate (from the act command)
           sudo update-ca-certificates
 
       - name: Install ping utility
@@ -40,7 +49,6 @@ jobs:
 
       - name: Set timezone to UTC
         run: |
-          # Use sudo for all commands to ensure permissions in all runner environments
           sudo ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
           echo "Etc/UTC" | sudo tee /etc/timezone
           sudo apt-get update
@@ -57,37 +65,37 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y default-jre
           
-      - name: Install Python 3.10, Git, and set CA environment
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential    
+
+      - name: Install Python 3.12 and Git
         run: |
           sudo apt-get update
           sudo apt-get install -y lsb-release software-properties-common gnupg curl git
 
-          # Properly and securely add the GPG key for the deadsnakes PPA
+          # --- THIS IS THE GPG KEY FIX ---
+          
           sudo gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys BA6932366A755776
           sudo gpg --export BA6932366A755776 | sudo gpg --dearmor -o /usr/share/keyrings/deadsnakes-archive-keyring.gpg
+          # --- END FIX ---
 
-          # Add the PPA repository, signed by the new key
           echo "deb [signed-by=/usr/share/keyrings/deadsnakes-archive-keyring.gpg] http://ppa.launchpadcontent.net/deadsnakes/ppa/ubuntu $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/deadsnakes-ppa.list
           
           sudo apt-get update
-          sudo apt-get install -y python3.10 python3.10-venv python3.10-distutils
+          sudo apt-get install -y python3.12 python3.12-venv python3.12-dev
 
-          # Set Python 3.10 as default using symbolic links
-          sudo ln -sf /usr/bin/python3.10 /usr/local/bin/python
-          sudo ln -sf /usr/bin/python3.10 /usr/local/bin/python3
+          sudo ln -sf /usr/bin/python3.12 /usr/local/bin/python
+          sudo ln -sf /usr/bin/python3.12 /usr/local/bin/python3
 
           python --version
-          
-          # Set the certificate path for all subsequent steps in the job
-          echo "SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt" >> $GITHUB_ENV
-          echo "REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt" >> $GITHUB_ENV
 
       - name: Setup ML project
         run: |
           cd $GITHUB_WORKSPACE
-          # Make install.sh executable if it isn't already
           chmod +x install.sh
-          # Run the installation script
+          # This 'pip' command will now inherit the job-level 'REQUESTS_CA_BUNDLE'
           ./install.sh
 
       - name: Debug virtual environment

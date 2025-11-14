@@ -22,7 +22,7 @@ from ml_grid.model_classes.H2OStackedEnsembleClassifier import (
 )
 from ml_grid.model_classes.H2OXGBoostClassifier import H2OXGBoostClassifier
 from ml_grid.model_classes.keras_classifier_class import KerasClassifierClass
-from ml_grid.model_classes.knn_wrapper_class import KNNWrapper
+#from ml_grid.model_classes.knn_wrapper_class import KNNWrapper
 from ml_grid.model_classes.NeuralNetworkKerasClassifier import NeuralNetworkClassifier
 from ml_grid.util.global_params import global_parameters
 from ml_grid.util.validate_parameters import validate_parameters_helper
@@ -99,7 +99,7 @@ class HyperparameterSearch:
 
         # Custom wrappers that might not be recognized by is_classifier
         custom_classifier_types = (
-            KNNWrapper,
+            #KNNWrapper,
             H2OAutoMLClassifier,
             H2OGBMClassifier,
             H2ODRFClassifier,
@@ -192,7 +192,7 @@ class HyperparameterSearch:
 
         # Also limit n_jobs for Bayesian search and other specific wrappers to avoid issues.
         is_single_threaded_search = isinstance(
-            self.algorithm, (KNNWrapper, KerasClassifierClass, NeuralNetworkClassifier)
+            self.algorithm, ( KerasClassifierClass, NeuralNetworkClassifier) #KNNWrapper,
         )
 
         if is_h2o_model or is_single_threaded_search or bayessearch:

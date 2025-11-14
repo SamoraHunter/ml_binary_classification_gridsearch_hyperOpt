@@ -23,14 +23,42 @@ jobs:
   # Build job: builds the documentation and uploads it as an artifact.
   build:
     runs-on: ubuntu-latest
+    # Set ENV vars at the job level to be inherited by all steps, including actions
+    env:
+      NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ca-certificates.crt
+      SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+      REQUESTS_CA_BUNDLE: /etc/ssl/certs/ca-certificates.crt
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Install Act dependencies FIRST (before any apt-get commands)
+      - name: Install Act dependencies 
+        if: ${{ env.ACT }} 
+        run: | 
+          # Ensure apt-get is available and install sudo for 'act' environments
+          if ! command -v apt-get &> /dev/null; then
+            echo "apt-get not found, cannot proceed"
+            exit 1
+          fi
+          # Install apt-utils first to avoid debconf warnings, then sudo
+          DEBIAN_FRONTEND=noninteractive apt-get update && \
+          DEBIAN_FRONTEND=noninteractive apt-get install -y apt-utils sudo
+
+      - name: Install Runner Dependencies & Configure CA
+        run: |
+          sudo apt-get update
+          # Install lsb-release, Node.js, and ca-certificates all at once
+          DEBIAN_FRONTEND=noninteractive sudo apt-get install -y lsb-release nodejs ca-certificates
+          
+          # Trust your mounted certificate (from the act command)
+          sudo update-ca-certificates
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.12.3'
           cache: 'pip'
 
       - name: Install dependencies
@@ -52,7 +80,21 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    env:
+      NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ca-certificates.crt
+      
     steps:
+      - name: Install Act dependencies 
+        if: ${{ env.ACT }} 
+        run: | 
+          apt-get update && apt-get install -y sudo
+
+      - name: Install Runner Dependencies & Configure CA
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nodejs ca-certificates
+          sudo update-ca-certificates
+          
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
@@ -62,7 +104,21 @@ jobs:
     needs: build
     if: ${{ vars.IS_GITEA == 'true' }}
     runs-on: ubuntu-latest
+    env:
+      NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ca-certificates.crt
+
     steps:
+      - name: Install Act dependencies 
+        if: ${{ env.ACT }} 
+        run: | 
+          apt-get update && apt-get install -y sudo
+
+      - name: Install Runner Dependencies & Configure CA
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nodejs ca-certificates
+          sudo update-ca-certificates
+
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
