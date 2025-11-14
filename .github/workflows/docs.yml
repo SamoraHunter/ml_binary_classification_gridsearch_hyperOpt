@@ -65,7 +65,7 @@ jobs:
           cache: 'pip'
 
       - name: Install dependencies
-        run: pip install -e .[docs]
+        run: pip install .[docs]
 
       - name: Verify PyTorch installation
         run: |
