@@ -28,6 +28,9 @@ jobs:
       NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ca-certificates.crt
       SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
       REQUESTS_CA_BUNDLE: /etc/ssl/certs/ca-certificates.crt
+      # Use CPU-only PyTorch to save disk space
+      PIP_EXTRA_INDEX_URL: https://download.pytorch.org/whl/cpu
+      TORCH_CPU_ONLY: "true"
     
     steps:
       - name: Checkout repository
@@ -63,6 +66,10 @@ jobs:
 
       - name: Install dependencies
         run: pip install -e .[docs]
+
+      - name: Verify PyTorch installation
+        run: |
+          python -c "import torch; print(f'PyTorch version: {torch.__version__}'); print(f'CUDA available: {torch.cuda.is_available()}')"
 
       - name: Build documentation
         run: sphinx-build -b html docs/source docs/build
