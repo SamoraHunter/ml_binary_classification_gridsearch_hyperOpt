@@ -19,6 +19,14 @@ jobs:
       - name: Set environment variables
         run: |
           echo "DEBIAN_FRONTEND=noninteractive" >> $GITHUB_ENV
+          
+          # Detect if running on GitHub Actions (not Gitea or act)
+          if [[ "${{ github.server_url }}" == "https://github.com" ]] && [[ -z "${{ env.ACT }}" ]]; then
+            echo "Running on GitHub - using CPU-only PyTorch"
+            echo "PIP_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cpu" >> $GITHUB_ENV
+            echo "TORCH_CPU_ONLY=true" >> $GITHUB_ENV
+          fi
+          
           if [[ "${{ vars.IS_GITEA }}" == "true" ]]; then
             echo "Setting thread limits for Gitea runner"
             echo "OMP_NUM_THREADS=1" >> $GITHUB_ENV
@@ -95,7 +103,7 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE
           chmod +x install.sh
-          # This 'pip' command will now inherit the job-level 'REQUESTS_CA_BUNDLE'
+          # The install.sh will use PIP_EXTRA_INDEX_URL if set for CPU-only PyTorch
           ./install.sh
 
       - name: Debug virtual environment
@@ -105,6 +113,9 @@ jobs:
           source "$VENV_PATH/bin/activate"
           which python
           python --version
+          
+          # Verify PyTorch installation type
+          python -c "import torch; print(f'PyTorch version: {torch.__version__}'); print(f'CUDA available: {torch.cuda.is_available()}')"
 
       - name: Run tests
         run: |
