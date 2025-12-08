@@ -521,7 +521,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             raise RuntimeError(f"H2O prediction failed: {e}")
 
         # Extract predictions
-        pred_df = predictions.as_data_frame(use_multi_thread=True)
+        pred_df = predictions.as_data_frame(use_multi_thread=False)
         if "predict" in pred_df.columns:
             return pred_df["predict"].values.ravel()
         else:
@@ -580,7 +580,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             raise RuntimeError(f"H2O prediction failed: {e}")
 
         # Extract probabilities (drop the 'predict' column)
-        prob_df = predictions.drop("predict").as_data_frame(use_multi_thread=True)
+        prob_df = predictions.drop("predict").as_data_frame(use_multi_thread=False)
         return prob_df.values
 
     def _ensure_model_is_loaded(self):
