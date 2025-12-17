@@ -636,8 +636,7 @@ class pipe:
             target_n_features_eval = int(
                 (target_n_features / 100) * self.X_train.shape[1]
             )
-            # Ensure at least one feature is selected. The previous logic here
-            # was incorrect and disabled feature selection entirely.
+            # Ensure at least one feature is requested
             target_n_features_eval = max(1, target_n_features_eval)
 
         if (
@@ -651,19 +650,27 @@ class pipe:
             self.logger.info(
                 f"Shape of X_train before feature importance selection: {self.X_train.shape}"
             )
-
             self.logger.info(
                 f"Pre target_n_features {target_n_features}% reduction {target_n_features_eval}/{self.X_train.shape[1]}"
             )
-            try:
 
+            # --- STEP 1: Snapshot Valid Data State ---
+            # We save references to the current valid dataframes so we can revert
+            # if the selection process returns garbage (empty data).
+            X_train_backup = self.X_train
+            y_train_backup = self.y_train
+            X_test_backup = self.X_test
+            y_test_backup = self.y_test
+            X_test_orig_backup = self.X_test_orig
+
+            try:
                 fim = feature_importance_methods()
                 (
-                    self.X_train,
-                    self.y_train,
-                    self.X_test,
-                    self.y_test,
-                    self.X_test_orig,
+                    X_train_new,
+                    y_train_new,
+                    X_test_new,
+                    y_test_new,
+                    X_test_orig_new,
                 ) = fim.handle_feature_importance_methods(
                     target_n_features_eval,
                     X_train=self.X_train,
@@ -673,37 +680,52 @@ class pipe:
                     X_test_orig=self.X_test_orig,
                     ml_grid_object=self,
                 )
-                self._log_feature_transformation(
-                    "Feature Importance",
-                    features_before,
-                    self.X_train.shape[1],
-                    f"Selected top {target_n_features}% features using {fim.feature_method}.",
-                )
+
+                # --- STEP 2: Validate the Result ---
+                if X_train_new.shape[1] == 0:
+                    # If selection wiped everything out, Trigger the fallback
+                    self.logger.warning(
+                        "Feature importance selection removed ALL features. Reverting to original feature set."
+                    )
+                    # Implicitly keeps the backup data (by NOT overwriting self.X_train)
+                else:
+                    # Success: Apply the new data
+                    self.X_train = X_train_new
+                    self.y_train = y_train_new
+                    self.X_test = X_test_new
+                    self.y_test = y_test_new
+                    self.X_test_orig = X_test_orig_new
+
+                    self._log_feature_transformation(
+                        "Feature Importance",
+                        features_before,
+                        self.X_train.shape[1],
+                        f"Selected top {target_n_features}% features using {fim.feature_method}.",
+                    )
+                    self.logger.info(
+                        f"Shape of X_train after feature importance selection: {self.X_train.shape}"
+                    )
+
                 self._assert_index_alignment(
                     self.X_train,
                     self.y_train,
                     "After feature selection and y_train reset",
                 )
 
-                self.logger.info(
-                    f"Shape of X_train after feature importance selection: {self.X_train.shape}"
-                )
-
-                if self.X_train.shape[1] == 0:
-                    raise ValueError(
-                        "Feature importance selection removed all features."
-                    )
-
-                # Safeguard: Ensure X_train is not empty after feature selection
-                if self.X_train.shape[1] == 0:
-                    raise ValueError(
-                        "All features were removed by the feature importance selection method. X_train is empty."
-                    )
-
             except Exception as e:
+                # --- STEP 3: Restore State on Error ---
                 self.logger.error(
                     f"Feature importance selection failed: {e}", exc_info=True
                 )
+                self.logger.warning("Reverting to pre-selection features due to error.")
+                
+                # Explicitly ensure we are pointing to the valid backups
+                self.X_train = X_train_backup
+                self.y_train = y_train_backup
+                self.X_test = X_test_backup
+                self.y_test = y_test_backup
+                self.X_test_orig = X_test_orig_backup
+
         self._assert_index_alignment(
             self.X_train, self.y_train, "After feature selection block"
         )
