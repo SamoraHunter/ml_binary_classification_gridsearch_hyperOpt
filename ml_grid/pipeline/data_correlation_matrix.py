@@ -41,7 +41,7 @@ def handle_correlation_matrix(
     # Convert data to float32
     data = df_numeric.values.astype(np.float32)
 
-    # --- IMPROVED GPU DETECTION & SAFETY ---
+    # --- GPU DETECTION & SAFETY ---
     use_gpu = False
     try:
         import cupy as cp
