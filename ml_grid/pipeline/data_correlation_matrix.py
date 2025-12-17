@@ -41,26 +41,42 @@ def handle_correlation_matrix(
     # Convert data to float32
     data = df_numeric.values.astype(np.float32)
 
-    # --- GPU DETECTION & SAFETY ---
+    # --- IMPROVED GPU DETECTION & SAFETY ---
     use_gpu = False
     try:
         import cupy as cp
+        
+        # Check if CUDA is available first (before trying to access device)
+        if not cp.cuda.is_available():
+            logger.info("No CUDA-capable GPU detected. Using CPU.")
+        else:
+            # Now safe to access device properties
+            try:
+                device = cp.cuda.Device()
+                free_mem, total_mem = device.mem_info
+                req_mem = (data.shape[1] ** 2) * 4  # 4 bytes per float32
 
-        if cp.cuda.is_available():
-            free_mem = cp.cuda.Device().mem_info[0]
-            req_mem = (data.shape[1] ** 2) * 4  # 4 bytes per float32
-
-            if free_mem > req_mem * 1.2:
-                use_gpu = True
-                logger.info(
-                    f"GPU Detected: {cp.cuda.Device().name}. Free VRAM: {free_mem/1e9:.2f} GB."
-                )
-            else:
-                logger.warning(
-                    "GPU detected but insufficient VRAM. Falling back to CPU."
-                )
+                if free_mem > req_mem * 1.2:
+                    use_gpu = True
+                    logger.info(
+                        f"GPU Enabled: {device.compute_capability}. "
+                        f"Free VRAM: {free_mem/1e9:.2f} GB / {total_mem/1e9:.2f} GB"
+                    )
+                else:
+                    logger.warning(
+                        f"GPU detected but insufficient VRAM. "
+                        f"Required: {req_mem/1e9:.2f} GB, Available: {free_mem/1e9:.2f} GB. "
+                        f"Falling back to CPU."
+                    )
+            except cp.cuda.runtime.CUDARuntimeError as cuda_err:
+                logger.info(f"CUDA runtime error (using CPU): {cuda_err}")
+            except Exception as device_err:
+                logger.info(f"Could not access GPU device (using CPU): {device_err}")
+                
+    except ImportError:
+        logger.info("CuPy not installed. Using CPU-only mode.")
     except Exception as e:
-        logger.warning(f"GPU acceleration unavailable (falling back to CPU): {e}")
+        logger.info(f"GPU initialization failed (using CPU): {e}")
         use_gpu = False
     # -----------------------------
 
