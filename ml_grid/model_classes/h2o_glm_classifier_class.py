@@ -1,111 +1,112 @@
-"""H2O Generalized Linear Model (GLM) Classifier.
-
-This module contains the H2O_GLM_class, which is a configuration class for
-the H2OGLMClassifier. It provides parameter spaces for grid search and
-Bayesian optimization.
-"""
-
-import logging
-from typing import Any, Dict, List, Optional, Union
-
+import numpy as np
 import pandas as pd
-from skopt.space import Integer, Real
+from h2o.estimators import H2OGeneralizedLinearEstimator
 
-from ml_grid.model_classes.H2OGLMClassifier import H2OGLMClassifier
-from ml_grid.util.global_params import global_parameters
+# Removing skopt imports to prevent the ParameterGrid TypeError
+# from skopt.space import Real, Categorical, Integer
 
-logger = logging.getLogger(__name__)
-logger.debug("Imported h2o_glm_classifier_class")
+from .H2OBaseClassifier import H2OBaseClassifier
 
-# Define parameter spaces outside the class for better organization and reusability.
-PARAM_SPACE_GRID: Dict[str, Dict[str, List[Union[int, float]]]] = {
-    "xsmall": {
-        "alpha": [0.5],
-        "lambda_": [1e-4],
-        "seed": [1],
-    },
-    "small": {
-        "alpha": [0.0, 0.2, 0.5, 0.8, 1.0],
-        "lambda_": [1e-5, 1e-4, 1e-3, 1e-2, 0.1],
-        "seed": [1, 42],
-    },
-    "medium": {
-        "alpha": [0.0, 0.25, 0.5, 0.75, 1.0],
-        "lambda_": [1e-5, 1e-4, 1e-3, 1e-2],
-        "seed": [1, 42, 123],
-    },
-}
 
-PARAM_SPACE_BAYES: Dict[str, Dict[str, Union[Integer, Real]]] = {
-    "xsmall": {
-        "alpha": Real(0.4, 0.6),
-        "lambda_": Real(1e-5, 1e-3, "log-uniform"),
-        "seed": Integer(1, 100),
-    },
-    "small": {
-        "alpha": Real(0.0, 1.0),  # Mix between L1 and L2
-        "lambda_": Real(1e-8, 1.0, "log-uniform"),  # Regularization strength
-        "seed": Integer(1, 1000),
-    },
-    "medium": {
-        "alpha": Real(0.0, 1.0),
-        "lambda_": Real(1e-8, 1.0, "log-uniform"),
-        "seed": Integer(1, 2000),
-    },
-}
+class H2OGLMClassifier(H2OBaseClassifier):
+    """
+    The actual scikit-learn compatible wrapper for H2O's Generalized Linear Models.
+    This class handles the training, prediction, and H2O interaction.
+    """
+
+    def __init__(self, **kwargs):
+        """Initializes the H2OGLMClassifier."""
+
+        # --- FIX 1: Normalize lambda parameter name ---
+        if "lambda" in kwargs and "lambda_" not in kwargs:
+            kwargs["lambda_"] = kwargs.pop("lambda")
+
+        kwargs.pop("estimator_class", None)
+
+        # --- DEFENSIVE DEFAULTS ---
+        kwargs.setdefault("standardize", True)
+
+        # --- CRITICAL FIXES FOR STABILITY ---
+        # We set these here for clarity, but the real enforcement happens in _prepare_fit
+        kwargs["solver"] = "L_BFGS"
+        kwargs["remove_collinear_columns"] = False
+        kwargs["lambda_search"] = False
+
+        # Pass the specific estimator class
+        super().__init__(estimator_class=H2OGeneralizedLinearEstimator, **kwargs)
+
+    def _prepare_fit(self, X, y):
+        """
+        Intercepts the parameter preparation to ENFORCE stability settings.
+        This runs immediately BEFORE the H2O model is initialized/trained.
+        """
+        # Get the standard parameters from the base class
+        train_h2o, x_vars, outcome_var, model_params = super()._prepare_fit(X, y)
+
+        # --- STRICT OVERRIDE (The "Triple-Lock") ---
+        # Regardless of what GridSearch/HyperOpt requested, we force these values
+        # to prevent the Java Backend Crash (NullPointerException).
+
+        # 1. Force L_BFGS: The only solver robust against the index mismatch bug on this data
+        model_params["solver"] = "L_BFGS"
+
+        # 2. Disable Collinear Removal: This prevents the coefficient vector size change
+        model_params["remove_collinear_columns"] = False
+
+        # 3. Disable Lambda Search: If True, H2O ignores 'solver' and uses Coordinate Descent
+        model_params["lambda_search"] = False
+
+        self.logger.info(
+            f"H2OGLMClassifier: Enforced stability params: solver={model_params['solver']}, lambda_search={model_params['lambda_search']}"
+        )
+
+        return train_h2o, x_vars, outcome_var, model_params
+
+    def fit(self, X: pd.DataFrame, y: pd.Series, **kwargs) -> "H2OGLMClassifier":
+        """Fits the H2O GLM model."""
+        # The override logic is now handled in _prepare_fit, called by super().fit()
+        super().fit(X, y, **kwargs)
+        return self
 
 
 class H2O_GLM_class:
-    """A configuration class for the H2OGLMClassifier.
-
-    This class provides parameter spaces for grid search and Bayesian
-    optimization. The H2OGLMClassifier is instantiated with `family='binomial'`
-    for binary classification tasks.
-
-    Attributes:
-        X (Optional[pd.DataFrame]): The input features.
-        y (Optional[pd.Series]): The target variable.
-        algorithm_implementation (H2OGLMClassifier): An instance of the
-            classifier.
-        method_name (str): The name of the method, "H2OGLMClassifier".
-        parameter_space (Union[List[Dict[str, Any]], Dict[str, Any]]): The
-            hyperparameter search space.
+    """
+    The Model Definition class used by the Grid Search framework.
     """
 
-    def __init__(
-        self,
-        X: Optional[pd.DataFrame] = None,
-        y: Optional[pd.Series] = None,
-        parameter_space_size: str = "small",
-    ) -> None:
-        """Initializes the H2O_GLM_class.
+    def __init__(self, X=None, y=None, parameter_space_size="small"):
+        self.method_name = "H2OGLMClassifier"
 
-        Args:
-            X (Optional[pd.DataFrame]): The input features.
-            y (Optional[pd.Series]): The target variable.
-            parameter_space_size (str): The size of the parameter space to use
-                ('xsmall', 'small', 'medium'). Defaults to 'small'.
+        # Instantiate the actual estimator wrapper
+        self.algorithm_implementation = H2OGLMClassifier()
 
-        Raises:
-            ValueError: If `parameter_space_size` is not a valid key.
-        """
-        self.X: Optional[pd.DataFrame] = X
-        self.y: Optional[pd.Series] = y
-        # For binary classification, it's crucial to set family='binomial'
-        self.algorithm_implementation = H2OGLMClassifier(family="binomial")
-        self.method_name: str = "H2OGLMClassifier"
+        # Define the Hyperparameter Space
+        # FIX: Converted skopt distributions (Real, Categorical) to Lists
+        # to ensure compatibility with sklearn.model_selection.ParameterGrid
 
-        if parameter_space_size not in PARAM_SPACE_GRID:
-            raise ValueError(
-                f"Invalid parameter_space_size: '{parameter_space_size}'. "
-                f"Must be one of {list(PARAM_SPACE_GRID.keys())}"
-            )
-
-        if global_parameters.bayessearch:
-            self.parameter_space: Dict[str, Any] = PARAM_SPACE_BAYES[
-                parameter_space_size
-            ]
+        if parameter_space_size == "xsmall":
+            self.parameter_space = {
+                "alpha": [0.0, 0.5, 1.0],
+                "lambda_": [1e-3, 1e-2, 1e-1],
+                "family": ["binomial"],
+                "solver": ["L_BFGS"],
+                "standardize": [True],
+            }
+        elif parameter_space_size == "small":
+            self.parameter_space = {
+                "alpha": [0.0, 0.25, 0.5, 0.75, 1.0],
+                "lambda_": np.logspace(-4, -1, 5).tolist(),
+                "family": ["binomial"],
+                "solver": ["L_BFGS"],
+                "standardize": [True],
+            }
         else:
-            self.parameter_space: List[Dict[str, Any]] = [
-                PARAM_SPACE_GRID[parameter_space_size]
-            ]
+            # Medium/Large space
+            self.parameter_space = {
+                "alpha": [0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0],
+                "lambda_": np.logspace(-6, 1, 8).tolist(),
+                "family": ["binomial"],
+                "solver": ["L_BFGS"],
+                "standardize": [True, False],
+                "balance_classes": [True, False],
+            }
