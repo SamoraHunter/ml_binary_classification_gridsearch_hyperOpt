@@ -132,9 +132,9 @@ def test_h2o_model_execution(pipeline_config, model_to_test, h2o_session_fixture
         #     f"The pipeline for {model_to_test} should execute without any model errors."
         # )
         model_errors, highest_score = run_instance.execute()
-        assert len(model_errors) == 0, (
-            f"The pipeline for {model_to_test} should execute without any model errors."
-        )
+        assert (
+            len(model_errors) == 0
+        ), f"The pipeline for {model_to_test} should execute without any model errors."
     except Exception as e:
         pytest.fail(
             f"The `run.execute()` method for {model_to_test} raised an "

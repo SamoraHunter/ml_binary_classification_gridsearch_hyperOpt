@@ -718,7 +718,7 @@ class pipe:
                     f"Feature importance selection failed: {e}", exc_info=True
                 )
                 self.logger.warning("Reverting to pre-selection features due to error.")
-                
+
                 # Explicitly ensure we are pointing to the valid backups
                 self.X_train = X_train_backup
                 self.y_train = y_train_backup

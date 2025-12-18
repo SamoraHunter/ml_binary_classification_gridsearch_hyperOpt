@@ -54,7 +54,6 @@ class NeuralNetworkClassifier_class:
 
         self.parameter_space: Union[List[Dict[str, Any]], Dict[str, Any]]
 
-
         from ml_grid.util.global_params import global_parameters
 
         if global_parameters.bayessearch:

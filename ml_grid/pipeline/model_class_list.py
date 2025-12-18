@@ -35,11 +35,14 @@ from ml_grid.model_classes.h2o_stackedensemble_classifier_class import (
 )
 from ml_grid.model_classes.h2o_xgboost_classifier_class import H2O_XGBoost_class
 from ml_grid.model_classes.knn_classifier_class import KNeighborsClassifierClass
-#from ml_grid.model_classes.knn_gpu_classifier_class import KNNGpuWrapperClass
+
+# from ml_grid.model_classes.knn_gpu_classifier_class import KNNGpuWrapperClass
 from ml_grid.model_classes.keras_classifier_class import KerasClassifierClass
 from ml_grid.model_classes.light_gbm_class import LightGBMClassifierWrapper
 from ml_grid.model_classes.logistic_regression_class import LogisticRegressionClass
-from ml_grid.model_classes.mlp_classifier_class import MLPClassifierClass as MLPClassifierClass
+from ml_grid.model_classes.mlp_classifier_class import (
+    MLPClassifierClass as MLPClassifierClass,
+)
 from ml_grid.model_classes.NeuralNetworkClassifier_class import (
     NeuralNetworkClassifier_class,
 )
@@ -75,10 +78,10 @@ MODEL_CLASS_MAP = {
     "MLPClassifierClass": MLPClassifierClass,
     "QuadraticDiscriminantAnalysisClass": QuadraticDiscriminantAnalysisClass,
     "SVCClass": SVCClass,
-    "NeuralNetworkClassifier_class": NeuralNetworkClassifier_class, # Corrected mapping
+    "NeuralNetworkClassifier_class": NeuralNetworkClassifier_class,  # Corrected mapping
     # GPU specific
     "KerasClassifierClass": KerasClassifierClass,
-    #"KNNGpuWrapperClass": KNNGpuWrapperClass, #deprecated by python 3.12 and simsig dependency
+    # "KNNGpuWrapperClass": KNNGpuWrapperClass, #deprecated by python 3.12 and simsig dependency
     # H2O Models
     "H2O_class": H2OAutoMLClass,  # Alias for AutoML
     "H2OAutoMLClass": H2OAutoMLClass,
@@ -147,7 +150,7 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
             "LightGBMClassifierWrapper": True,
             "AdaBoostClassifierClass": True,
             "KerasClassifierClass": gpu_available,
-            #"KNNGpuWrapperClass": gpu_available, #deprecated
+            # "KNNGpuWrapperClass": gpu_available, #deprecated
             "NeuralNetworkClassifier_class": False,  # NNI based,
             "TabTransformerClass": False,  # PyTorch based
             "H2OAutoMLClass": False,  # H2O AutoML
@@ -169,7 +172,7 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
         )
         models_to_disable = [
             "KerasClassifierClass",
-            #"KNNGpuWrapperClass",
+            # "KNNGpuWrapperClass",
             "H2OAutoMLClass",
             "H2O_GBM_class",
             "H2O_DRF_class",
@@ -198,10 +201,10 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
                     f"Skipping '{class_name}' because it requires a GPU, but no CUDA-enabled GPU is available."
                 )
                 continue
-            
+
             # Look up the class in our explicit mapping dictionary
             model_class = MODEL_CLASS_MAP.get(class_name)
-            
+
             if model_class is None:
                 raise KeyError(
                     f"Could not find model class '{class_name}' in MODEL_CLASS_MAP. "

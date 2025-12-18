@@ -52,7 +52,7 @@ def get_data_split(
     class_counts = y.value_counts()
     min_class_count = class_counts.min()
     use_stratify = min_class_count >= 2
-    
+
     if not use_stratify:
         logger.warning(
             f"Cannot use stratified split: smallest class has only {min_class_count} sample(s). "
@@ -60,7 +60,9 @@ def get_data_split(
         )
         # Also disable resampling since we can't properly balance with so few samples
         if local_param_dict.get("resample") is not None:
-            logger.warning("Disabling resampling due to insufficient samples in minority class.")
+            logger.warning(
+                "Disabling resampling due to insufficient samples in minority class."
+            )
             local_param_dict["resample"] = None
 
     # First, split into a preliminary training set and a final hold-out test set.
@@ -116,7 +118,7 @@ def get_data_split(
     train_class_counts = y_train_processed.value_counts()
     min_train_class_count = train_class_counts.min()
     use_stratify_second = min_train_class_count >= 2
-    
+
     if not use_stratify_second:
         logger.warning(
             f"Cannot use stratified split for train/validation: smallest class has only "

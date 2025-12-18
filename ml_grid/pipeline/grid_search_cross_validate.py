@@ -1,20 +1,15 @@
 import time
-import traceback
 import logging
 import warnings
 from typing import Any, Dict, List, Optional, Union
 
-import keras
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 import torch
 from IPython.display import clear_output
-from numpy import absolute, mean, std
 from scikeras.wrappers import KerasClassifier
 from sklearn import metrics
-from IPython.display import display
-from catboost import CatBoostError
 from pandas.testing import assert_index_equal
 from xgboost.core import XGBoostError
 from ml_grid.model_classes.H2OAutoMLClassifier import H2OAutoMLClassifier
@@ -34,17 +29,8 @@ from ml_grid.model_classes.NeuralNetworkKerasClassifier import NeuralNetworkClas
 # from sklearn.utils.testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.metrics import *
-from sklearn.metrics import (
-    classification_report,
-    f1_score,
-    make_scorer,
-    matthews_corrcoef,
-    roc_auc_score,
-)
 from sklearn.model_selection import (
-    GridSearchCV,
     ParameterGrid,
-    RandomizedSearchCV,
     RepeatedKFold,
     KFold,
     cross_validate,
@@ -57,7 +43,7 @@ from ml_grid.util.global_params import global_parameters
 from ml_grid.util.project_score_save import project_score_save_class
 from ml_grid.util.validate_parameters import validate_parameters_helper
 from sklearn.preprocessing import MinMaxScaler
-from ml_grid.util.bayes_utils import calculate_combinations, is_skopt_space
+from ml_grid.util.bayes_utils import is_skopt_space
 from skopt.space import Categorical
 
 
@@ -447,9 +433,7 @@ class grid_search_crossvalidate:
         # Define default scores (e.g., mean score of 0.5 for binary classification)
         # Default scores if cross-validation fails
         default_scores = {
-            "test_accuracy": [
-                0.5  # Default to random classifier performance
-            ],
+            "test_accuracy": [0.5],  # Default to random classifier performance
             "test_f1": [0.5],  # Default F1 score (again, 0.5 for random classification)
             "test_auc": [0.5],  # Default ROC AUC score (0.5 for random classifier)
             "fit_time": [0],  # No fitting time if the model fails

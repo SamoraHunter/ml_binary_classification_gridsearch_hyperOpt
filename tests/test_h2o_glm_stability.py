@@ -1,6 +1,5 @@
 import logging
 import pytest
-import pandas as pd
 import h2o
 from ml_grid.model_classes.h2o_glm_classifier_class import H2OGLMClassifier
 from ml_grid.util.synthetic_data_generator import generate_synthetic_data

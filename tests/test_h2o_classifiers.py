@@ -7,9 +7,6 @@ from sklearn.model_selection import KFold, cross_val_score
 
 # --- Import Model Classes ---
 from ml_grid.model_classes.h2o_classifier_class import H2OAutoMLClass
-from ml_grid.model_classes.h2o_deeplearning_classifier_class import (
-    H2O_DeepLearning_class,
-)
 from ml_grid.model_classes.h2o_drf_classifier_class import H2ODRFClass as H2O_DRF_class
 
 # Corrected Import for GAM
@@ -24,7 +21,6 @@ from ml_grid.model_classes.h2o_naive_bayes_classifier_class import (
 from ml_grid.model_classes.h2o_rulefit_classifier_class import (
     H2ORuleFitClass as H2O_RuleFit_class,
 )
-from ml_grid.model_classes.h2o_xgboost_classifier_class import H2O_XGBoost_class
 
 from ml_grid.pipeline.grid_search_cross_validate import grid_search_crossvalidate
 from ml_grid.util.global_params import global_parameters

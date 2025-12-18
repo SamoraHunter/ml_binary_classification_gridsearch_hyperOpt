@@ -1,7 +1,6 @@
-import numpy as np
 import pandas as pd
 from h2o.estimators import H2OGeneralizedLinearEstimator
-from skopt.space import Real, Categorical, Integer
+from skopt.space import Real, Categorical
 
 from .H2OBaseClassifier import H2OBaseClassifier
 

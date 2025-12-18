@@ -6,8 +6,8 @@ from typing import Any, Dict
 from sklearn.neighbors import KNeighborsClassifier
 from xgboost import XGBClassifier
 
-#from ml_grid.model_classes.knn_gpu_classifier_class import KNNGpuWrapperClass
-#from ml_grid.model_classes.knn_wrapper_class import KNNWrapper
+# from ml_grid.model_classes.knn_gpu_classifier_class import KNNGpuWrapperClass
+# from ml_grid.model_classes.knn_wrapper_class import KNNWrapper
 
 
 def validate_knn_parameters(

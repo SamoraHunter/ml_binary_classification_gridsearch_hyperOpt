@@ -5,6 +5,7 @@ import pandas as pd
 
 from ml_grid.pipeline.data_feature_methods import feature_methods
 
+
 class feature_importance_methods:
     """A class to handle feature selection using different importance methods."""
 
@@ -47,7 +48,7 @@ class feature_importance_methods:
         """
 
         logger = logging.getLogger("ml_grid")
-        
+
         # Work with copies to avoid modifying the original DataFrames in the calling scope
         X_train_copy = X_train.copy()
         X_test_copy = X_test.copy()
@@ -56,7 +57,7 @@ class feature_importance_methods:
         self.feature_method = ml_grid_object.local_param_dict.get(
             "feature_selection_method"
         )
-        
+
         # Default to all features initially
         features = list(X_train_copy.columns)
 
@@ -75,14 +76,14 @@ class feature_importance_methods:
             )
 
         logger.info(f"target_n_features: {target_n_features}")
-        
+
         # --- Column Validation ---
         # Filter the requested 'features' to ensure they actually exist in the DataFrame.
-        # This handles cases where selectors return indices, 'ColumnX' names, or 
+        # This handles cases where selectors return indices, 'ColumnX' names, or
         # names that were dropped/renamed in previous pipeline steps.
-        
+
         valid_features = [f for f in features if f in X_train_copy.columns]
-        
+
         if len(valid_features) == 0:
             logger.warning(
                 f"Feature selection ({self.feature_method}) returned 0 valid features. "
@@ -91,13 +92,15 @@ class feature_importance_methods:
             )
             valid_features = list(X_train_copy.columns)
         elif len(valid_features) < len(features):
-             logger.warning(
-                 f"{len(features) - len(valid_features)} selected features were not found in X_train columns. Dropped invalid keys."
-             )
+            logger.warning(
+                f"{len(features) - len(valid_features)} selected features were not found in X_train columns. Dropped invalid keys."
+            )
 
-        logger.info(f"Final selected features ({len(valid_features)}): {valid_features}")
+        logger.info(
+            f"Final selected features ({len(valid_features)}): {valid_features}"
+        )
 
-        # Apply the validated selection 
+        # Apply the validated selection
         X_train_out = X_train_copy[valid_features]
         X_test_out = X_test_copy[valid_features]
         X_test_orig_out = X_test_orig_copy[valid_features]

@@ -1,4 +1,3 @@
-
 import pandas as pd
 from h2o.estimators import H2ODeepLearningEstimator
 from skopt.space import Categorical, Integer, Real

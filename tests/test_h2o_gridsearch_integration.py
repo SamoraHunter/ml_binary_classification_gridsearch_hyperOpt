@@ -202,7 +202,7 @@ def test_h2o_slow_models(
     X_df = pd.DataFrame(X)
     y_series = pd.Series(y)
     instance = model_class(X=X_df, y=y_series, parameter_space_size="small")
-    mock_ml_grid_object = MockMlGridObject( # noqa: F841
+    mock_ml_grid_object = MockMlGridObject(  # noqa: F841
         X_df, y_series, search_strategy=search_strategy
     )
 

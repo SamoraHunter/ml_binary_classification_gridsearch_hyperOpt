@@ -7,7 +7,6 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 
 from ml_grid.model_classes.H2OGAMClassifier import H2OGAMClassifier
-from ml_grid.model_classes.h2o_gam_classifier_class import H2OGAMClass
 
 
 @pytest.fixture(scope="module")

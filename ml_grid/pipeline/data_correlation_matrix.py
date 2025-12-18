@@ -45,7 +45,7 @@ def handle_correlation_matrix(
     use_gpu = False
     try:
         import cupy as cp
-        
+
         # Check if CUDA is available first (before trying to access device)
         if not cp.cuda.is_available():
             logger.info("No CUDA-capable GPU detected. Using CPU.")
@@ -72,7 +72,7 @@ def handle_correlation_matrix(
                 logger.info(f"CUDA runtime error (using CPU): {cuda_err}")
             except Exception as device_err:
                 logger.info(f"Could not access GPU device (using CPU): {device_err}")
-                
+
     except ImportError:
         logger.info("CuPy not installed. Using CPU-only mode.")
     except Exception as e:
