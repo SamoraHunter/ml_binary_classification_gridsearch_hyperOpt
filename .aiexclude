@@ -1,0 +1,18 @@
+# Python Environments
+*_env/
+venv/
+.venv/
+env/
+ml_grid_env/
+
+# Data and Cache
+__pycache__/
+.ipynb_checkpoints/
+*.pyc
+.git/
+
+# Large Data Files (Gemini chokes on these)
+*.csv
+*.json
+*.tsv
+*.log
