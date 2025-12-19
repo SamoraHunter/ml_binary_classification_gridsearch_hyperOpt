@@ -34,32 +34,26 @@ class H2OGLMClassifier(H2OBaseClassifier):
         # Pass the specific estimator class
         super().__init__(estimator_class=H2OGeneralizedLinearEstimator, **kwargs)
 
+    def _prepare_fit(self, X, y):
+        """
+        Intercepts the parameter preparation to ENFORCE stability settings.
+        This runs immediately BEFORE the H2O model is initialized/trained.
+        """
+        # Get the standard parameters from the base class
+        train_h2o, x_vars, outcome_var, model_params = super()._prepare_fit(X, y)
+
+        # --- STRICT OVERRIDE ---
+        # Force L_BFGS: The only solver robust against the index mismatch bug on this data
+        model_params["solver"] = "L_BFGS"
+        model_params["remove_collinear_columns"] = False
+        model_params["lambda_search"] = False
+
+        return train_h2o, x_vars, outcome_var, model_params
+
     def fit(self, X: pd.DataFrame, y: pd.Series, **kwargs) -> "H2OGLMClassifier":
         """Fits the H2O GLM model."""
-
-        # --- DOUBLE-LOCK: Enforce stable parameters at fit time ---
-        # GridSearch calls set_params() which might overwrite our safe defaults.
-        # We explicitly revert them here before training.
-
-        kwargs["solver"] = "L_BFGS"
-        kwargs["remove_collinear_columns"] = False
-        kwargs["lambda_search"] = False
-
-        # Update internal H2O parameter dictionary if it exists
-        if hasattr(self, "_parms"):
-            self._parms["solver"] = "L_BFGS"
-            self._parms["remove_collinear_columns"] = False
-            self._parms["lambda_search"] = False
-
-        # Proceed with standard fit
+        # The override logic is now handled in _prepare_fit, called by super().fit()
         super().fit(X, y, **kwargs)
-
-        # 3. TRIPLE-LOCK: Ensure the internal model object respects this
-        if hasattr(self, "model_") and self.model_ is not None:
-            self.model_._parms["solver"] = "L_BFGS"
-            self.model_._parms["remove_collinear_columns"] = False
-            self.model_._parms["lambda_search"] = False
-
         return self
 
 

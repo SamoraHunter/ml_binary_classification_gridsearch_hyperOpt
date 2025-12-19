@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 from h2o.estimators import H2OGeneralizedLinearEstimator
 
-# Removing skopt imports to prevent the ParameterGrid TypeError
-# from skopt.space import Real, Categorical, Integer
+# --- FIX: Re-import skopt for Bayesian search compatibility ---
+from skopt.space import Real, Categorical
 
 from .H2OBaseClassifier import H2OBaseClassifier
 
@@ -43,22 +43,11 @@ class H2OGLMClassifier(H2OBaseClassifier):
         # Get the standard parameters from the base class
         train_h2o, x_vars, outcome_var, model_params = super()._prepare_fit(X, y)
 
-        # --- STRICT OVERRIDE (The "Triple-Lock") ---
-        # Regardless of what GridSearch/HyperOpt requested, we force these values
-        # to prevent the Java Backend Crash (NullPointerException).
-
-        # 1. Force L_BFGS: The only solver robust against the index mismatch bug on this data
+        # --- STRICT OVERRIDE ---
+        # Force L_BFGS: The only solver robust against the index mismatch bug on this data
         model_params["solver"] = "L_BFGS"
-
-        # 2. Disable Collinear Removal: This prevents the coefficient vector size change
         model_params["remove_collinear_columns"] = False
-
-        # 3. Disable Lambda Search: If True, H2O ignores 'solver' and uses Coordinate Descent
         model_params["lambda_search"] = False
-
-        self.logger.info(
-            f"H2OGLMClassifier: Enforced stability params: solver={model_params['solver']}, lambda_search={model_params['lambda_search']}"
-        )
 
         return train_h2o, x_vars, outcome_var, model_params
 
@@ -80,33 +69,60 @@ class H2O_GLM_class:
         # Instantiate the actual estimator wrapper
         self.algorithm_implementation = H2OGLMClassifier()
 
-        # Define the Hyperparameter Space
-        # FIX: Converted skopt distributions (Real, Categorical) to Lists
-        # to ensure compatibility with sklearn.model_selection.ParameterGrid
+        # --- FIX: Conditionally define parameter space for Bayes vs. Grid search ---
+        from ml_grid.util.global_params import global_parameters
 
-        if parameter_space_size == "xsmall":
-            self.parameter_space = {
-                "alpha": [0.0, 0.5, 1.0],
-                "lambda_": [1e-3, 1e-2, 1e-1],
-                "family": ["binomial"],
-                "solver": ["L_BFGS"],
-                "standardize": [True],
-            }
-        elif parameter_space_size == "small":
-            self.parameter_space = {
-                "alpha": [0.0, 0.25, 0.5, 0.75, 1.0],
-                "lambda_": np.logspace(-4, -1, 5).tolist(),
-                "family": ["binomial"],
-                "solver": ["L_BFGS"],
-                "standardize": [True],
-            }
+        if global_parameters.bayessearch:
+            # Use skopt spaces for Bayesian search
+            if parameter_space_size == "xsmall":
+                self.parameter_space = {
+                    "alpha": Real(0.0, 1.0),
+                    "lambda_": Real(1e-3, 1e-1, prior="log-uniform"),
+                    "family": Categorical(["binomial"]),
+                    "solver": Categorical(["L_BFGS"]),
+                    "standardize": Categorical([True]),
+                }
+            elif parameter_space_size == "small":
+                self.parameter_space = {
+                    "alpha": Real(0.0, 1.0),
+                    "lambda_": Real(1e-4, 1e-1, prior="log-uniform"),
+                    "family": Categorical(["binomial"]),
+                    "solver": Categorical(["L_BFGS"]),
+                    "standardize": Categorical([True]),
+                }
+            else:  # Medium/Large space
+                self.parameter_space = {
+                    "alpha": Real(0.0, 1.0),
+                    "lambda_": Real(1e-6, 10.0, prior="log-uniform"),
+                    "family": Categorical(["binomial"]),
+                    "solver": Categorical(["L_BFGS"]),
+                    "standardize": Categorical([True, False]),
+                    "balance_classes": Categorical([True, False]),
+                }
         else:
-            # Medium/Large space
-            self.parameter_space = {
-                "alpha": [0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0],
-                "lambda_": np.logspace(-6, 1, 8).tolist(),
-                "family": ["binomial"],
-                "solver": ["L_BFGS"],
-                "standardize": [True, False],
-                "balance_classes": [True, False],
-            }
+            # Use lists for Grid/Random search
+            if parameter_space_size == "xsmall":
+                self.parameter_space = {
+                    "alpha": [0.0, 0.5, 1.0],
+                    "lambda_": [1e-3, 1e-2, 1e-1],
+                    "family": ["binomial"],
+                    "solver": ["L_BFGS"],
+                    "standardize": [True],
+                }
+            elif parameter_space_size == "small":
+                self.parameter_space = {
+                    "alpha": [0.0, 0.25, 0.5, 0.75, 1.0],
+                    "lambda_": np.logspace(-4, -1, 5).tolist(),
+                    "family": ["binomial"],
+                    "solver": ["L_BFGS"],
+                    "standardize": [True],
+                }
+            else:  # Medium/Large space
+                self.parameter_space = {
+                    "alpha": [0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0],
+                    "lambda_": np.logspace(-6, 1, 8).tolist(),
+                    "family": ["binomial"],
+                    "solver": ["L_BFGS"],
+                    "standardize": [True, False],
+                    "balance_classes": [True, False],
+                }

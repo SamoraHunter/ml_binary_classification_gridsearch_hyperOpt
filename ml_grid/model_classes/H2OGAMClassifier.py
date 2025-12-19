@@ -107,6 +107,18 @@ class H2OGAMClassifier(H2OBaseClassifier):
                         )
                     continue
 
+                # --- FIX: Check for unique quantiles to prevent H2O knot generation failure ---
+                try:
+                    # H2O uses quantiles for knots. If quantiles are not unique, it fails.
+                    # We check if we can generate 'required_knots' unique bins.
+                    pd.qcut(X[col], q=required_knots, duplicates="raise")
+                except ValueError:
+                    if not self._suppress_low_cardinality_error:
+                        raise ValueError(
+                            f"Skipping GAM col '{col}': Cannot generate {required_knots} unique quantiles (distribution too skewed)."
+                        )
+                    continue
+
                 suitable_gam_cols.append(col)
                 suitable_knots.append(required_knots)
                 if i < len(bs_list):

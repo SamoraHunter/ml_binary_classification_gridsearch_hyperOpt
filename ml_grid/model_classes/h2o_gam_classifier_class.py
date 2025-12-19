@@ -50,7 +50,12 @@ class H2OGAMClass:
                 if pd.api.types.is_numeric_dtype(X[col]):
                     # Check cardinality (>10 unique values)
                     if X[col].nunique() > 10:
-                        gam_cols.append(col)
+                        # Check distribution for at least 5 knots (default minimum)
+                        try:
+                            pd.qcut(X[col], q=5, duplicates="raise")
+                            gam_cols.append(col)
+                        except ValueError:
+                            pass
 
         if not gam_cols and X is not None:
             logger.warning(

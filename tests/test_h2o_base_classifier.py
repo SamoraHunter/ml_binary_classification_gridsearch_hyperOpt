@@ -215,7 +215,7 @@ def test_predict_successful(
 
     # 2. Check that the new frame creation logic was called
     mock_h2o_frame.assert_called_once_with(
-        X, column_names=list(X.columns), column_types=classifier_instance.feature_types_
+        X, column_names=list(X.columns)
     )
     mock_h2o_assign.assert_called_once_with(mock_tmp_frame, ANY)
     mock_h2o_get_frame.assert_called_once()

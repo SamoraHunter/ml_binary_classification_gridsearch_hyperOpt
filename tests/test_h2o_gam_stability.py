@@ -129,3 +129,54 @@ def test_gam_empty_columns_fallback(h2o_session):
     # It should have forced a GLM because the only candidate column was rejected
     assert model.algo == "glm"
     print("[TEST] SUCCESS: Correctly fell back to GLM when gam_columns were invalid.")
+
+
+def test_gam_skewed_distribution_fallback(h2o_session):
+    """
+    Tests that H2OGAMClassifier detects columns with sufficient cardinality
+    but skewed distribution (causing knot generation failure) by falling back
+    or raising error as configured.
+    """
+    h2o.remove_all()
+
+    # Create data: 100 samples.
+    # 'feature_skewed': 0 is present 90 times. 1..10 are present 1 time each.
+    # Total unique values = 11.
+    # If num_knots=5, required unique >= 10. This passes the simple cardinality check.
+    # However, quantiles will likely overlap on 0, causing knot generation issues.
+
+    skewed_col = np.array([0] * 90 + list(range(1, 11)))
+    np.random.shuffle(skewed_col)
+
+    X = pd.DataFrame({"feature_ok": np.random.rand(100), "feature_skewed": skewed_col})
+    y = pd.Series(np.random.randint(0, 2, 100), name="outcome")
+
+    # 1. Test with suppression (default) -> Should drop column and succeed (fallback to GLM if needed)
+    clf = H2OGAMClassifier(
+        gam_columns=["feature_skewed"],
+        num_knots=[5],
+        _suppress_low_cardinality_error=True,
+    )
+
+    print("\n[TEST] Attempting to fit GAM on skewed column (suppress=True)...")
+    try:
+        clf.fit(X, y)
+        model = h2o.get_model(clf.model_id)
+        print(f"[TEST] Model Algo: {model.algo}")
+        # Since feature_skewed is the only gam column and it fails knot check,
+        # it should be dropped. If no gam cols remain, fallback to GLM.
+        assert model.algo == "glm"
+    except Exception as e:
+        pytest.fail(f"GAM fit failed with suppression enabled: {e}")
+
+    # 2. Test without suppression -> Should raise ValueError from our new check
+    clf_raise = H2OGAMClassifier(
+        gam_columns=["feature_skewed"],
+        num_knots=[5],
+        _suppress_low_cardinality_error=False,
+    )
+
+    print("\n[TEST] Attempting to fit GAM on skewed column (suppress=False)...")
+    with pytest.raises(ValueError, match="Cannot generate .* unique quantiles"):
+        clf_raise.fit(X, y)
+    print("[TEST] SUCCESS: Caught skewed distribution error.")

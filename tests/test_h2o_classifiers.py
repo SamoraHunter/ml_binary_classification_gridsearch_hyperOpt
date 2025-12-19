@@ -227,6 +227,39 @@ def test_h2o_gam_knot_cardinality_error(h2o_session_fixture):
         cross_val_score(estimator, X, y, cv=cv, error_score="raise", n_jobs=1)
 
 
+def test_h2o_gam_knot_distribution_error(h2o_session_fixture):
+    """
+    Tests that H2OGAMClassifier raises ValueError when quantiles cannot be generated
+    due to skewed distribution, even if cardinality is technically sufficient.
+    """
+    h2o.remove_all()
+
+    # Ensure enough unique values survive the CV split to pass the cardinality check (>= 10)
+    # We need > 10 unique values in the training fold.
+    # With 50/50 split, we need roughly > 20 unique values in total.
+    # We keep it skewed (mostly 0s) to trigger the quantile error.
+    skewed_vals = np.array([0] * 70 + list(range(1, 31)))
+    np.random.shuffle(skewed_vals)
+
+    X = pd.DataFrame({"feature1": np.random.rand(100), "feature_skewed": skewed_vals})
+    y = pd.Series(np.random.randint(0, 2, 100), name="outcome")
+
+    estimator = H2O_GAM_class(
+        X=X, y=y, parameter_space_size="small"
+    ).algorithm_implementation
+
+    estimator.set_params(
+        gam_columns=["feature_skewed"],
+        num_knots=5,
+        _suppress_low_cardinality_error=False,
+    )
+
+    cv = KFold(n_splits=2, shuffle=True, random_state=42)
+
+    with pytest.raises(ValueError, match=r"Cannot generate .* unique quantiles"):
+        cross_val_score(estimator, X, y, cv=cv, error_score="raise", n_jobs=1)
+
+
 class MockMlGridObject:
     def __init__(self, X, y):
         self.X_train = X
