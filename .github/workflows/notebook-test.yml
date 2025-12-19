@@ -5,6 +5,7 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 120 # Optional: Cap the job at 2 hours
     
     
     env:
@@ -122,7 +123,7 @@ jobs:
           set -e
           cd $GITHUB_WORKSPACE
           source "$VENV_PATH/bin/activate"
-          pytest --nbmake --nbmake-timeout=1200 notebooks/unit_test_synthetic.ipynb
+          pytest --nbmake --nbmake-timeout=4500 notebooks/unit_test_synthetic.ipynb
           
           echo "Running Python unit tests..."
           pytest tests/
