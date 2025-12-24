@@ -135,6 +135,30 @@ def get_data_split(
         stratify=y_train_processed if use_stratify_second else None,
     )
 
+    # --- Fallback for single-class training set ---
+    # If the random split resulted in a training set with only 1 class (but we had 2+ available),
+    # we attempt to move a sample from the test set to the training set to prevent model failure.
+    if y_train.nunique() < 2 and y_train_processed.nunique() >= 2:
+        logger.warning(
+            "y_train contains only 1 class after split. Attempting to move a sample from X_test to X_train to ensure class presence."
+        )
+        missing_classes = set(y_train_processed.unique()) - set(y_train.unique())
+        for missing_cls in missing_classes:
+            # Find candidates in test set
+            candidates = y_test[y_test == missing_cls]
+            if not candidates.empty:
+                idx_to_move = candidates.index[0]
+
+                # Move from test to train
+                X_train = pd.concat([X_train, X_test.loc[[idx_to_move]]])
+                y_train = pd.concat([y_train, y_test.loc[[idx_to_move]]])
+
+                X_test = X_test.drop(idx_to_move)
+                y_test = y_test.drop(idx_to_move)
+
+                logger.info(f"Moved sample {idx_to_move} (class {missing_cls}) from test to train.")
+                break  # Only need one sample to satisfy "at least 2 classes"
+
     return X_train, X_test, y_train, y_test, X_test_orig, y_test_orig
 
 

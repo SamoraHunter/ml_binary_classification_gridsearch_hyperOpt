@@ -474,6 +474,12 @@ class pipe:
             self.y_test_orig,
         ) = get_data_split(X=self.X, y=self.y, local_param_dict=self.local_param_dict)
 
+        if self.y_train.nunique() < 2:
+            self.logger.warning(
+                f"Training data contains only {self.y_train.nunique()} class(es). "
+                "Model fitting may fail if the algorithm requires at least 2 classes."
+            )
+
         self._assert_index_alignment(self.X_train, self.y_train, "After get_data_split")
 
         # --- CRITICAL FIX: Reset all indices immediately after splitting ---
