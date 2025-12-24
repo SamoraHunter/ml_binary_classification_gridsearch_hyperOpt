@@ -129,11 +129,48 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
 
     def _ensure_h2o_is_running(self):
         """Safely checks for and initializes an H2O cluster if not running."""
-        cluster = h2o.cluster()
+        try:
+            cluster = h2o.cluster()
+        except Exception:
+            cluster = None
+
         show_progress = getattr(global_parameters, "h2o_show_progress", False)
 
-        if not (cluster and cluster.is_running()):
-            h2o.init()
+        is_healthy = False
+        if cluster and cluster.is_running():
+            is_healthy = True
+            try:
+                # Check if cluster has memory.
+                # total_mem is in bytes. If it's 0 or None, it's broken.
+                memory = None
+                try:
+                    memory = cluster.total_mem()
+                except Exception:
+                    try:
+                        memory = cluster.free_mem()
+                    except Exception:
+                        pass
+
+                if memory is not None and isinstance(memory, (int, float)):
+                    if memory < 1024 * 1024:  # < 1MB
+                        self.logger.warning(
+                            f"H2O cluster is running but reports {memory} memory. Treating as unhealthy."
+                        )
+                        is_healthy = False
+            except Exception as e:
+                self.logger.warning(f"H2O cluster check failed: {e}")
+
+        if not is_healthy:
+            # If it was running but unhealthy, try to shut it down first to clear state
+            if cluster and cluster.is_running():
+                try:
+                    self.logger.warning("Shutting down unhealthy H2O cluster...")
+                    cluster.shutdown()
+                except Exception:
+                    pass
+
+            self.logger.info("Initializing H2O cluster...")
+            h2o.init(strict_version_check=False)
             self._is_cluster_owner = True
 
         # Set progress bar visibility based on the global parameter

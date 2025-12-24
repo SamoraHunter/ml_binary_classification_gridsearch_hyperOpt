@@ -236,13 +236,13 @@ def test_h2o_gam_knot_distribution_error(h2o_session_fixture):
 
     # Ensure enough unique values survive the CV split to pass the cardinality check (>= 10)
     # We need > 10 unique values in the training fold.
-    # With 50/50 split, we need roughly > 20 unique values in total.
-    # We keep it skewed (mostly 0s) to trigger the quantile error.
-    skewed_vals = np.array([0] * 70 + list(range(1, 31)))
+    # We increase sample size to 200 to ensure stability of the split while maintaining skew.
+    # 140 zeros, 60 unique values (1..60).
+    skewed_vals = np.array([0] * 140 + list(range(1, 61)))
     np.random.shuffle(skewed_vals)
 
-    X = pd.DataFrame({"feature1": np.random.rand(100), "feature_skewed": skewed_vals})
-    y = pd.Series(np.random.randint(0, 2, 100), name="outcome")
+    X = pd.DataFrame({"feature1": np.random.rand(200), "feature_skewed": skewed_vals})
+    y = pd.Series(np.random.randint(0, 2, 200), name="outcome")
 
     estimator = H2O_GAM_class(
         X=X, y=y, parameter_space_size="small"
