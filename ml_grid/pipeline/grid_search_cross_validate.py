@@ -171,6 +171,10 @@ class grid_search_crossvalidate:
             self.global_params.max_param_space_iter_value
         )  # hard limit on param space exploration
 
+        # Allow local override for max_param_space_iter_value
+        if self.ml_grid_object_iter.local_param_dict.get("max_param_space_iter_value") is not None:
+            max_param_space_iter_value = self.ml_grid_object_iter.local_param_dict.get("max_param_space_iter_value")
+
         if "svc" in method_name.lower():
             self.X_train = scale_data(self.X_train)
             self.X_test = scale_data(self.X_test)
@@ -281,8 +285,31 @@ class grid_search_crossvalidate:
                 parameter_space = new_parameter_space
 
         # Use the new n_iter parameter from the config
-        # Default to 50 if not present, preventing AttributeError
-        n_iter_v = getattr(self.global_params, "n_iter", 2)
+        # Default to 2 if not present, preventing AttributeError
+        try:
+            n_iter_v = getattr(self.global_params, "n_iter", 2)
+            if n_iter_v is None:
+                n_iter_v = 2
+            n_iter_v = int(n_iter_v)
+        except (ValueError, TypeError):
+            self.logger.warning("Invalid or missing n_iter in global_params. Defaulting to 2.")
+            n_iter_v = 2
+
+        # Allow local override from run_params/local_param_dict
+        local_n_iter = self.ml_grid_object_iter.local_param_dict.get("n_iter")
+        if local_n_iter is not None:
+            try:
+                n_iter_v = int(local_n_iter)
+                self.logger.info(f"Overriding global n_iter with local value: {n_iter_v}")
+            except (ValueError, TypeError):
+                self.logger.warning(f"Invalid local n_iter value: {local_n_iter}. Ignoring override.")
+
+        if max_param_space_iter_value is not None:
+            if n_iter_v > max_param_space_iter_value:
+                self.logger.info(
+                    f"Capping n_iter ({n_iter_v}) to max_param_space_iter_value ({max_param_space_iter_value})"
+                )
+                n_iter_v = max_param_space_iter_value
 
         # For GridSearchCV, n_iter is not used, but we calculate the grid size for logging.
         if not self.global_params.bayessearch and not random_grid_search:

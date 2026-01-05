@@ -1,5 +1,8 @@
 import logging
 import traceback
+import glob
+import os
+import yaml
 from typing import Any, Dict, List, Tuple
 
 import numpy as np
@@ -79,6 +82,10 @@ class run:
         """
         self.global_params = global_parameters
 
+        # Update global parameters if provided in kwargs
+        if "global_params" in kwargs and isinstance(kwargs["global_params"], dict):
+            self.global_params.update_parameters(**kwargs["global_params"])
+
         self.logger = logging.getLogger("ml_grid")
 
         self.verbose = self.global_params.verbose
@@ -98,6 +105,10 @@ class run:
                 "param_space_index": kwargs.get("param_space_index", 0),
             }
             self.ml_grid_object = pipe(**pipe_kwargs)
+
+        # Propagate n_iter from global_params to local_param_dict
+        # This ensures the value persists across process boundaries (pickling) where the singleton might be reset
+        self.ml_grid_object.local_param_dict["n_iter"] = self.global_params.n_iter
 
         self.error_raise = self.global_params.error_raise
 

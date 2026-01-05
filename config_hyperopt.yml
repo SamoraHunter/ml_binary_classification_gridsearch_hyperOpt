@@ -9,6 +9,7 @@ global_params:
   h2o_show_progress: false
   # Number of iterations for RandomizedSearchCV and BayesSearchCV
   n_iter: 2
+  max_param_space_iter_value : 10
 
 # Experiment settings for the hyperopt run
 experiment:
