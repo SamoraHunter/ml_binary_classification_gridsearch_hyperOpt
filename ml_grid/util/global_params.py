@@ -6,6 +6,7 @@ custom scoring function for ROC AUC that handles cases with a single class.
 """
 
 from typing import Any, Callable, Dict, List, Union
+import logging
 
 import numpy as np
 from sklearn.metrics import make_scorer, roc_auc_score
@@ -80,14 +81,6 @@ class GlobalParameters:
     use_embedding: bool
     """Whether to use embedding for feature transformation. Defaults to False."""
     embedding_method: str
-    """The embedding method to use (e.g., 'pca', 'svd'). Defaults to None."""
-    embedding_dim: int
-    """The dimensionality of the embedding space. Defaults to None."""
-    scale_features_before_embedding: bool
-    """Whether to scale features before applying embedding. Defaults to False."""
-    use_embedding: bool
-    """Whether to use embedding for feature transformation. Defaults to False."""
-    embedding_method: str
     """The embedding method to use ("svd", "pca", "nmf", "lda", "random_gaussian", "random_sparse", "select_kbest_f", "select_kbest_mi"). Defaults to None."""
     embedding_dim: int
     """The dimensionality of the embedding space. Defaults to None."""
@@ -95,6 +88,12 @@ class GlobalParameters:
     """Whether to scale features before applying embedding. Defaults to False."""
     cache_embeddings: bool
     """Whether to cache computed embeddings for reuse. Defaults to False."""
+    n_iter: int
+    """Number of iterations for randomized/Bayesian search. Defaults to 2."""
+    h2o_show_progress: bool
+    """If True, shows H2O progress bars. Defaults to False."""
+    search_verbose: int
+    """Verbosity level for the search object (GridSearchCV, etc.). Defaults to 0."""
 
     def __new__(cls, *args: Any, **kwargs: Any) -> "GlobalParameters":
         """Creates a new instance if one does not already exist (Singleton pattern)."""
@@ -136,6 +135,9 @@ class GlobalParameters:
         self.embedding_dim = None
         self.scale_features_before_embedding = False
         self.cache_embeddings = False
+        self.n_iter = 2
+        self.h2o_show_progress = False
+        self.search_verbose = 0
 
         custom_scorer = make_scorer(custom_roc_auc_score)
         self.metric_list = {
@@ -154,9 +156,11 @@ class GlobalParameters:
         Raises:
             AttributeError: If a key in kwargs is not a valid parameter.
         """
+        logger = logging.getLogger("ml_grid")
         for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)
+                logger.info(f"Updated GlobalParameter: {key} = {value}")
             else:
                 raise AttributeError(
                     f"'{self.__class__.__name__}' object has no attribute '{key}'"
