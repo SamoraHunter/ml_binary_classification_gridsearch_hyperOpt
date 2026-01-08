@@ -42,7 +42,7 @@ from ml_grid.util.debug_print_statements import debug_print_statements_class
 from ml_grid.util.global_params import global_parameters
 from ml_grid.util.project_score_save import project_score_save_class
 from ml_grid.util.validate_parameters import validate_parameters_helper
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from ml_grid.util.bayes_utils import is_skopt_space
 from skopt.space import Categorical
 
@@ -176,8 +176,16 @@ class grid_search_crossvalidate:
             max_param_space_iter_value = self.ml_grid_object_iter.local_param_dict.get("max_param_space_iter_value")
 
         if "svc" in method_name.lower():
-            self.X_train = scale_data(self.X_train)
-            self.X_test = scale_data(self.X_test)
+            self.logger.info("Applying StandardScaler for SVC to prevent convergence issues.")
+            scaler = StandardScaler()
+            self.X_train = pd.DataFrame(
+                scaler.fit_transform(self.X_train),
+                columns=self.X_train.columns,
+                index=self.X_train.index,
+            )
+            self.X_test = pd.DataFrame(
+                scaler.transform(self.X_test), columns=self.X_test.columns, index=self.X_test.index
+            )
 
         # --- PERFORMANCE FIX for testing ---
         # Use a much faster CV strategy when in test_mode.
@@ -408,6 +416,11 @@ class grid_search_crossvalidate:
             current_algorithm = search.run_search(X_train_reset, y_train_reset)
 
         except Exception as e:
+            if "dual coefficients or intercepts are not finite" in str(e):
+                self.logger.warning(f"SVC failed to fit due to data issues: {e}. Returning default score.")
+                self.grid_search_cross_validate_score_result = 0.5
+                return
+
             # Log the error and re-raise it to stop the entire execution,
             # allowing the main loop in main.py to handle it based on error_raise.
             self.logger.error(
