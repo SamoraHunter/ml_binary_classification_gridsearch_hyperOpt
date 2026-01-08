@@ -186,6 +186,9 @@ class grid_search_crossvalidate:
             self.X_test = pd.DataFrame(
                 scaler.transform(self.X_test), columns=self.X_test.columns, index=self.X_test.index
             )
+            self.X_test_orig = pd.DataFrame(
+                scaler.transform(self.X_test_orig), columns=self.X_test_orig.columns, index=self.X_test_orig.index
+            )
 
         # --- PERFORMANCE FIX for testing ---
         # Use a much faster CV strategy when in test_mode.
