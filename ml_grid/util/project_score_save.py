@@ -44,6 +44,7 @@ def _get_score_log_columns(metric_list: List[str]) -> List[str]:
         "outcome_var_n",
         "percent_missing",
         "corr",
+        "feature_selection_method",
         "age",
         "sex",
         "bmi",
