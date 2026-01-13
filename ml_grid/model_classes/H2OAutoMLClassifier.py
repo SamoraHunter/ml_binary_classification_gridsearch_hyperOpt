@@ -78,6 +78,7 @@ class H2OAutoMLClassifier(H2OBaseClassifier):
             self.model_ = H2OGeneralizedLinearEstimator(
                 family="binomial", ignore_const_cols=False
             )
+            self._sanitize_model_params()
             self.model_.train(y=outcome_var, x=x_vars, training_frame=train_h2o)
             self._using_dummy_model = True  # Set flag for reference
 
@@ -101,6 +102,7 @@ class H2OAutoMLClassifier(H2OBaseClassifier):
         self.model_ = H2OGeneralizedLinearEstimator(
             family="binomial", ignore_const_cols=False
         )
+        self._sanitize_model_params()
         # We need to create a minimal H2OFrame to train on
         train_h2o, x_vars, outcome_var, _ = self._prepare_fit(X, y)
         self.model_.train(y=outcome_var, x=x_vars, training_frame=train_h2o)

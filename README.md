@@ -35,7 +35,7 @@ Binary classification is a common machine learning task where the goal is to cat
 
 This framework is designed to be a comprehensive toolkit for binary classification experiments, offering a wide range of configurable options:
 
-- **Diverse Model Support:** Includes a collection of standard classifiers (e.g., Logistic Regression, SVM, RandomForest, XGBoost, LightGBM, CatBoost) and specialized time-series models from the `aeon` library (e.g., HIVE-COTE v2, MUSE, OrdinalTDE).
+- **Diverse Model Support:** Includes a collection of standard classifiers (e.g., Logistic Regression, SVM, RandomForest, XGBoost, LightGBM, CatBoost, H2O AutoML/GLM/GBM) and specialized time-series models from the `aeon` library (e.g., HIVE-COTE v2, MUSE, OrdinalTDE).
 - **Advanced Hyperparameter Tuning:** Supports multiple search strategies:
   - **Grid Search:** Exhaustively search a defined parameter grid.
   - **Random Search:** Randomly sample from the parameter space.
@@ -270,3 +270,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgments
 scikit-learn
 hyperopt
+H2O.ai

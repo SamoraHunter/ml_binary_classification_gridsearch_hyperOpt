@@ -171,6 +171,7 @@ class H2OGAMClassifier(H2OBaseClassifier):
             estimator_cls = self.estimator_class
 
         self.model_ = estimator_cls(**model_params)
+        self._sanitize_model_params()
 
         # --- RUNTIME TRAIN WITH FALLBACK ---
         try:
@@ -200,6 +201,7 @@ class H2OGAMClassifier(H2OBaseClassifier):
                 glm_params["lambda_search"] = False
 
                 self.model_ = H2OGeneralizedLinearEstimator(**glm_params)
+                self._sanitize_model_params()
                 self.model_.train(x=x_vars, y=outcome_var, training_frame=train_h2o)
             else:
                 raise e

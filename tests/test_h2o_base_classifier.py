@@ -184,10 +184,8 @@ def test_predict_successful(
     mock_h2o_frame.return_value = mock_tmp_frame
 
     # Mock the final frame that get_frame will return
-    # FIX: Same here - remove the spec parameter
-    mock_final_frame = MagicMock()
-    mock_final_frame.nrows = len(X)
-    mock_h2o_get_frame.return_value = mock_final_frame
+    # (No longer needed as we don't use get_frame anymore)
+
     # Mock the model object that `h2o.get_model` will return
     # --- FIX: Replace the real predict method with a MagicMock ---
     # Instantiate the mock estimator
@@ -215,12 +213,15 @@ def test_predict_successful(
 
     # 2. Check that the new frame creation logic was called
     mock_h2o_frame.assert_called_once_with(
-        X, column_names=list(X.columns)
+        X, column_names=list(X.columns), column_types=classifier_instance.feature_types_
     )
-    mock_h2o_assign.assert_called_once_with(mock_tmp_frame, ANY)
-    mock_h2o_get_frame.assert_called_once()
-    # Verify the model's predict method was called with the final mocked frame
-    mock_model.predict.assert_called_once_with(mock_final_frame)
+    
+    # Optimization: h2o.assign and h2o.get_frame should NO LONGER be called
+    mock_h2o_assign.assert_not_called()
+    mock_h2o_get_frame.assert_not_called()
+    
+    # Verify the model's predict method was called with the temporary frame directly
+    mock_model.predict.assert_called_once_with(mock_tmp_frame)
 
     # 3. Check the output of the prediction
     assert isinstance(predictions, np.ndarray)

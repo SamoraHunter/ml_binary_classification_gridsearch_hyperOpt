@@ -409,6 +409,17 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             return True
         return False
 
+    def _sanitize_model_params(self):
+        """Removes problematic parameters from the H2O model instance before training.
+
+        This handles version mismatches where the Python client sends parameters
+        (like HGLM) that the H2O backend does not recognize.
+        """
+        if self.model_ and hasattr(self.model_, "_parms"):
+            if "HGLM" in self.model_._parms:
+                self.logger.debug("Removing 'HGLM' parameter from H2O model to prevent backend error.")
+                del self.model_._parms["HGLM"]
+
     def fit(self, X: pd.DataFrame, y: pd.Series, **kwargs) -> "H2OBaseClassifier":
         """Fits the H2O model.
 
@@ -446,6 +457,9 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             # Instantiate the H2O model with all the hyperparameters
             self.logger.debug(f"Creating H2O model with params: {model_params}")
             self.model_ = self.estimator_class(**model_params)
+
+            # Sanitize parameters to prevent backend errors (e.g. HGLM)
+            self._sanitize_model_params()
 
             # Call the train() method with ONLY the data-related arguments
             self.logger.debug("Calling H2O model.train()...")
@@ -550,30 +564,18 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             # This seems to create a more 'stable' frame in the H2O cluster, preventing
             # internal errors during prediction with some models like GLM.
 
-            # Create a temporary H2OFrame by uploading the pandas DataFrame.
-            # FIX: Do not pass column_types to constructor as it can be flaky.
-            # Instead, create frame and explicitly cast columns.
-            tmp_frame = h2o.H2OFrame(X, column_names=self.feature_names_)
-
-            # Enforce types explicitly to match training schema
+            # Optimization: Pass column_types directly to constructor to avoid
+            # expensive column-by-column casting loop (which triggers GC overhead).
+            # We filter feature_types_ to ensure only present columns are passed.
+            col_types = None
             if self.feature_types_:
-                for col in self.feature_names_:
-                    if col in self.feature_types_ and col in tmp_frame.columns:
-                        t_type = self.feature_types_[col]
-                        if t_type == "enum":
-                            tmp_frame[col] = tmp_frame[col].asfactor()
-                        elif t_type in ["int", "real", "numeric"]:
-                            tmp_frame[col] = tmp_frame[col].asnumeric()
-                        elif t_type == "string":
-                            tmp_frame[col] = tmp_frame[col].ascharacter()
+                col_types = {k: v for k, v in self.feature_types_.items() if k in X.columns}
+            
+            tmp_frame = h2o.H2OFrame(X, column_names=self.feature_names_, column_types=col_types)
 
-            # Assign it to a unique key in the H2O cluster. This is more reliable.
-            # Add PID and ID to ensure uniqueness across processes
-            frame_id = f"pred_{os.getpid()}_{id(self)}_{pd.Timestamp.now().strftime('%H%M%S%f')}"
-            h2o.assign(tmp_frame, frame_id)
-
-            # Get a handle to the newly created frame
-            test_h2o = h2o.get_frame(frame_id)
+            # Optimization: Use the temporary frame directly.
+            # Explicitly assigning a key (h2o.assign) triggers expensive GC checks.
+            test_h2o = tmp_frame
 
         except Exception as e:
             raise RuntimeError(f"Failed to create H2O frame for prediction: {e}")
@@ -654,21 +656,12 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
 
         # Create H2O frame with explicit column names
         try:
-            # FIX: Explicit type enforcement for predict_proba as well
-            tmp_frame = h2o.H2OFrame(X, column_names=self.feature_names_)
-            
+            # Optimization: Pass column_types directly to constructor
+            col_types = None
             if self.feature_types_:
-                for col in self.feature_names_:
-                    if col in self.feature_types_ and col in tmp_frame.columns:
-                        t_type = self.feature_types_[col]
-                        if t_type == "enum":
-                            tmp_frame[col] = tmp_frame[col].asfactor()
-                        elif t_type in ["int", "real", "numeric"]:
-                            tmp_frame[col] = tmp_frame[col].asnumeric()
-                        elif t_type == "string":
-                            tmp_frame[col] = tmp_frame[col].ascharacter()
+                col_types = {k: v for k, v in self.feature_types_.items() if k in X.columns}
             
-            test_h2o = tmp_frame
+            test_h2o = h2o.H2OFrame(X, column_names=self.feature_names_, column_types=col_types)
         except Exception as e:
             raise RuntimeError(f"Failed to create H2O frame for prediction: {e}")
 

@@ -476,13 +476,13 @@ class grid_search_crossvalidate:
         # Define default scores (e.g., mean score of 0.5 for binary classification)
         # Default scores if cross-validation fails
         default_scores = {
-            "test_accuracy": [0.5],  # Default to random classifier performance
-            "test_f1": [0.5],  # Default F1 score (again, 0.5 for random classification)
-            "test_auc": [0.5],  # Default ROC AUC score (0.5 for random classifier)
-            "fit_time": [0],  # No fitting time if the model fails
-            "score_time": [0],  # No scoring time if the model fails
-            "train_score": [0.5],  # Default train score
-            "test_recall": [0.5],
+            "test_accuracy": np.array([0.5]),  # Default to random classifier performance
+            "test_f1": np.array([0.5]),  # Default F1 score (again, 0.5 for random classification)
+            "test_auc": np.array([0.5]),  # Default ROC AUC score (0.5 for random classifier)
+            "fit_time": np.array([0]),  # No fitting time if the model fails
+            "score_time": np.array([0]),  # No scoring time if the model fails
+            "train_score": np.array([0.5]),  # Default train score
+            "test_recall": np.array([0.5]),
             #'test_auc': [0.5] # ?
         }
 
@@ -509,6 +509,7 @@ class grid_search_crossvalidate:
         is_h2o_model = isinstance(current_algorithm, h2o_model_types)
         is_keras_model = isinstance(current_algorithm, keras_model_types)
 
+        # H2O and Keras models require single-threaded execution for CV
         final_cv_n_jobs = 1 if is_h2o_model or is_keras_model else grid_n_jobs
         if final_cv_n_jobs == 1:
             self.logger.debug(
@@ -525,65 +526,127 @@ class grid_search_crossvalidate:
             else:
                 X_train_final = self.X_train.values  # Use NumPy array for other models
 
-            # --- FIX for UnboundLocalError ---
-            # Consolidate Keras and non-Keras logic to ensure 'scores' is always assigned.
-            if isinstance(current_algorithm, (KerasClassifier, KerasClassifierClass)):
-                self.logger.debug("Fitting Keras model with internal CV handling.")
-                y_train_values = self.y_train.values
-                current_algorithm.fit(self.X_train, y_train_values, cv=self.cv)
-                # Since fit already did the CV, create a dummy scores dictionary.
-                scores = {
-                    "test_roc_auc": [
-                        current_algorithm.score(self.X_test, self.y_test.values)
-                    ]
-                }
-            else:
-                # For all other models, perform standard cross-validation.
-                # --- FIX for UnboundLocalError ---
-                # Move the fit call inside the try block. If fit fails, the except
-                # block will catch it and assign default scores, preventing the error.
-                if not getattr(self.global_parameters, "test_mode", False):
-                    # Fit on the full training data first
-                    current_algorithm.fit(self.X_train, self.y_train)
-                # --- CRITICAL FIX: Pass the pandas Series, not the numpy array ---
-                # Passing the numpy array (y_train.to_numpy()) causes index misalignment
-                # with the pandas DataFrame (X_train_final) inside sklearn's CV,
-                # which introduces NaNs into the target column and makes H2O fail.
-                scores = cross_validate(
-                    current_algorithm,
-                    X_train_final,
-                    self.y_train,  # Pass the pandas Series to preserve index alignment
-                    scoring=self.metric_list,
-                    cv=self.cv,
-                    n_jobs=final_cv_n_jobs,  # Use adjusted n_jobs
-                    pre_dispatch=80,
-                    error_score=self.error_raise,  # Raise error if cross-validation fails
-                )
+            scores = None
 
-                # --- TENSORFLOW PERFORMANCE FIX (Corrected Position) ---
-                # Pre-compile the predict function for Keras/TF models to avoid retracing warnings.
-                # This is done AFTER fitting and before cross-validation.
+            # Check for user override to force second CV
+            # Check local params first, then global params
+            force_second_cv = self.ml_grid_object_iter.local_param_dict.get(
+                "force_second_cv", getattr(self.global_params, "force_second_cv", False)
+            )
+
+            if force_second_cv:
+                self.logger.info("force_second_cv is True. Skipping cached result extraction to run fresh cross-validation.")
+
+            # Check if we can reuse results from HyperparameterSearch
+            if not force_second_cv and hasattr(current_algorithm, "cv_results_") and hasattr(
+                current_algorithm, "best_index_"
+            ):
+                try:
+                    self.logger.info(
+                        "Using cached cross-validation results from HyperparameterSearch."
+                    )
+                    results = current_algorithm.cv_results_
+                    index = current_algorithm.best_index_
+                    n_splits = self.cv.get_n_splits()
+
+                    temp_scores = {}
+                    # Extract fit and score times
+                    if "split0_fit_time" in results:
+                        temp_scores["fit_time"] = np.array(
+                            [results[f"split{k}_fit_time"][index] for k in range(n_splits)]
+                        )
+                    else:
+                        # Fallback: Use mean time repeated if split times are missing (e.g. BayesSearchCV)
+                        temp_scores["fit_time"] = np.full(n_splits, results["mean_fit_time"][index])
+
+                    if "split0_score_time" in results:
+                        temp_scores["score_time"] = np.array(
+                            [results[f"split{k}_score_time"][index] for k in range(n_splits)]
+                        )
+                    else:
+                        # Fallback: Use mean score time.
+                        # We use .get() with a default that is safe to index into if the key is missing.
+                        # If 'mean_score_time' is missing, we default to a list of 0s large enough to cover 'index'.
+                        default_times = np.zeros(index + 1)
+                        temp_scores["score_time"] = np.full(n_splits, results.get("mean_score_time", default_times)[index])
+
+                    # Extract metric scores
+                    for metric in self.metric_list:
+                        # Test scores
+                        test_key = f"test_{metric}"
+                        temp_scores[test_key] = np.array(
+                            [
+                                results[f"split{k}_test_{metric}"][index]
+                                for k in range(n_splits)
+                            ]
+                        )
+                        # Train scores (if available)
+                        train_key = f"train_{metric}"
+                        train_col = f"split0_train_{metric}"  # Check existence on first split
+                        if train_col in results:
+                            temp_scores[train_key] = np.array(
+                                [
+                                    results[f"split{k}_train_{metric}"][index]
+                                    for k in range(n_splits)
+                                ]
+                            )
+                    scores = temp_scores
+                except Exception as e:
+                    self.logger.warning(f"Could not extract cached CV results: {e}. Falling back to standard CV.")
+                    scores = None
+
+            if scores is None:
                 if isinstance(
-                    current_algorithm,
-                    (KerasClassifier, KerasClassifierClass, NeuralNetworkClassifier),
+                    current_algorithm, (KerasClassifier, KerasClassifierClass)
                 ):
-                    try:
-                        self.logger.debug(
-                            "Pre-compiling TensorFlow predict function to avoid retracing."
-                        )
-                        n_features = self.X_train.shape[1]
-                        # Define an input signature that allows for variable batch size.
-                        input_signature = [
-                            tf.TensorSpec(shape=(None, n_features), dtype=tf.float32)
+                    self.logger.debug("Fitting Keras model with internal CV handling.")
+                    y_train_values = self.y_train.values
+                    current_algorithm.fit(self.X_train, y_train_values, cv=self.cv)
+                    # Since fit already did the CV, create a dummy scores dictionary.
+                    scores = {
+                        "test_roc_auc": [
+                            current_algorithm.score(self.X_test, self.y_test.values)
                         ]
-                        # Access the underlying Keras model via .model_
-                        current_algorithm.model_.predict.get_concrete_function(
-                            input_signature
-                        )
-                    except Exception as e:
-                        self.logger.warning(
-                            f"Could not pre-compile TF function. Performance may be impacted. Error: {e}"
-                        )
+                    }
+                else:
+                    # For all other models, perform standard cross-validation.
+                    # Note: current_algorithm is already fitted on full X_train by HyperparameterSearch (refit=True)
+                    # so we do not need to call .fit() again here.
+
+                    scores = cross_validate(
+                        current_algorithm,
+                        X_train_final,
+                        self.y_train,  # Pass the pandas Series to preserve index alignment
+                        scoring=self.metric_list,
+                        cv=self.cv,
+                        n_jobs=final_cv_n_jobs,  # Use adjusted n_jobs
+                        pre_dispatch=80,
+                        error_score=self.error_raise,  # Raise error if cross-validation fails
+                    )
+
+                    # Pre-compile the predict function for Keras/TF models to avoid retracing warnings.
+                    # This is done AFTER fitting and before cross-validation.
+                    if isinstance(
+                        current_algorithm,
+                        (KerasClassifier, KerasClassifierClass, NeuralNetworkClassifier),
+                    ):
+                        try:
+                            self.logger.debug(
+                                "Pre-compiling TensorFlow predict function to avoid retracing."
+                            )
+                            n_features = self.X_train.shape[1]
+                            # Define an input signature that allows for variable batch size.
+                            input_signature = [
+                                tf.TensorSpec(shape=(None, n_features), dtype=tf.float32)
+                            ]
+                            # Access the underlying Keras model via .model_
+                            current_algorithm.model_.predict.get_concrete_function(
+                                input_signature
+                            )
+                        except Exception as e:
+                            self.logger.warning(
+                                f"Could not pre-compile TF function. Performance may be impacted. Error: {e}"
+                            )
 
         except XGBoostError as e:
             if "cuda" in str(e).lower() or "memory" in str(e).lower():

@@ -274,14 +274,14 @@ class project_score_save_class:
                     logger.error(f"Error processing scores for BayesSearch: {e}")
                     logger.debug(f"Scores dictionary: {scores}")
             else:
-                line["fit_time_m"] = scores["fit_time"].mean()  # deprecated for bayes
-                line["fit_time_std"] = scores["fit_time"].std()
-                line["score_time_m"] = scores["score_time"].mean()
-                line["score_time_std"] = scores["score_time"].std()
+                line["fit_time_m"] = np.array(scores["fit_time"]).mean()  # deprecated for bayes
+                line["fit_time_std"] = np.array(scores["fit_time"]).std()
+                line["score_time_m"] = np.array(scores["score_time"]).mean()
+                line["score_time_std"] = np.array(scores["score_time"]).std()
 
                 for metric in global_params.metric_list:
-                    line[f"{metric}_m"] = scores[f"test_{metric}"].mean()
-                    line[f"{metric}_std"] = scores[f"test_{metric}"].std()
+                    line[f"{metric}_m"] = np.array(scores[f"test_{metric}"]).mean()
+                    line[f"{metric}_std"] = np.array(scores[f"test_{metric}"]).std()
 
             logger.info(f"Logged results for method '{method_name}'")
             logger.debug(f"Log line data: \n{line.to_string()}")

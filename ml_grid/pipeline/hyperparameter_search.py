@@ -204,6 +204,10 @@ class HyperparameterSearch:
                 )
             grid_n_jobs = 1
 
+        # Performance optimization: Disable train scores for H2O models to reduce overhead
+        # H2O models have high overhead per prediction (h2o.assign/gc.get_referrers)
+        return_train_score = not is_h2o_model
+
         # Validate parameters - skip for Bayesian search as it uses different parameter format
         if not bayessearch:
             # Grid and Random search use standard sklearn parameter format (lists/arrays)
@@ -237,6 +241,19 @@ class HyperparameterSearch:
         else:
             y_train_reset = y_train
 
+        # Determine scoring and refit metric from global parameters
+        scoring = getattr(self.global_params, "metric_list", None)
+        refit_metric = None
+        if scoring:
+            if isinstance(scoring, dict):
+                # Prefer 'auc' if available, otherwise use the first key
+                if "auc" in scoring:
+                    refit_metric = "auc"
+                else:
+                    refit_metric = list(scoring.keys())[0]
+            elif isinstance(scoring, str):
+                refit_metric = scoring
+
         # Verify data integrity
         if len(X_train_reset) != len(y_train_reset):
             raise ValueError(
@@ -261,6 +278,9 @@ class HyperparameterSearch:
                 n_jobs=grid_n_jobs,
                 verbose=search_verbose,
                 error_score="raise",
+                scoring=scoring,
+                refit=refit_metric,
+                return_train_score=return_train_score,
             )
 
         elif random_search:
@@ -272,6 +292,9 @@ class HyperparameterSearch:
                 n_jobs=grid_n_jobs,
                 n_iter=self.max_iter,
                 error_score="raise",
+                scoring=scoring,
+                refit=refit_metric,
+                return_train_score=return_train_score,
             )
         else:
             # Grid Search
@@ -282,6 +305,9 @@ class HyperparameterSearch:
                 cv=self.cv,
                 n_jobs=grid_n_jobs,
                 error_score="raise",
+                scoring=scoring,
+                refit=refit_metric,
+                return_train_score=return_train_score,
             )
 
         if verbose > 0:
@@ -293,4 +319,10 @@ class HyperparameterSearch:
         grid.fit(X_train_reset, y_train_reset)
 
         best_model = grid.best_estimator_
+
+        # Attach search results to the estimator for reuse in grid_search_cross_validate
+        # This avoids re-running cross-validation
+        best_model.cv_results_ = grid.cv_results_
+        best_model.best_index_ = grid.best_index_
+
         return best_model
