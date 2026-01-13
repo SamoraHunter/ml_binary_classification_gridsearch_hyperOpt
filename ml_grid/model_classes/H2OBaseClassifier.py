@@ -417,7 +417,9 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         """
         if self.model_ and hasattr(self.model_, "_parms"):
             if "HGLM" in self.model_._parms:
-                self.logger.debug("Removing 'HGLM' parameter from H2O model to prevent backend error.")
+                self.logger.debug(
+                    "Removing 'HGLM' parameter from H2O model to prevent backend error."
+                )
                 del self.model_._parms["HGLM"]
 
     def fit(self, X: pd.DataFrame, y: pd.Series, **kwargs) -> "H2OBaseClassifier":
@@ -548,7 +550,9 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             # Predict the first class as a fallback. This will result in a poor score for this fold,
             # which is the correct outcome for a degenerate test set.
             dummy_prediction = (
-                self.classes_[0] if self.classes_ is not None and len(self.classes_) > 0 else 0
+                self.classes_[0]
+                if self.classes_ is not None and len(self.classes_) > 0
+                else 0
             )
             return np.full(len(X), dummy_prediction)
 
@@ -569,9 +573,13 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             # We filter feature_types_ to ensure only present columns are passed.
             col_types = None
             if self.feature_types_:
-                col_types = {k: v for k, v in self.feature_types_.items() if k in X.columns}
-            
-            tmp_frame = h2o.H2OFrame(X, column_names=self.feature_names_, column_types=col_types)
+                col_types = {
+                    k: v for k, v in self.feature_types_.items() if k in X.columns
+                }
+
+            tmp_frame = h2o.H2OFrame(
+                X, column_names=self.feature_names_, column_types=col_types
+            )
 
             # Optimization: Use the temporary frame directly.
             # Explicitly assigning a key (h2o.assign) triggers expensive GC checks.
@@ -590,7 +598,11 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                     f"H2O backend crashed with NPE during predict(). Returning dummy predictions. Details: {e}"
                 )
                 # Fallback: predict the first class (usually 0)
-                dummy_val = self.classes_[0] if self.classes_ is not None and len(self.classes_) > 0 else 0
+                dummy_val = (
+                    self.classes_[0]
+                    if self.classes_ is not None and len(self.classes_) > 0
+                    else 0
+                )
                 return np.full(len(X), dummy_val)
 
             raise RuntimeError(f"H2O prediction failed: {e}")
@@ -643,7 +655,9 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             )
             # Return a uniform probability distribution.
             n_classes = (
-                len(self.classes_) if self.classes_ is not None and len(self.classes_) > 0 else 2
+                len(self.classes_)
+                if self.classes_ is not None and len(self.classes_) > 0
+                else 2
             )
             dummy_probas = np.full((len(X), n_classes), 1 / n_classes)
             return dummy_probas
@@ -659,9 +673,13 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             # Optimization: Pass column_types directly to constructor
             col_types = None
             if self.feature_types_:
-                col_types = {k: v for k, v in self.feature_types_.items() if k in X.columns}
-            
-            test_h2o = h2o.H2OFrame(X, column_names=self.feature_names_, column_types=col_types)
+                col_types = {
+                    k: v for k, v in self.feature_types_.items() if k in X.columns
+                }
+
+            test_h2o = h2o.H2OFrame(
+                X, column_names=self.feature_names_, column_types=col_types
+            )
         except Exception as e:
             raise RuntimeError(f"Failed to create H2O frame for prediction: {e}")
 
@@ -675,7 +693,11 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                     f"H2O backend crashed with NPE during predict_proba(). Returning dummy probabilities. Details: {e}"
                 )
                 # Fallback: uniform probabilities
-                n_classes = len(self.classes_) if self.classes_ is not None and len(self.classes_) > 0 else 2
+                n_classes = (
+                    len(self.classes_)
+                    if self.classes_ is not None and len(self.classes_) > 0
+                    else 2
+                )
                 return np.full((len(X), n_classes), 1.0 / n_classes)
 
             raise RuntimeError(f"H2O prediction failed: {e}")

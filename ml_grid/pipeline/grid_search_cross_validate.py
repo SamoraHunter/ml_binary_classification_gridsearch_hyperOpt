@@ -172,11 +172,18 @@ class grid_search_crossvalidate:
         )  # hard limit on param space exploration
 
         # Allow local override for max_param_space_iter_value
-        if self.ml_grid_object_iter.local_param_dict.get("max_param_space_iter_value") is not None:
-            max_param_space_iter_value = self.ml_grid_object_iter.local_param_dict.get("max_param_space_iter_value")
+        if (
+            self.ml_grid_object_iter.local_param_dict.get("max_param_space_iter_value")
+            is not None
+        ):
+            max_param_space_iter_value = self.ml_grid_object_iter.local_param_dict.get(
+                "max_param_space_iter_value"
+            )
 
         if "svc" in method_name.lower():
-            self.logger.info("Applying StandardScaler for SVC to prevent convergence issues.")
+            self.logger.info(
+                "Applying StandardScaler for SVC to prevent convergence issues."
+            )
             scaler = StandardScaler()
             self.X_train = pd.DataFrame(
                 scaler.fit_transform(self.X_train),
@@ -184,10 +191,14 @@ class grid_search_crossvalidate:
                 index=self.X_train.index,
             )
             self.X_test = pd.DataFrame(
-                scaler.transform(self.X_test), columns=self.X_test.columns, index=self.X_test.index
+                scaler.transform(self.X_test),
+                columns=self.X_test.columns,
+                index=self.X_test.index,
             )
             self.X_test_orig = pd.DataFrame(
-                scaler.transform(self.X_test_orig), columns=self.X_test_orig.columns, index=self.X_test_orig.index
+                scaler.transform(self.X_test_orig),
+                columns=self.X_test_orig.columns,
+                index=self.X_test_orig.index,
             )
 
         # --- PERFORMANCE FIX for testing ---
@@ -303,7 +314,9 @@ class grid_search_crossvalidate:
                 n_iter_v = 2
             n_iter_v = int(n_iter_v)
         except (ValueError, TypeError):
-            self.logger.warning("Invalid or missing n_iter in global_params. Defaulting to 2.")
+            self.logger.warning(
+                "Invalid or missing n_iter in global_params. Defaulting to 2."
+            )
             n_iter_v = 2
 
         # Allow local override from run_params/local_param_dict
@@ -311,9 +324,13 @@ class grid_search_crossvalidate:
         if local_n_iter is not None:
             try:
                 n_iter_v = int(local_n_iter)
-                self.logger.info(f"Overriding global n_iter with local value: {n_iter_v}")
+                self.logger.info(
+                    f"Overriding global n_iter with local value: {n_iter_v}"
+                )
             except (ValueError, TypeError):
-                self.logger.warning(f"Invalid local n_iter value: {local_n_iter}. Ignoring override.")
+                self.logger.warning(
+                    f"Invalid local n_iter value: {local_n_iter}. Ignoring override."
+                )
 
         if max_param_space_iter_value is not None:
             if n_iter_v > max_param_space_iter_value:
@@ -420,7 +437,9 @@ class grid_search_crossvalidate:
 
         except Exception as e:
             if "dual coefficients or intercepts are not finite" in str(e):
-                self.logger.warning(f"SVC failed to fit due to data issues: {e}. Returning default score.")
+                self.logger.warning(
+                    f"SVC failed to fit due to data issues: {e}. Returning default score."
+                )
                 self.grid_search_cross_validate_score_result = 0.5
                 return
 
@@ -476,9 +495,15 @@ class grid_search_crossvalidate:
         # Define default scores (e.g., mean score of 0.5 for binary classification)
         # Default scores if cross-validation fails
         default_scores = {
-            "test_accuracy": np.array([0.5]),  # Default to random classifier performance
-            "test_f1": np.array([0.5]),  # Default F1 score (again, 0.5 for random classification)
-            "test_auc": np.array([0.5]),  # Default ROC AUC score (0.5 for random classifier)
+            "test_accuracy": np.array(
+                [0.5]
+            ),  # Default to random classifier performance
+            "test_f1": np.array(
+                [0.5]
+            ),  # Default F1 score (again, 0.5 for random classification)
+            "test_auc": np.array(
+                [0.5]
+            ),  # Default ROC AUC score (0.5 for random classifier)
             "fit_time": np.array([0]),  # No fitting time if the model fails
             "score_time": np.array([0]),  # No scoring time if the model fails
             "train_score": np.array([0.5]),  # Default train score
@@ -535,11 +560,15 @@ class grid_search_crossvalidate:
             )
 
             if force_second_cv:
-                self.logger.info("force_second_cv is True. Skipping cached result extraction to run fresh cross-validation.")
+                self.logger.info(
+                    "force_second_cv is True. Skipping cached result extraction to run fresh cross-validation."
+                )
 
             # Check if we can reuse results from HyperparameterSearch
-            if not force_second_cv and hasattr(current_algorithm, "cv_results_") and hasattr(
-                current_algorithm, "best_index_"
+            if (
+                not force_second_cv
+                and hasattr(current_algorithm, "cv_results_")
+                and hasattr(current_algorithm, "best_index_")
             ):
                 try:
                     self.logger.info(
@@ -553,22 +582,33 @@ class grid_search_crossvalidate:
                     # Extract fit and score times
                     if "split0_fit_time" in results:
                         temp_scores["fit_time"] = np.array(
-                            [results[f"split{k}_fit_time"][index] for k in range(n_splits)]
+                            [
+                                results[f"split{k}_fit_time"][index]
+                                for k in range(n_splits)
+                            ]
                         )
                     else:
                         # Fallback: Use mean time repeated if split times are missing (e.g. BayesSearchCV)
-                        temp_scores["fit_time"] = np.full(n_splits, results["mean_fit_time"][index])
+                        temp_scores["fit_time"] = np.full(
+                            n_splits, results["mean_fit_time"][index]
+                        )
 
                     if "split0_score_time" in results:
                         temp_scores["score_time"] = np.array(
-                            [results[f"split{k}_score_time"][index] for k in range(n_splits)]
+                            [
+                                results[f"split{k}_score_time"][index]
+                                for k in range(n_splits)
+                            ]
                         )
                     else:
                         # Fallback: Use mean score time.
                         # We use .get() with a default that is safe to index into if the key is missing.
                         # If 'mean_score_time' is missing, we default to a list of 0s large enough to cover 'index'.
                         default_times = np.zeros(index + 1)
-                        temp_scores["score_time"] = np.full(n_splits, results.get("mean_score_time", default_times)[index])
+                        temp_scores["score_time"] = np.full(
+                            n_splits,
+                            results.get("mean_score_time", default_times)[index],
+                        )
 
                     # Extract metric scores
                     for metric in self.metric_list:
@@ -582,7 +622,9 @@ class grid_search_crossvalidate:
                         )
                         # Train scores (if available)
                         train_key = f"train_{metric}"
-                        train_col = f"split0_train_{metric}"  # Check existence on first split
+                        train_col = (
+                            f"split0_train_{metric}"  # Check existence on first split
+                        )
                         if train_col in results:
                             temp_scores[train_key] = np.array(
                                 [
@@ -592,7 +634,9 @@ class grid_search_crossvalidate:
                             )
                     scores = temp_scores
                 except Exception as e:
-                    self.logger.warning(f"Could not extract cached CV results: {e}. Falling back to standard CV.")
+                    self.logger.warning(
+                        f"Could not extract cached CV results: {e}. Falling back to standard CV."
+                    )
                     scores = None
 
             if scores is None:
@@ -628,7 +672,11 @@ class grid_search_crossvalidate:
                     # This is done AFTER fitting and before cross-validation.
                     if isinstance(
                         current_algorithm,
-                        (KerasClassifier, KerasClassifierClass, NeuralNetworkClassifier),
+                        (
+                            KerasClassifier,
+                            KerasClassifierClass,
+                            NeuralNetworkClassifier,
+                        ),
                     ):
                         try:
                             self.logger.debug(
@@ -637,7 +685,9 @@ class grid_search_crossvalidate:
                             n_features = self.X_train.shape[1]
                             # Define an input signature that allows for variable batch size.
                             input_signature = [
-                                tf.TensorSpec(shape=(None, n_features), dtype=tf.float32)
+                                tf.TensorSpec(
+                                    shape=(None, n_features), dtype=tf.float32
+                                )
                             ]
                             # Access the underlying Keras model via .model_
                             current_algorithm.model_.predict.get_concrete_function(

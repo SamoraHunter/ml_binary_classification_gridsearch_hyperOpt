@@ -274,7 +274,9 @@ class project_score_save_class:
                     logger.error(f"Error processing scores for BayesSearch: {e}")
                     logger.debug(f"Scores dictionary: {scores}")
             else:
-                line["fit_time_m"] = np.array(scores["fit_time"]).mean()  # deprecated for bayes
+                line["fit_time_m"] = np.array(
+                    scores["fit_time"]
+                ).mean()  # deprecated for bayes
                 line["fit_time_std"] = np.array(scores["fit_time"]).std()
                 line["score_time_m"] = np.array(scores["score_time"]).mean()
                 line["score_time_std"] = np.array(scores["score_time"]).std()

@@ -156,7 +156,9 @@ def get_data_split(
                 X_test = X_test.drop(idx_to_move)
                 y_test = y_test.drop(idx_to_move)
 
-                logger.info(f"Moved sample {idx_to_move} (class {missing_cls}) from test to train.")
+                logger.info(
+                    f"Moved sample {idx_to_move} (class {missing_cls}) from test to train."
+                )
                 break  # Only need one sample to satisfy "at least 2 classes"
 
     return X_train, X_test, y_train, y_test, X_test_orig, y_test_orig

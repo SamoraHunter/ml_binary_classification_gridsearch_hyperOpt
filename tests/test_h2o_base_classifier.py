@@ -1,7 +1,7 @@
 import pytest
 import pandas as pd
 import numpy as np
-from unittest.mock import patch, MagicMock, ANY
+from unittest.mock import patch, MagicMock
 import os
 import shutil
 from sklearn.base import clone
@@ -215,11 +215,11 @@ def test_predict_successful(
     mock_h2o_frame.assert_called_once_with(
         X, column_names=list(X.columns), column_types=classifier_instance.feature_types_
     )
-    
+
     # Optimization: h2o.assign and h2o.get_frame should NO LONGER be called
     mock_h2o_assign.assert_not_called()
     mock_h2o_get_frame.assert_not_called()
-    
+
     # Verify the model's predict method was called with the temporary frame directly
     mock_model.predict.assert_called_once_with(mock_tmp_frame)
 
