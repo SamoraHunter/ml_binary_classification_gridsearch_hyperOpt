@@ -50,6 +50,19 @@ from skopt.space import Categorical
 # Global flag to ensure TensorFlow/GPU setup runs only once per process
 _TF_INITIALIZED = False
 
+# Define H2O model types at module level for reuse
+H2O_MODEL_TYPES = (
+    H2OAutoMLClassifier,
+    H2OGBMClassifier,
+    H2ODRFClassifier,
+    H2OGAMClassifier,
+    H2ODeepLearningClassifier,
+    H2OGLMClassifier,
+    H2ONaiveBayesClassifier,
+    H2ORuleFitClassifier,
+    H2OXGBoostClassifier,
+    H2OStackedEnsembleClassifier,
+)
 
 class grid_search_crossvalidate:
 
@@ -178,9 +191,6 @@ class grid_search_crossvalidate:
         # 2. Ensure y_train is a Series, using X_train's index for alignment.
         if not isinstance(self.y_train, (pd.Series, pd.DataFrame)):
             self.y_train = pd.Series(self.y_train, index=self.X_train.index)
-
-        # 3. Ensure target is categorical for classification models (especially H2O).
-        self.y_train = self.y_train.astype("category")
 
         # --- CRITICAL FIX for H2O Stacked Ensemble response column mismatch ---
         # Enforce a consistent name for the target variable series. This prevents
@@ -515,7 +525,8 @@ class grid_search_crossvalidate:
         metric_list = self.metric_list
 
         # Catch only one class present AUC not defined (check only if not already failed)
-        if not failed and len(np.unique(self.y_train)) < 2:
+        # Optimization: Use pandas nunique() which is faster than converting to numpy and sorting
+        if not failed and self.y_train.nunique() < 2:
             raise ValueError(
                 "Only one class present in y_train. ROC AUC score is not defined "
                 "in that case. grid_search_cross_validate>>>cross_validate"
@@ -535,23 +546,12 @@ class grid_search_crossvalidate:
         # H2O models cannot be pickled and sent to other processes for parallel
         # execution with joblib. We must detect if the current algorithm is an
         # H2O model and, if so, force n_jobs=1 for cross_validate.
-        h2o_model_types = (
-            H2OAutoMLClassifier,
-            H2OGBMClassifier,
-            H2ODRFClassifier,
-            H2OGAMClassifier,
-            H2ODeepLearningClassifier,
-            H2OGLMClassifier,
-            H2ONaiveBayesClassifier,
-            H2ORuleFitClassifier,
-            H2OXGBoostClassifier,
-            H2OStackedEnsembleClassifier,
-        )
+        # (H2O_MODEL_TYPES is now defined at module level)
 
         # Keras/TensorFlow models also require single-threaded execution.
         keras_model_types = (NeuralNetworkClassifier, KerasClassifierClass)
 
-        is_h2o_model = isinstance(current_algorithm, h2o_model_types)
+        is_h2o_model = isinstance(current_algorithm, H2O_MODEL_TYPES)
         is_keras_model = isinstance(current_algorithm, keras_model_types)
 
         # H2O and Keras models require single-threaded execution for CV
@@ -567,10 +567,17 @@ class grid_search_crossvalidate:
 
             # H2O models require pandas DataFrames with column names, while other
             # sklearn models can benefit from using NumPy arrays.
-            if isinstance(current_algorithm, h2o_model_types):
+            if isinstance(current_algorithm, H2O_MODEL_TYPES):
                 X_train_final = self.X_train  # Pass DataFrame directly
+                y_train_final = self.y_train  # Pass Series (Categorical)
             else:
                 X_train_final = self.X_train.values  # Use NumPy array for other models
+                # Optimization: Pass numpy array for y to avoid pandas overhead in sklearn
+                # If it was converted to categorical (unlikely for sklearn now), get codes
+                if isinstance(self.y_train.dtype, pd.CategoricalDtype):
+                    y_train_final = self.y_train.cat.codes.values
+                else:
+                    y_train_final = self.y_train.values
 
             scores = None
 
@@ -681,7 +688,7 @@ class grid_search_crossvalidate:
                     scores = cross_validate(
                         current_algorithm,
                         X_train_final,
-                        self.y_train,  # Pass the pandas Series to preserve index alignment
+                        y_train_final,  # Use optimized y (numpy for sklearn, Series for H2O)
                         scoring=self.metric_list,
                         cv=self.cv,
                         n_jobs=final_cv_n_jobs,  # Use adjusted n_jobs
@@ -730,7 +737,7 @@ class grid_search_crossvalidate:
                     scores = cross_validate(
                         current_algorithm,
                         X_train_final,
-                        self.y_train,  # Use pandas Series for consistency
+                        y_train_final,  # Use optimized y
                         scoring=self.metric_list,
                         cv=self.cv,
                         n_jobs=final_cv_n_jobs,  # Use adjusted n_jobs
@@ -981,19 +988,8 @@ class grid_search_crossvalidate:
 
     def _shutdown_h2o_if_needed(self, algorithm: Any):
         """Safely shuts down the H2O cluster if the algorithm is an H2O model."""
-        h2o_model_types = (
-            H2OAutoMLClassifier,
-            H2OGBMClassifier,
-            H2ODRFClassifier,
-            H2OGAMClassifier,
-            H2ODeepLearningClassifier,
-            H2OGLMClassifier,
-            H2ONaiveBayesClassifier,
-            H2ORuleFitClassifier,
-            H2OXGBoostClassifier,
-            H2OStackedEnsembleClassifier,
-        )
-        if isinstance(algorithm, h2o_model_types):
+        # Use the module-level tuple
+        if isinstance(algorithm, H2O_MODEL_TYPES):
             # --- FIX for repeated H2O cluster shutdown ---
             # We no longer shut down the cluster after each model.
             # The cluster is now managed globally and should be shut down

@@ -25,10 +25,21 @@ def custom_roc_auc_score(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     Returns:
         float: The ROC AUC score, or np.nan if the score is undefined.
     """
-    if len(np.unique(y_true)) < 2:
-        return np.nan  # Return NaN if only one class is present
+    # Optimization: Check min/max instead of full unique sort (O(N) vs O(N log N))
+    # If min == max, there is only one unique value (or array is empty/NaNs which implies undefined AUC)
+    # Also handle Categorical data which may not support min/max if unordered
+    if hasattr(y_true, "nunique"):
+        if y_true.nunique() < 2:
+            return np.nan
     else:
-        return roc_auc_score(y_true, y_pred)
+        try:
+            if len(y_true) == 0 or y_true.min() == y_true.max():
+                return np.nan  # Return NaN if only one class is present
+        except (TypeError, ValueError):
+            if len(np.unique(y_true)) < 2:
+                return np.nan
+
+    return roc_auc_score(y_true, y_pred)
 
 
 class GlobalParameters:
