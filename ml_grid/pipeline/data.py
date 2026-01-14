@@ -193,6 +193,7 @@ class pipe:
         time_series_mode: bool = False,
         model_class_dict: Optional[Dict[str, bool]] = None,
         outcome_var_override: Optional[str] = None,
+        input_df: Optional[pd.DataFrame] = None,
     ):
         """Initializes the data pipeline object.
 
@@ -224,6 +225,8 @@ class pipe:
             outcome_var_override (Optional[str], optional): A specific outcome
                 variable name to use, overriding the one from `local_param_dict`.
                 Defaults to None.
+            input_df (Optional[pd.DataFrame], optional): A pre-loaded DataFrame to use
+                instead of reading from file_name. Defaults to None.
         """
 
         self.additional_naming = additional_naming
@@ -249,7 +252,18 @@ class pipe:
 
         pipeline_error = None
         try:
-            self._load_data(file_name, test_sample_n, column_sample_n)
+            if input_df is not None:
+                self.df = input_df.copy()
+                self.all_df_columns = list(self.df.columns)
+                self.orignal_feature_names = self.all_df_columns.copy()
+                self._log_feature_transformation(
+                    "Initial Load",
+                    len(self.all_df_columns),
+                    len(self.all_df_columns),
+                    "Initial data loaded from passed DataFrame.",
+                )
+            else:
+                self._load_data(file_name, test_sample_n, column_sample_n)
             self._initial_feature_selection(
                 local_param_dict, drop_term_list, outcome_var_override
             )
