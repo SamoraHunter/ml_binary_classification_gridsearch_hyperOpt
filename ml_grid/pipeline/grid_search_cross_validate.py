@@ -1,5 +1,6 @@
 import time
 import logging
+import multiprocessing
 import warnings
 from typing import Any, Dict, List, Optional, Union
 
@@ -45,6 +46,9 @@ from ml_grid.util.validate_parameters import validate_parameters_helper
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from ml_grid.util.bayes_utils import is_skopt_space
 from skopt.space import Categorical
+
+# Global flag to ensure TensorFlow/GPU setup runs only once per process
+_TF_INITIALIZED = False
 
 
 class grid_search_crossvalidate:
@@ -102,7 +106,14 @@ class grid_search_crossvalidate:
 
         self.sub_sample_parameter_val = sub_sample_parameter_val
 
-        grid_n_jobs = self.global_params.grid_n_jobs
+        # --- OPTIMIZATION: Detect Nested Parallelism ---
+        # If running inside a worker process (daemon), force n_jobs=1 to prevent
+        # oversubscription (outer loop parallel * inner loop parallel).
+        if multiprocessing.current_process().daemon:
+            self.global_params.grid_n_jobs = 1
+            grid_n_jobs = 1
+        else:
+            grid_n_jobs = self.global_params.grid_n_jobs
 
         # Configure GPU usage and job limits for specific models
         is_gpu_model = (
@@ -110,18 +121,27 @@ class grid_search_crossvalidate:
             or "xgb" in method_name.lower()
             or "catboost" in method_name.lower()
         )
+
+        global _TF_INITIALIZED
         if is_gpu_model:
             grid_n_jobs = 1
-            try:
-                gpu_devices = tf.config.experimental.list_physical_devices("GPU")
-                if gpu_devices:
-                    for device in gpu_devices:
-                        tf.config.experimental.set_memory_growth(device, True)
-                else:
-                    # Explicitly set CPU as the visible device for TensorFlow to avoid CUDA init errors
-                    tf.config.set_visible_devices([], "GPU")
-            except Exception as e:
-                self.logger.warning(f"Could not configure GPU for TensorFlow: {e}")
+            # --- OPTIMIZATION: One-time TF/GPU Setup ---
+            if not _TF_INITIALIZED:
+                try:
+                    gpu_devices = tf.config.experimental.list_physical_devices("GPU")
+                    if gpu_devices:
+                        for device in gpu_devices:
+                            try:
+                                tf.config.experimental.set_memory_growth(device, True)
+                            except RuntimeError:
+                                pass  # Memory growth must be set before GPUs have been initialized
+                    else:
+                        # Explicitly set CPU as the visible device for TensorFlow to avoid CUDA init errors
+                        tf.config.set_visible_devices([], "GPU")
+                except Exception as e:
+                    self.logger.warning(f"Could not configure GPU for TensorFlow: {e}")
+                finally:
+                    _TF_INITIALIZED = True
 
         self.metric_list = self.global_params.metric_list
 
