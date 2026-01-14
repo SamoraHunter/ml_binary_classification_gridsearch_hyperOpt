@@ -133,6 +133,7 @@ class grid_search_crossvalidate:
             "keras" in method_name.lower()
             or "xgb" in method_name.lower()
             or "catboost" in method_name.lower()
+            or "neural" in method_name.lower()
         )
 
         global _TF_INITIALIZED
@@ -692,7 +693,7 @@ class grid_search_crossvalidate:
                         scoring=self.metric_list,
                         cv=self.cv,
                         n_jobs=final_cv_n_jobs,  # Use adjusted n_jobs
-                        pre_dispatch=80,
+                        pre_dispatch="2*n_jobs",
                         error_score=self.error_raise,  # Raise error if cross-validation fails
                     )
 
@@ -741,7 +742,7 @@ class grid_search_crossvalidate:
                         scoring=self.metric_list,
                         cv=self.cv,
                         n_jobs=final_cv_n_jobs,  # Use adjusted n_jobs
-                        pre_dispatch=80,
+                        pre_dispatch="2*n_jobs",
                         error_score=self.error_raise,  # Raise error if cross-validation fails
                     )
                 except Exception as e:
