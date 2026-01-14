@@ -1,6 +1,9 @@
 import logging
+import signal
+import time
 import traceback
 from typing import Any, Dict, List, Tuple
+from contextlib import contextmanager
 
 import numpy as np
 from sklearn.model_selection import ParameterGrid
@@ -11,6 +14,56 @@ from ml_grid.util.bayes_utils import calculate_combinations
 from ml_grid.util.global_params import global_parameters
 from ml_grid.util.project_score_save import project_score_save_class  # Import the class
 
+
+@contextmanager
+def time_limit(seconds):
+    if seconds is None:
+        yield
+        return
+
+    try:
+        seconds_int = int(seconds)
+    except (ValueError, TypeError):
+        logging.getLogger("ml_grid").warning(f"Invalid timeout value: {seconds}. Timeout disabled.")
+        yield
+        return
+
+    if seconds_int <= 0:
+        yield
+        return
+
+    if not hasattr(signal, "SIGALRM"):
+        logging.getLogger("ml_grid").warning("Timeout not supported on this platform (SIGALRM missing).")
+        yield
+        return
+    def signal_handler(signum, frame):
+        raise TimeoutError(f"Timeout of {seconds}s reached")
+
+    # Check for existing alarm (nesting support)
+    previous_remaining = signal.alarm(0)
+    start_time = time.time()
+
+    # Determine effective timeout (min of new and remaining outer)
+    if previous_remaining > 0:
+        effective_seconds = min(seconds_int, previous_remaining)
+    else:
+        effective_seconds = seconds_int
+
+    # Save the old handler
+    original_handler = signal.signal(signal.SIGALRM, signal_handler)
+    signal.alarm(effective_seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, original_handler)
+
+        # Restore previous alarm if it existed, adjusting for elapsed time
+        if previous_remaining > 0:
+            elapsed = time.time() - start_time
+            # Ensure we don't set 0 or negative; if expired, set 1s to trigger immediately
+            remaining_outer = max(1, int(previous_remaining - elapsed))
+            signal.alarm(remaining_outer)
 
 class run:
     """Orchestrates the hyperparameter search for a list of models."""
@@ -241,10 +294,23 @@ class run:
         """
         try:
             self.logger.info(f"Starting grid search for {args[2]}...")
-            gscv_instance = grid_search_cross_validate.grid_search_crossvalidate(*args)
-            score = gscv_instance.grid_search_cross_validate_score_result
+            
+            # Retrieve timeout from local_param_dict via ml_grid_object (args[3])
+            timeout = args[3].local_param_dict.get("model_eval_time_limit")
+            if timeout is None:
+                timeout = args[3].global_params.model_eval_time_limit
+            
+            with time_limit(timeout):
+                gscv_instance = grid_search_cross_validate.grid_search_crossvalidate(*args)
+                score = gscv_instance.grid_search_cross_validate_score_result
+            
             self.logger.info(f"Score for {args[2]}: {score:.4f}")
             return score
+
+        except TimeoutError as e:
+            self.logger.warning(f"Timeout occurred for {args[2]}: {e}")
+            self.model_error_list.append([args[0], e, traceback.format_exc()])
+            return 0.0
 
         except Exception as e:
             self.logger.error(
@@ -298,17 +364,30 @@ class run:
                     self.logger.info(
                         f"Starting grid search for {self.arg_list[k][2]}..."
                     )
-                    gscv_instance = (
-                        grid_search_cross_validate.grid_search_crossvalidate(
-                            *self.arg_list[k]  # Unpack all arguments
-                        )
-                    )
+                    
+                    timeout = self.local_param_dict.get("model_eval_time_limit")
+                    if timeout is None:
+                        timeout = self.global_params.model_eval_time_limit
 
-                    self.highest_score = max(
-                        self.highest_score,
-                        gscv_instance.grid_search_cross_validate_score_result,
-                    )
+                    with time_limit(timeout):
+                        gscv_instance = (
+                            grid_search_cross_validate.grid_search_crossvalidate(
+                                *self.arg_list[k]  # Unpack all arguments
+                            )
+                        )
+
+                        self.highest_score = max(
+                            self.highest_score,
+                            gscv_instance.grid_search_cross_validate_score_result,
+                        )
                     self.logger.info(f"Current highest score: {self.highest_score:.4f}")
+
+                except TimeoutError as e:
+                    self.logger.warning(f"Timeout occurred for {self.arg_list[k][2]}: {e}")
+                    self.model_error_list.append(
+                        [self.arg_list[k][0], e, traceback.format_exc()]
+                    )
+                    continue
 
                 except (
                     Exception

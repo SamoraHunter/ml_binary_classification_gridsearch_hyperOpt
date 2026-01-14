@@ -96,6 +96,8 @@ class GlobalParameters:
     """Verbosity level for the search object (GridSearchCV, etc.). Defaults to 0."""
     force_second_cv: bool
     """If True, forces a second cross-validation run even if cached results are available. Defaults to False."""
+    model_eval_time_limit: int
+    """The time limit in seconds for a single model evaluation. Defaults to None (no limit)."""
 
     def __new__(cls, *args: Any, **kwargs: Any) -> "GlobalParameters":
         """Creates a new instance if one does not already exist (Singleton pattern)."""
@@ -141,6 +143,7 @@ class GlobalParameters:
         self.h2o_show_progress = False
         self.search_verbose = 0
         self.force_second_cv = False
+        self.model_eval_time_limit = None
 
         custom_scorer = make_scorer(custom_roc_auc_score)
         self.metric_list = {

@@ -400,6 +400,23 @@ class grid_search_crossvalidate:
         if self.global_parameters.verbose >= 3:
             self.logger.debug("Running hyperparameter search")
 
+        # Define default scores early to handle timeouts in search phase
+        default_scores = {
+            "test_accuracy": np.array([0.5]),
+            "test_f1": np.array([0.5]),
+            "test_auc": np.array([0.5]),
+            "fit_time": np.array([0]),
+            "score_time": np.array([0]),
+            "train_score": np.array([0.5]),
+            "test_recall": np.array([0.5]),
+        }
+        
+        failed = False
+        scores = None
+        
+        # Initialize start_time early
+        start_time = time.time()
+
         try:
             # Verify initial index alignment
             try:
@@ -435,6 +452,11 @@ class grid_search_crossvalidate:
             # Pass reset data to search
             current_algorithm = search.run_search(X_train_reset, y_train_reset)
 
+        except TimeoutError:
+            self.logger.warning("Timeout occurred during hyperparameter search.")
+            failed = "Timeout"
+            scores = default_scores
+
         except Exception as e:
             if "dual coefficients or intercepts are not finite" in str(e):
                 self.logger.warning(
@@ -454,7 +476,7 @@ class grid_search_crossvalidate:
         # --- PERFORMANCE FIX for testing ---
         # If in test_mode, we have already verified that the search runs without crashing.
         # We can skip the final, slow cross-validation and return a dummy score.
-        if getattr(self.global_parameters, "test_mode", False):
+        if not failed and getattr(self.global_parameters, "test_mode", False):
             self.logger.info(
                 "Test mode enabled. Skipping final cross-validation for speed."
             )
@@ -463,7 +485,7 @@ class grid_search_crossvalidate:
             self._shutdown_h2o_if_needed(current_algorithm)
             return
 
-        if self.global_parameters.verbose >= 3:
+        if not failed and self.global_parameters.verbose >= 3:
             self.logger.debug("Fitting final model")
 
         # In production, we re-fit the best estimator on the full training data before CV.
@@ -472,15 +494,14 @@ class grid_search_crossvalidate:
 
         metric_list = self.metric_list
 
-        # Catch only one class present AUC not defined:
-
-        if len(np.unique(self.y_train)) < 2:
+        # Catch only one class present AUC not defined (check only if not already failed)
+        if not failed and len(np.unique(self.y_train)) < 2:
             raise ValueError(
                 "Only one class present in y_train. ROC AUC score is not defined "
                 "in that case. grid_search_cross_validate>>>cross_validate"
             )
 
-        if self.global_parameters.verbose >= 1:
+        if not failed and self.global_parameters.verbose >= 1:
             self.logger.info("Getting cross validation scores")
             self.logger.debug(
                 f"X_train shape: {self.X_train.shape}, y_train shape: {self.y_train.shape}"
@@ -489,27 +510,6 @@ class grid_search_crossvalidate:
 
         # Set a time threshold in seconds
         time_threshold = 60  # For example, 60 seconds
-
-        start_time = time.time()
-
-        # Define default scores (e.g., mean score of 0.5 for binary classification)
-        # Default scores if cross-validation fails
-        default_scores = {
-            "test_accuracy": np.array(
-                [0.5]
-            ),  # Default to random classifier performance
-            "test_f1": np.array(
-                [0.5]
-            ),  # Default F1 score (again, 0.5 for random classification)
-            "test_auc": np.array(
-                [0.5]
-            ),  # Default ROC AUC score (0.5 for random classifier)
-            "fit_time": np.array([0]),  # No fitting time if the model fails
-            "score_time": np.array([0]),  # No scoring time if the model fails
-            "train_score": np.array([0.5]),  # Default train score
-            "test_recall": np.array([0.5]),
-            #'test_auc': [0.5] # ?
-        }
 
         # --- CRITICAL FIX for H2O multiprocessing error ---
         # H2O models cannot be pickled and sent to other processes for parallel
@@ -541,9 +541,10 @@ class grid_search_crossvalidate:
                 "H2O or Keras model detected. Forcing n_jobs=1 for final cross-validation."
             )
 
-        failed = False
-
         try:
+            if failed:
+                raise TimeoutError
+
             # H2O models require pandas DataFrames with column names, while other
             # sklearn models can benefit from using NumPy arrays.
             if isinstance(current_algorithm, h2o_model_types):
@@ -737,6 +738,7 @@ class grid_search_crossvalidate:
                 )
 
                 # Set default scores if the AdaBoostClassifier fails
+                failed = True
                 scores = default_scores  # Use default scores
 
             else:
@@ -744,10 +746,11 @@ class grid_search_crossvalidate:
                     f"An unexpected ValueError occurred during cross-validation: {e}",
                     exc_info=True,
                 )
+                failed = True
                 scores = default_scores  # Use default scores for other errors
 
         except RuntimeError as e:
-            raise e  # raise h2o errors to aid development
+            # raise e  # raise h2o errors to aid development
             # --- FIX for UnboundLocalError with H2OStackedEnsemble ---
             # Catch any RuntimeError, which can be raised by H2O models during fit
             # (e.g., base model training failure) or predict.
@@ -759,12 +762,18 @@ class grid_search_crossvalidate:
             failed = True
             scores = default_scores
 
+        except TimeoutError:
+            self.logger.warning("Timeout occurred during cross-validation.")
+            failed = "Timeout"
+            scores = default_scores
+
         except Exception as e:
             # Catch any other general exceptions and log them
             self.logger.error(
                 f"An unexpected error occurred during cross-validation: {e}",
                 exc_info=True,
             )
+            failed = True
             scores = default_scores  # Use default scores if an error occurs
 
         # End the timer
@@ -801,7 +810,10 @@ class grid_search_crossvalidate:
             # plot_auc_results(grid.best_estimator_, X_test_orig, self.y_test_orig, cv)
 
         #         this should be x_test...?
-        best_pred_orig = current_algorithm.predict(self.X_test)  # exp
+        try:
+            best_pred_orig = current_algorithm.predict(self.X_test)  # exp
+        except Exception:
+            best_pred_orig = np.zeros(len(self.X_test))
 
         # Call the update_score_log method on the provided instance
         if self.project_score_save_class_instance:
@@ -822,7 +834,10 @@ class grid_search_crossvalidate:
             )
 
         # calculate metric for optimisation
-        auc = metrics.roc_auc_score(self.y_test, best_pred_orig)
+        try:
+            auc = metrics.roc_auc_score(self.y_test, best_pred_orig)
+        except Exception:
+            auc = 0.5
 
         self.grid_search_cross_validate_score_result = auc
 

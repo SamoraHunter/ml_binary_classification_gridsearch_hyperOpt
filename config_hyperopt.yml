@@ -11,6 +11,7 @@ global_params:
   n_iter: 2
   max_param_space_iter_value : 10
   force_second_cv: false # If True, forces a second cross-validation run even if cached results are available. Defaults to False.
+  model_eval_time_limit: 3600
 
 # Experiment settings for the hyperopt run
 experiment:
@@ -104,3 +105,4 @@ hyperopt_search_space:
 # Hyperopt-specific settings
 hyperopt_settings:
   max_evals: 2 # Number of iterations per outcome variable
+  trial_timeout: 1120 # Timeout in seconds for a full trial (data prep + all models)
