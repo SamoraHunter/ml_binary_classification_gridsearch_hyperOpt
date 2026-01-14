@@ -187,9 +187,21 @@ class project_score_save_class:
             column_list = _get_score_log_columns(list(global_params.metric_list.keys()))
             line = pd.DataFrame(data=None, columns=column_list)
 
+            # --- OPTIMIZATION: Pre-process targets for faster metric calculation ---
+            # Convert to numpy arrays to avoid pandas overhead in sklearn metrics
+            y_test_np = y_test.values if hasattr(y_test, "values") else y_test
+            best_pred_np = best_pred_orig.values if hasattr(best_pred_orig, "values") else best_pred_orig
+
+            # Attempt to convert to integers (e.g. "0"/"1" strings from H2O) for faster np.unique
+            try:
+                y_test_np = y_test_np.astype(int)
+                best_pred_np = best_pred_np.astype(int)
+            except (ValueError, TypeError):
+                pass
+
             # best_pred_orig = grid.best_estimator_.predict(X_test_orig)
             try:
-                auc = metrics.roc_auc_score(y_test, best_pred_orig)
+                auc = metrics.roc_auc_score(y_test_np, best_pred_np)
             except Exception as e:
                 logger.warning(f"Could not calculate AUC score: {e}")
                 logger.debug(f"y_test unique values: {y_test.unique()!s}")
@@ -198,11 +210,11 @@ class project_score_save_class:
                 )
                 auc = np.nan
 
-            mcc = matthews_corrcoef(y_test, best_pred_orig)
-            f1 = f1_score(y_test, best_pred_orig, average="binary")
-            precision = precision_score(y_test, best_pred_orig, average="binary")
-            recall = recall_score(y_test, best_pred_orig, average="binary")
-            accuracy = accuracy_score(y_test, best_pred_orig)
+            mcc = matthews_corrcoef(y_test_np, best_pred_np)
+            f1 = f1_score(y_test_np, best_pred_np, average="binary")
+            precision = precision_score(y_test_np, best_pred_np, average="binary")
+            recall = recall_score(y_test_np, best_pred_np, average="binary")
+            accuracy = accuracy_score(y_test_np, best_pred_np)
 
             # get info from current settings iter...local_param_dict ml_grid_object
             for key in ml_grid_object.local_param_dict:

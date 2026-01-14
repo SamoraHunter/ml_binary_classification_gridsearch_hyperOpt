@@ -559,8 +559,9 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         # Ensure H2O is running
         self._ensure_h2o_is_running()
 
-        # Ensure the model is loaded (critical for cross-validation)
-        self._ensure_model_is_loaded()
+        # OPTIMIZATION: Lazy load model. Only check if we don't have the object.
+        if self.model_ is None:
+            self._ensure_model_is_loaded()
 
         try:
             # --- ROBUSTNESS FIX for java.lang.NullPointerException ---
@@ -592,20 +593,27 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         try:
             predictions = self.model_.predict(test_h2o)
         except Exception as e:
-            # --- FIX: Catch H2O backend crashes (NPE) during prediction and fallback ---
-            if "java.lang.NullPointerException" in str(e):
-                self.logger.warning(
-                    f"H2O backend crashed with NPE during predict(). Returning dummy predictions. Details: {e}"
-                )
-                # Fallback: predict the first class (usually 0)
-                dummy_val = (
-                    self.classes_[0]
-                    if self.classes_ is not None and len(self.classes_) > 0
-                    else 0
-                )
-                return np.full(len(X), dummy_val)
+            # If prediction failed, it might be because the model was unloaded/GC'd on server.
+            # Try reloading and predicting again.
+            self.logger.debug(f"Prediction failed ({e}), attempting to reload model...")
+            try:
+                self._ensure_model_is_loaded()
+                predictions = self.model_.predict(test_h2o)
+            except Exception as e2:
+                # --- FIX: Catch H2O backend crashes (NPE) during prediction and fallback ---
+                if "java.lang.NullPointerException" in str(e):
+                    self.logger.warning(
+                        f"H2O backend crashed with NPE during predict(). Returning dummy predictions. Details: {e}"
+                    )
+                    # Fallback: predict the first class (usually 0)
+                    dummy_val = (
+                        self.classes_[0]
+                        if self.classes_ is not None and len(self.classes_) > 0
+                        else 0
+                    )
+                    return np.full(len(X), dummy_val)
 
-            raise RuntimeError(f"H2O prediction failed: {e}")
+                raise RuntimeError(f"H2O prediction failed: {e2}")
 
         # Extract predictions
         pred_df = predictions.as_data_frame(use_multi_thread=False)
@@ -665,8 +673,9 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         # Ensure H2O is running
         self._ensure_h2o_is_running()
 
-        # Ensure the model is loaded
-        self._ensure_model_is_loaded()
+        # OPTIMIZATION: Lazy load model.
+        if self.model_ is None:
+            self._ensure_model_is_loaded()
 
         # Create H2O frame with explicit column names
         try:
@@ -687,20 +696,26 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         try:
             predictions = self.model_.predict(test_h2o)
         except Exception as e:
-            # --- FIX: Catch H2O backend crashes (NPE) during prediction and fallback ---
-            if "java.lang.NullPointerException" in str(e):
-                self.logger.warning(
-                    f"H2O backend crashed with NPE during predict_proba(). Returning dummy probabilities. Details: {e}"
-                )
-                # Fallback: uniform probabilities
-                n_classes = (
-                    len(self.classes_)
-                    if self.classes_ is not None and len(self.classes_) > 0
-                    else 2
-                )
-                return np.full((len(X), n_classes), 1.0 / n_classes)
+            # Retry logic for unloaded models
+            self.logger.debug(f"Prediction failed ({e}), attempting to reload model...")
+            try:
+                self._ensure_model_is_loaded()
+                predictions = self.model_.predict(test_h2o)
+            except Exception as e2:
+                # --- FIX: Catch H2O backend crashes (NPE) during prediction and fallback ---
+                if "java.lang.NullPointerException" in str(e):
+                    self.logger.warning(
+                        f"H2O backend crashed with NPE during predict_proba(). Returning dummy probabilities. Details: {e}"
+                    )
+                    # Fallback: uniform probabilities
+                    n_classes = (
+                        len(self.classes_)
+                        if self.classes_ is not None and len(self.classes_) > 0
+                        else 2
+                    )
+                    return np.full((len(X), n_classes), 1.0 / n_classes)
 
-            raise RuntimeError(f"H2O prediction failed: {e}")
+                raise RuntimeError(f"H2O prediction failed: {e2}")
 
         # Extract probabilities (drop the 'predict' column)
         prob_df = predictions.drop("predict").as_data_frame(use_multi_thread=False)
