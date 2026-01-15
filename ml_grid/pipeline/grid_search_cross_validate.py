@@ -64,6 +64,7 @@ H2O_MODEL_TYPES = (
     H2OStackedEnsembleClassifier,
 )
 
+
 class grid_search_crossvalidate:
 
     def __init__(
@@ -441,10 +442,10 @@ class grid_search_crossvalidate:
             "train_score": np.array([0.5]),
             "test_recall": np.array([0.5]),
         }
-        
+
         failed = False
         scores = None
-        
+
         # Initialize start_time early
         start_time = time.time()
 

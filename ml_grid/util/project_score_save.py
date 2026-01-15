@@ -190,7 +190,11 @@ class project_score_save_class:
             # --- OPTIMIZATION: Pre-process targets for faster metric calculation ---
             # Convert to numpy arrays to avoid pandas overhead in sklearn metrics
             y_test_np = y_test.values if hasattr(y_test, "values") else y_test
-            best_pred_np = best_pred_orig.values if hasattr(best_pred_orig, "values") else best_pred_orig
+            best_pred_np = (
+                best_pred_orig.values
+                if hasattr(best_pred_orig, "values")
+                else best_pred_orig
+            )
 
             # Ensure 1D arrays to prevent shape mismatch errors
             y_test_np = np.ravel(y_test_np)
