@@ -535,8 +535,17 @@ class AlgorithmComparisonPlotter:
         stability = (
             self.clean_data.groupby("method_name")[metric]
             .std()
+            .dropna()
             .sort_values(ascending=True)
         )
+
+        if stability.empty:
+            warnings.warn(
+                f"No stability data available for metric '{metric}'. "
+                "This usually happens if each algorithm was run only once (std is undefined).",
+                stacklevel=2,
+            )
+            return
 
         # Select top N most stable
         stability = stability.head(top_n)
@@ -560,7 +569,8 @@ class AlgorithmComparisonPlotter:
         )
         ax.set_ylabel("Algorithm", fontsize=12)
 
-        ax.bar_label(ax.containers[0], fmt="%.4f", padding=3)
+        if ax.containers:
+            ax.bar_label(ax.containers[0], fmt="%.4f", padding=3)
         plt.tight_layout()
         plt.show()
 
@@ -813,6 +823,6 @@ class AlgorithmComparisonPlotter:
             cmap="coolwarm_r",
             center=0.05,
             cbar_kws={"label": "P-value"},
-        ).reset_index()
+        )
         plt.title(title, fontsize=14, fontweight="bold")
         plt.show()

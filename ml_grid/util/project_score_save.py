@@ -192,6 +192,10 @@ class project_score_save_class:
             y_test_np = y_test.values if hasattr(y_test, "values") else y_test
             best_pred_np = best_pred_orig.values if hasattr(best_pred_orig, "values") else best_pred_orig
 
+            # Ensure 1D arrays to prevent shape mismatch errors
+            y_test_np = np.ravel(y_test_np)
+            best_pred_np = np.ravel(best_pred_np)
+
             # Attempt to convert to integers (e.g. "0"/"1" strings from H2O) for faster np.unique
             try:
                 y_test_np = y_test_np.astype(int)

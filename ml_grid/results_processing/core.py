@@ -416,7 +416,7 @@ class ResultsAggregator:
         available_metrics = [col for col in metrics if col in data.columns]
 
         # Clean data (remove failed runs)
-        clean_data = data[data["failed"] == 0] if "failed" in data.columns else data
+        clean_data = get_clean_data(data)
 
         # Group by outcome variable and calculate summary stats
         outcome_summary = (
@@ -479,7 +479,10 @@ class DataValidator:
 
         # Check for data quality issues
         if "failed" in df.columns:
-            failed_count = (df["failed"] == 1).sum()
+            # Robust check for failures handling mixed types (str/bool/int)
+            failed_as_str = df["failed"].astype(str).str.lower()
+            success_values = ["false", "0", "0.0"]
+            failed_count = (~failed_as_str.isin(success_values)).sum()
             if failed_count > 0:
                 validation_report["data_quality_issues"].append(
                     f"{failed_count} failed runs detected"
@@ -558,7 +561,11 @@ def get_clean_data(df: pd.DataFrame, remove_failed: bool = True) -> pd.DataFrame
         pd.DataFrame: The cleaned DataFrame.
     """
     if remove_failed and "failed" in df.columns:
-        return df[df["failed"] == 0].copy()
+        # Robustly identify failed rows handling mixed types (bool, int, str)
+        # We consider the row failed if it is NOT explicitly False, 0, "False", or "0"
+        failed_as_str = df["failed"].astype(str).str.lower()
+        success_values = ["false", "0", "0.0"]
+        return df[failed_as_str.isin(success_values)].copy()
     return df.copy()
 
 

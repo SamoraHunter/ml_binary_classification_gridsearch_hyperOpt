@@ -504,9 +504,8 @@ class OutcomeComparator:
 
             # Basic counts
             char_dict["total_experiments"] = len(outcome_data)
-            char_dict["successful_experiments"] = len(
-                outcome_data[outcome_data["failed"] == 0]
-            )
+            successful_data = get_clean_data(outcome_data)
+            char_dict["successful_experiments"] = len(successful_data)
             char_dict["success_rate"] = (
                 char_dict["successful_experiments"] / char_dict["total_experiments"]
             )
@@ -518,7 +517,6 @@ class OutcomeComparator:
                     char_dict[char] = outcome_data[char].median()
 
             # Performance characteristics
-            successful_data = outcome_data[outcome_data["failed"] == 0]
             if len(successful_data) > 0:
                 for metric in ["auc", "f1", "precision", "recall", "accuracy"]:
                     if metric in successful_data.columns:
@@ -551,7 +549,7 @@ class OutcomeComparator:
             similarity_metrics = ["auc", "f1"]
 
         # Get successful runs only
-        successful_data = self.data[self.data["failed"] == 0]
+        successful_data = get_clean_data(self.data)
 
         # Get reference outcome performance
         ref_data = successful_data[
