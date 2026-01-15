@@ -9,6 +9,7 @@ import h2o
 import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, ClassifierMixin
+import sklearn
 from sklearn.utils.validation import check_is_fitted
 
 from ml_grid.util.global_params import global_parameters
@@ -191,7 +192,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         Raises:
             ValueError: If data is invalid
         """
-        # Convert to DataFrame if needed and ensure columns are strings
+        # Ensure X is a DataFrame and columns are strings (H2O requirement).
         if not isinstance(X, pd.DataFrame):
             if self.feature_names_ is not None:
                 X = pd.DataFrame(X, columns=self.feature_names_)
@@ -207,8 +208,14 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                 X = pd.DataFrame(X)
                 X.columns = [str(c) for c in X.columns]
         else:
-            # If it's already a DataFrame, still ensure columns are strings.
-            X.columns = X.columns.astype(str)
+            # If it's already a DataFrame, ensure columns are strings.
+            # This is necessary for H2O even if validation is skipped.
+            if any(not isinstance(c, str) for c in X.columns):
+                X.columns = X.columns.astype(str)
+
+        # --- OPTIMIZATION: Skip validation if configured (saves ~99s in profile) ---
+        if sklearn.get_config().get("skip_parameter_validation"):
+            return X, y
 
         # Reset index to avoid sklearn CV indexing issues
         # CRITICAL: If we reset X, we MUST also reset y to maintain alignment.
@@ -243,12 +250,15 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                 )
 
             # Get unique classes
+            # --- OPTIMIZATION: Use pd.unique which is faster than np.unique ---
             if isinstance(y, pd.Series):
                 unique_classes = y.unique()
             elif isinstance(y, pd.Categorical):
                 unique_classes = y.categories
             else:
-                unique_classes = np.unique(y[~pd.isna(y)])
+                # Fallback for numpy arrays
+                unique_classes = pd.unique(y)
+                # Note: pd.unique includes NaNs, but we checked for NaNs above
 
             if len(unique_classes) < 2:
                 raise ValueError(

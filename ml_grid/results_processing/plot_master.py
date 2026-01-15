@@ -228,8 +228,9 @@ class MasterPlotter:
 
         self.logger.info("\n>>> 3. Generating Distribution Plots...")
         try:
+            dist_metrics = list(dict.fromkeys([metric, "f1", "mcc", "support"]))
             self.dist_plotter.plot_metric_distributions(
-                metrics=[metric, "f1", "mcc"], stratify_by_outcome=stratify_by_outcome
+                metrics=dist_metrics, stratify_by_outcome=stratify_by_outcome
             )
             self.dist_plotter.plot_comparative_distributions(
                 metric=metric, plot_type="violin"
@@ -370,6 +371,13 @@ class MasterPlotter:
                     metric=pipeline_metric
                 )
                 self.pipeline_plotter.plot_continuous_parameters(metric=pipeline_metric)
+
+                # Analyze Support if available
+                if "support" in self.data.columns:
+                    self.logger.info(
+                        "Analyzing pipeline parameter impact on Support..."
+                    )
+                    self.pipeline_plotter.plot_categorical_parameters(metric="support")
             except Exception as e:
                 self.logger.warning(
                     f"Could not generate pipeline parameter plots. Reason: {e}"

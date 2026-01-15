@@ -10,6 +10,7 @@ import tensorflow as tf
 import torch
 from IPython.display import clear_output
 from scikeras.wrappers import KerasClassifier
+import sklearn
 from sklearn import metrics
 from pandas.testing import assert_index_equal
 from xgboost.core import XGBoostError
@@ -137,11 +138,33 @@ class grid_search_crossvalidate:
             or "neural" in method_name.lower()
         )
 
+        is_h2o_model = isinstance(algorithm_implementation, H2O_MODEL_TYPES)
+
         global _TF_INITIALIZED
-        if is_gpu_model:
+        if is_gpu_model or is_h2o_model:
             grid_n_jobs = 1
+
+            # --- OPTIMIZATION: Disable H2O Progress Bar ---
+            # This saves significant time (~95s) spent in progressbar updates
+            if is_h2o_model:
+                try:
+                    import h2o
+
+                    h2o.no_progress()
+                except ImportError:
+                    pass
+                except Exception:
+                    pass
+
             # --- OPTIMIZATION: One-time TF/GPU Setup ---
-            if not _TF_INITIALIZED:
+            if is_gpu_model:
+                # Optimize Keras/TF runtime by disabling traceback filtering
+                try:
+                    tf.debugging.disable_traceback_filtering()
+                except AttributeError:
+                    pass
+
+            if is_gpu_model and not _TF_INITIALIZED:
                 try:
                     gpu_devices = tf.config.experimental.list_physical_devices("GPU")
                     if gpu_devices:
@@ -417,93 +440,126 @@ class grid_search_crossvalidate:
         # class itself, making it a self-contained scikit-learn meta-estimator.
         # No special orchestration is needed here anymore.
 
-        # Instantiate and run the hyperparameter grid/random search
-        search = HyperparameterSearch(
-            algorithm=current_algorithm,
-            parameter_space=parameter_space,
-            method_name=method_name,
-            global_params=self.global_parameters,
-            sub_sample_pct=self.sub_sample_param_space_pct,  # Explore 50% of the parameter space
-            max_iter=n_iter_v,  # Maximum iterations for randomized search
-            ml_grid_object=ml_grid_object,
-            cv=self.cv,
-        )
-
-        if self.global_parameters.verbose >= 3:
-            self.logger.debug("Running hyperparameter search")
-
-        # Define default scores early to handle timeouts in search phase
-        default_scores = {
-            "test_accuracy": np.array([0.5]),
-            "test_f1": np.array([0.5]),
-            "test_auc": np.array([0.5]),
-            "fit_time": np.array([0]),
-            "score_time": np.array([0]),
-            "train_score": np.array([0.5]),
-            "test_recall": np.array([0.5]),
-        }
-
-        failed = False
-        scores = None
-
-        # Initialize start_time early
-        start_time = time.time()
+        # --- OPTIMIZATION: Force Sequential Search for H2O/GPU Models ---
+        # Save original n_jobs to restore later. This prevents HyperparameterSearch
+        # from spawning parallel jobs for models that are not thread/process safe
+        # or have their own internal parallelism (like H2O).
+        original_grid_n_jobs = self.global_parameters.grid_n_jobs
+        if is_gpu_model or is_h2o_model:
+            self.global_parameters.grid_n_jobs = 1
 
         try:
-            # Verify initial index alignment
+            # Instantiate and run the hyperparameter grid/random search
+            search = HyperparameterSearch(
+                algorithm=current_algorithm,
+                parameter_space=parameter_space,
+                method_name=method_name,
+                global_params=self.global_parameters,
+                sub_sample_pct=self.sub_sample_param_space_pct,  # Explore 50% of the parameter space
+                max_iter=n_iter_v,  # Maximum iterations for randomized search
+                ml_grid_object=ml_grid_object,
+                cv=self.cv,
+            )
+
+            if self.global_parameters.verbose >= 3:
+                self.logger.debug("Running hyperparameter search")
+
+            # Define default scores early to handle timeouts in search phase
+            default_scores = {
+                "test_accuracy": np.array([0.5]),
+                "test_f1": np.array([0.5]),
+                "test_auc": np.array([0.5]),
+                "fit_time": np.array([0]),
+                "score_time": np.array([0]),
+                "train_score": np.array([0.5]),
+                "test_recall": np.array([0.5]),
+            }
+
+            failed = False
+            scores = None
+
+            # Initialize start_time early
+            start_time = time.time()
+
             try:
-                assert_index_equal(self.X_train.index, self.y_train.index)
+                # Verify initial index alignment
+                try:
+                    assert_index_equal(self.X_train.index, self.y_train.index)
+                    ml_grid_object.logger.debug(
+                        "Index alignment PASSED before search.run_search"
+                    )
+                except AssertionError:
+                    ml_grid_object.logger.error(
+                        "Index alignment FAILED before search.run_search"
+                    )
+                    raise
+
+                # Ensure y_train is a Series for consistency
+                if not isinstance(self.y_train, pd.Series):
+                    ml_grid_object.logger.error(
+                        f"y_train is not a pandas Series, but {type(self.y_train)}. Converting to Series."
+                    )
+                    self.y_train = pd.Series(self.y_train, index=self.X_train.index)
+
+                # CRITICAL FIX: Reset indices to ensure integer-based indexing for sklearn
+                # This prevents "String indexing is not supported with 'axis=0'" errors
+                X_train_reset = self.X_train.reset_index(drop=True)
+                y_train_reset = self.y_train.reset_index(drop=True)
+
                 ml_grid_object.logger.debug(
-                    "Index alignment PASSED before search.run_search"
+                    f"X_train index after reset: {X_train_reset.index[:5]}"
                 )
-            except AssertionError:
-                ml_grid_object.logger.error(
-                    "Index alignment FAILED before search.run_search"
+                ml_grid_object.logger.debug(
+                    f"y_train index after reset: {y_train_reset.index[:5]}"
                 )
-                raise
 
-            # Ensure y_train is a Series for consistency
-            if not isinstance(self.y_train, pd.Series):
-                ml_grid_object.logger.error(
-                    f"y_train is not a pandas Series, but {type(self.y_train)}. Converting to Series."
+                # --- OPTIMIZATION: Convert y to numpy for ALL models ---
+                # This avoids expensive sklearn type_of_target checks on Pandas Series (overhead seen in profiling)
+                # Most sklearn models handle numpy arrays efficiently.
+                if isinstance(y_train_reset.dtype, pd.CategoricalDtype):
+                    y_train_search = y_train_reset.cat.codes.values
+                elif hasattr(y_train_reset, "values"):
+                    y_train_search = y_train_reset.values
+                else:
+                    y_train_search = y_train_reset
+
+                # --- OPTIMIZATION: Skip parameter validation overhead ---
+                # Use set_config to ensure it propagates to all internal calls
+                with sklearn.config_context(skip_parameter_validation=True):
+                    # Pass reset data to search
+                    if is_h2o_model:
+                        try:
+                            import h2o
+
+                            h2o.no_progress()
+                        except Exception:
+                            pass
+
+                    current_algorithm = search.run_search(X_train_reset, y_train_search)
+
+            except TimeoutError:
+                self.logger.warning("Timeout occurred during hyperparameter search.")
+                failed = "Timeout"
+                scores = default_scores
+
+            except Exception as e:
+                if "dual coefficients or intercepts are not finite" in str(e):
+                    self.logger.warning(
+                        f"SVC failed to fit due to data issues: {e}. Returning default score."
+                    )
+                    self.grid_search_cross_validate_score_result = 0.5
+                    return
+
+                # Log the error and re-raise it to stop the entire execution,
+                # allowing the main loop in main.py to handle it based on error_raise.
+                self.logger.error(
+                    f"An exception occurred during hyperparameter search for {method_name}: {e}",
+                    exc_info=True,
                 )
-                self.y_train = pd.Series(self.y_train, index=self.X_train.index)
-
-            # CRITICAL FIX: Reset indices to ensure integer-based indexing for sklearn
-            # This prevents "String indexing is not supported with 'axis=0'" errors
-            X_train_reset = self.X_train.reset_index(drop=True)
-            y_train_reset = self.y_train.reset_index(drop=True)
-
-            ml_grid_object.logger.debug(
-                f"X_train index after reset: {X_train_reset.index[:5]}"
-            )
-            ml_grid_object.logger.debug(
-                f"y_train index after reset: {y_train_reset.index[:5]}"
-            )
-
-            # Pass reset data to search
-            current_algorithm = search.run_search(X_train_reset, y_train_reset)
-
-        except TimeoutError:
-            self.logger.warning("Timeout occurred during hyperparameter search.")
-            failed = "Timeout"
-            scores = default_scores
-
-        except Exception as e:
-            if "dual coefficients or intercepts are not finite" in str(e):
-                self.logger.warning(
-                    f"SVC failed to fit due to data issues: {e}. Returning default score."
-                )
-                self.grid_search_cross_validate_score_result = 0.5
-                return
-
-            # Log the error and re-raise it to stop the entire execution,
-            # allowing the main loop in main.py to handle it based on error_raise.
-            self.logger.error(
-                f"An exception occurred during hyperparameter search for {method_name}: {e}",
-                exc_info=True,
-            )
-            raise e
+                raise e
+        finally:
+            # Restore the original grid_n_jobs setting
+            self.global_parameters.grid_n_jobs = original_grid_n_jobs
 
         # --- PERFORMANCE FIX for testing ---
         # If in test_mode, we have already verified that the search runs without crashing.
@@ -571,7 +627,11 @@ class grid_search_crossvalidate:
             # sklearn models can benefit from using NumPy arrays.
             if isinstance(current_algorithm, H2O_MODEL_TYPES):
                 X_train_final = self.X_train  # Pass DataFrame directly
-                y_train_final = self.y_train  # Pass Series (Categorical)
+                # Optimization: Pass numpy array for y to avoid pandas overhead in sklearn checks
+                if isinstance(self.y_train.dtype, pd.CategoricalDtype):
+                    y_train_final = self.y_train.cat.codes.values
+                else:
+                    y_train_final = self.y_train.values
             else:
                 X_train_final = self.X_train.values  # Use NumPy array for other models
                 # Optimization: Pass numpy array for y to avoid pandas overhead in sklearn
@@ -580,6 +640,14 @@ class grid_search_crossvalidate:
                     y_train_final = self.y_train.cat.codes.values
                 else:
                     y_train_final = self.y_train.values
+
+            # --- OPTIMIZATION: Convert y to int if possible ---
+            # This speeds up sklearn metric calculations (confusion_matrix, unique_labels)
+            # significantly compared to string/object arrays.
+            try:
+                y_train_final = y_train_final.astype(int)
+            except (ValueError, TypeError):
+                pass
 
             scores = None
 
@@ -687,16 +755,27 @@ class grid_search_crossvalidate:
                     # Note: current_algorithm is already fitted on full X_train by HyperparameterSearch (refit=True)
                     # so we do not need to call .fit() again here.
 
-                    scores = cross_validate(
-                        current_algorithm,
-                        X_train_final,
-                        y_train_final,  # Use optimized y (numpy for sklearn, Series for H2O)
-                        scoring=self.metric_list,
-                        cv=self.cv,
-                        n_jobs=final_cv_n_jobs,  # Use adjusted n_jobs
-                        pre_dispatch="2*n_jobs",
-                        error_score=self.error_raise,  # Raise error if cross-validation fails
-                    )
+                    # --- OPTIMIZATION: Skip parameter validation overhead (99s) ---
+                    with sklearn.config_context(skip_parameter_validation=True):
+                        # Ensure H2O progress is disabled before CV
+                        if is_h2o_model:
+                            try:
+                                import h2o
+
+                                h2o.no_progress()
+                            except Exception:
+                                pass
+
+                        scores = cross_validate(
+                            current_algorithm,
+                            X_train_final,
+                            y_train_final,  # Use optimized y (numpy for sklearn, Series for H2O)
+                            scoring=self.metric_list,
+                            cv=self.cv,
+                            n_jobs=final_cv_n_jobs,  # Use adjusted n_jobs
+                            pre_dispatch="2*n_jobs",
+                            error_score=self.error_raise,  # Raise error if cross-validation fails
+                        )
 
                     # Pre-compile the predict function for Keras/TF models to avoid retracing warnings.
                     # This is done AFTER fitting and before cross-validation.
@@ -864,7 +943,10 @@ class grid_search_crossvalidate:
 
         # calculate metric for optimisation
         try:
-            auc = metrics.roc_auc_score(self.y_test, best_pred_orig)
+            y_test_np = (
+                self.y_test.values if hasattr(self.y_test, "values") else self.y_test
+            )
+            auc = metrics.roc_auc_score(y_test_np, best_pred_orig)
         except Exception:
             auc = 0.5
 

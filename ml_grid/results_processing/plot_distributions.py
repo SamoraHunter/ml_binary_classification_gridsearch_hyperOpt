@@ -63,7 +63,7 @@ class DistributionPlotter:
             ValueError: If no specified metrics are found in the data.
         """
         if metrics is None:
-            metrics = ["auc", "mcc", "f1", "precision", "recall", "accuracy"]
+            metrics = ["auc", "mcc", "f1", "precision", "recall", "accuracy", "support"]
 
         available_metrics = [col for col in metrics if col in self.clean_data.columns]
 

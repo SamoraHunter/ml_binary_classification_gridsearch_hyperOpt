@@ -36,6 +36,7 @@ def _get_score_log_columns(metric_list: List[str]) -> List[str]:
         "precision",
         "recall",
         "accuracy",
+        "support",
         "resample",
         "scale",
         "n_features",
@@ -218,10 +219,25 @@ class project_score_save_class:
                 )
                 auc = np.nan
 
+            # --- OPTIMIZATION: Calculate metrics efficiently ---
+            # Calculate precision, recall, f1, support in one pass to avoid repeated overhead
+            try:
+                precision, recall, f1, support_val = precision_recall_fscore_support(
+                    y_test_np, best_pred_np, average="binary"
+                )
+                if support_val is None:
+                    # For binary average, support is None. Calculate positive class support manually.
+                    # Assuming positive class is 1.
+                    support_val = np.sum(y_test_np == 1)
+            except ValueError:
+                # Fallback for multiclass or other issues
+                precision = precision_score(y_test_np, best_pred_np, average="binary")
+                recall = recall_score(y_test_np, best_pred_np, average="binary")
+                f1 = f1_score(y_test_np, best_pred_np, average="binary")
+                # Fallback support calculation
+                support_val = np.sum(y_test_np == 1)
+
             mcc = matthews_corrcoef(y_test_np, best_pred_np)
-            f1 = f1_score(y_test_np, best_pred_np, average="binary")
-            precision = precision_score(y_test_np, best_pred_np, average="binary")
-            recall = recall_score(y_test_np, best_pred_np, average="binary")
             accuracy = accuracy_score(y_test_np, best_pred_np)
 
             # get info from current settings iter...local_param_dict ml_grid_object
@@ -263,6 +279,7 @@ class project_score_save_class:
             line["precision"] = [precision]
             line["recall"] = [recall]
             line["accuracy"] = [accuracy]
+            line["support"] = [support_val]
 
             line["X_train_size"] = [len(X_train)]
             line["X_test_orig_size"] = [len(X_test_orig)]
