@@ -185,6 +185,9 @@ class project_score_save_class:
             logger = logging.getLogger("ml_grid")
             logger.info("Writing grid permutation to log")
             # write line to best grid scores---------------------
+            
+            # --- OPTIMIZATION: Construct dictionary first to avoid slow DataFrame element-wise setting ---
+            row_data = {}
             column_list = _get_score_log_columns(list(global_params.metric_list.keys()))
             line = pd.DataFrame(data=None, columns=column_list)
 
@@ -240,19 +243,17 @@ class project_score_save_class:
             mcc = matthews_corrcoef(y_test_np, best_pred_np)
             accuracy = accuracy_score(y_test_np, best_pred_np)
 
-            # get info from current settings iter...local_param_dict ml_grid_object
+            # Populate row_data dictionary instead of repeated DataFrame indexing
             for key in ml_grid_object.local_param_dict:
                 # print(key)
                 if key != "data":
                     if key in column_list:
-                        line[key] = [ml_grid_object.local_param_dict.get(key)]
+                        row_data[key] = ml_grid_object.local_param_dict.get(key)
                 else:
                     for key_1 in ml_grid_object.local_param_dict.get("data"):
                         # print(key_1)
                         if key_1 in column_list:
-                            line[key_1] = [
-                                ml_grid_object.local_param_dict.get("data").get(key_1)
-                            ]
+                            row_data[key_1] = ml_grid_object.local_param_dict.get("data").get(key_1)
 
             current_f = ml_grid_object.final_column_list
             # current_f = list(self.X_test.columns)
@@ -266,61 +267,64 @@ class project_score_save_class:
             # f_list.append(np.array(current_f_vector))
             f_list.append(current_f_vector)
 
-            line["algorithm_implementation"] = [current_algorithm]
-            line["parameter_sample"] = [current_algorithm.get_params()]
-            line["method_name"] = [method_name]
-            line["nb_size"] = [sum(np.array(current_f_vector))]
-            line["n_features"] = [len(current_f_vector)]
-            line["f_list"] = [f_list]
+            row_data["algorithm_implementation"] = current_algorithm
+            row_data["parameter_sample"] = current_algorithm.get_params()
+            row_data["method_name"] = method_name
+            row_data["nb_size"] = sum(np.array(current_f_vector))
+            row_data["n_features"] = len(current_f_vector)
+            row_data["f_list"] = f_list
 
-            line["auc"] = [auc]
-            line["mcc"] = [mcc]
-            line["f1"] = [f1]
-            line["precision"] = [precision]
-            line["recall"] = [recall]
-            line["accuracy"] = [accuracy]
-            line["support"] = [support_val]
+            row_data["auc"] = auc
+            row_data["mcc"] = mcc
+            row_data["f1"] = f1
+            row_data["precision"] = precision
+            row_data["recall"] = recall
+            row_data["accuracy"] = accuracy
+            row_data["support"] = support_val
 
-            line["X_train_size"] = [len(X_train)]
-            line["X_test_orig_size"] = [len(X_test_orig)]
-            line["X_test_size"] = [len(X_test)]
+            row_data["X_train_size"] = len(X_train)
+            row_data["X_test_orig_size"] = len(X_test_orig)
+            row_data["X_test_size"] = len(X_test)
 
             end = time.time()
 
             logger.debug(f"Cross-validation scores: {scores}")
-            line["run_time"] = end - start
-            line["t_fits"] = pg
-            line["n_fits"] = n_iter_v
-            line["i"] = param_space_index  # 0 # should be index of the iterator
-            line["outcome_variable"] = ml_grid_object_iter.outcome_variable
-            line["failed"] = failed
+            row_data["run_time"] = end - start
+            row_data["t_fits"] = pg
+            row_data["n_fits"] = n_iter_v
+            row_data["i"] = param_space_index  # 0 # should be index of the iterator
+            row_data["outcome_variable"] = ml_grid_object_iter.outcome_variable
+            row_data["failed"] = failed
 
             if bayessearch:
                 try:
-                    line["fit_time_m"] = np.array([scores["fit_time"]]).mean()
-                    line["fit_time_std"] = np.array([scores["fit_time"]]).std()
+                    # Optimization: Use np.mean directly to avoid redundant array creation and nanmean overhead (~68s)
+                    row_data["fit_time_m"] = np.mean(scores["fit_time"])
+                    row_data["fit_time_std"] = np.std(scores["fit_time"])
 
-                    line["score_time_m"] = np.array(scores["score_time"]).mean()
-                    line["score_time_std"] = np.array(scores["score_time"]).std()
+                    row_data["score_time_m"] = np.mean(scores["score_time"])
+                    row_data["score_time_std"] = np.std(scores["score_time"])
 
                     for metric in global_params.metric_list:
-                        line[f"{metric}_m"] = np.array(scores[f"test_{metric}"]).mean()
-                        line[f"{metric}_std"] = np.array(scores[f"test_{metric}"]).std()
+                        row_data[f"{metric}_m"] = np.mean(scores[f"test_{metric}"])
+                        row_data[f"{metric}_std"] = np.std(scores[f"test_{metric}"])
 
                 except Exception as e:
                     logger.error(f"Error processing scores for BayesSearch: {e}")
                     logger.debug(f"Scores dictionary: {scores}")
             else:
-                line["fit_time_m"] = np.array(
-                    scores["fit_time"]
-                ).mean()  # deprecated for bayes
-                line["fit_time_std"] = np.array(scores["fit_time"]).std()
-                line["score_time_m"] = np.array(scores["score_time"]).mean()
-                line["score_time_std"] = np.array(scores["score_time"]).std()
+                # Optimization: Use np.mean directly
+                row_data["fit_time_m"] = np.mean(scores["fit_time"])
+                row_data["fit_time_std"] = np.std(scores["fit_time"])
+                row_data["score_time_m"] = np.mean(scores["score_time"])
+                row_data["score_time_std"] = np.std(scores["score_time"])
 
                 for metric in global_params.metric_list:
-                    line[f"{metric}_m"] = np.array(scores[f"test_{metric}"]).mean()
-                    line[f"{metric}_std"] = np.array(scores[f"test_{metric}"]).std()
+                    row_data[f"{metric}_m"] = np.mean(scores[f"test_{metric}"])
+                    row_data[f"{metric}_std"] = np.std(scores[f"test_{metric}"])
+
+            # Create the DataFrame once with all data
+            line = pd.DataFrame([row_data], columns=column_list)
 
             logger.info(f"Logged results for method '{method_name}'")
             logger.debug(f"Log line data: \n{line.to_string()}")
