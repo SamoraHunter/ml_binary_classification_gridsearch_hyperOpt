@@ -9,6 +9,7 @@ from typing import List
 
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 
 class SyntheticDataGenerator:
@@ -146,49 +147,121 @@ class SyntheticDataGenerator:
 
     def _generate_column_names(self) -> List[str]:
         """Generates a list of realistic, structured feature names."""
-        generated_names = set()
+        self.logger.info(f"Generating {self.n_features} column names...")
 
-        # Add some special features to ensure they are present
-        generated_names.update(
-            random.sample(self._special_features, min(len(self._special_features), 5))
-        )
+        generated_names = []
 
-        # Generate structured feature groups
-        while len(generated_names) < self.n_features:
-            prefix = random.choice(self._feature_prefixes)
+        # Add some special features first
+        num_special = min(len(self._special_features), 5)
+        generated_names.extend(random.sample(self._special_features, num_special))
 
-            # For each prefix, create a few related features
-            num_suffixes_for_prefix = random.randint(1, 4)
-            suffixes_to_add = random.sample(
-                self._feature_suffixes, num_suffixes_for_prefix
-            )
+        # Calculate how many more names we need
+        remaining = self.n_features - len(generated_names)
 
-            for suffix in suffixes_to_add:
-                if len(generated_names) >= self.n_features:
-                    break
-                new_name = f"{prefix}{suffix}"
-                generated_names.add(new_name)
+        if remaining <= 0:
+            return generated_names[: self.n_features]
 
-        final_names = list(generated_names)
-        random.shuffle(final_names)
+        # 1. Generate all possible clean combinations (Prefix + Suffix)
+        # This avoids _r1 suffixes unless we run out of unique clean names
+        clean_combinations = [
+            f"{prefix}{suffix}"
+            for prefix in self._feature_prefixes
+            for suffix in self._feature_suffixes
+        ]
+        random.shuffle(clean_combinations)
 
-        return final_names[: self.n_features]
+        # Take as many as we need from clean combinations
+        num_from_clean = min(len(clean_combinations), remaining)
+        generated_names.extend(clean_combinations[:num_from_clean])
+        remaining -= num_from_clean
 
-    def _assign_feature_types(self, df: pd.DataFrame):
-        """Modifies DataFrame columns in-place to have more realistic data types."""
-        for col in df.columns:
-            # Handle special cases first
+        # 2. If we still need more, use rounds (_r1, _r2, etc.)
+        round_num = 1
+        max_rounds = 10
+        while remaining > 0 and round_num < max_rounds:
+            round_candidates = [
+                f"{prefix}_r{round_num}{suffix}"
+                for prefix in self._feature_prefixes
+                for suffix in self._feature_suffixes
+            ]
+            random.shuffle(round_candidates)
+
+            take_round = min(remaining, len(round_candidates))
+            generated_names.extend(round_candidates[:take_round])
+            remaining -= take_round
+            round_num += 1
+
+        # Final shuffle
+        random.shuffle(generated_names)
+        return generated_names[: self.n_features]
+
+    def _generate_typed_data(self, feature_names: List[str]) -> np.ndarray:
+        """
+        Generates data with appropriate types based on column names.
+
+        This is significantly faster than modifying DataFrame columns after creation.
+        """
+        # Pre-categorize columns to avoid repeated string matching
+        age_cols = []
+        binary_cols = []
+        bmi_cols = []
+        int_cols = []
+        binary_suffix_cols = []
+        normal_cols = []
+
+        self.logger.info("Categorizing columns...")
+        for idx, col in enumerate(feature_names):
             if col == "age":
-                df[col] = np.random.randint(20, 90, size=self.n_rows)
+                age_cols.append(idx)
             elif col == "male" or "vte_status" in col or "bed_type" in col:
-                df[col] = np.random.randint(0, 2, size=self.n_rows)
+                binary_cols.append(idx)
             elif col == "bmi_value":
-                df[col] = np.random.uniform(18, 45, size=self.n_rows)
-            # Handle suffixes
+                bmi_cols.append(idx)
             elif any(s in col for s in self._int_suffixes):
-                df[col] = np.random.poisson(5, size=self.n_rows) * random.randint(1, 5)
+                int_cols.append(idx)
             elif any(s in col for s in self._binary_suffixes):
-                df[col] = np.random.randint(0, 2, size=self.n_rows)
+                binary_suffix_cols.append(idx)
+            else:
+                normal_cols.append(idx)
+
+        # Pre-allocate array
+        data = np.empty((self.n_rows, len(feature_names)), dtype=np.float32)
+
+        # Generate data in bulk for each category
+        self.logger.info("Generating typed data...")
+        if age_cols:
+            for idx in age_cols:
+                data[:, idx] = np.random.randint(20, 90, size=self.n_rows)
+
+        if binary_cols:
+            for idx in binary_cols:
+                data[:, idx] = np.random.randint(0, 2, size=self.n_rows)
+
+        if bmi_cols:
+            for idx in bmi_cols:
+                data[:, idx] = np.random.uniform(18, 45, size=self.n_rows)
+
+        if int_cols:
+            for idx in int_cols:
+                data[:, idx] = np.random.poisson(5, size=self.n_rows) * random.randint(
+                    1, 5
+                )
+
+        if binary_suffix_cols:
+            for idx in binary_suffix_cols:
+                data[:, idx] = np.random.randint(0, 2, size=self.n_rows)
+
+        # Generate all normal columns at once
+        if normal_cols:
+            self.logger.info(
+                f"Generating {len(normal_cols)} normal distribution columns..."
+            )
+            normal_data = np.random.randn(self.n_rows, len(normal_cols)).astype(
+                np.float32
+            )
+            data[:, normal_cols] = normal_data
+
+        return data
 
     def generate(self) -> tuple[pd.DataFrame, dict[str, list[str]]]:
         """
@@ -199,28 +272,35 @@ class SyntheticDataGenerator:
                 - The fully generated synthetic dataset.
                 - A dictionary mapping each outcome variable to its list of important features.
         """
-        # 1. Generate feature data
+        self.logger.info(
+            f"Starting generation: {self.n_rows} rows × {self.n_features} features"
+        )
+
+        # 1. Generate feature names
+        self.logger.info("Generating column names...")
         feature_names = self._generate_column_names()
-        data = np.random.randn(self.n_rows, len(feature_names))
+
+        # 2. Generate typed data directly (much faster than modifying after)
+        data = self._generate_typed_data(feature_names)
+
+        self.logger.info("Creating DataFrame...")
         df = pd.DataFrame(data, columns=feature_names)
 
-        # This will hold new columns to be added efficiently at the end
+        # Dictionary to hold outcome variables and metadata
         new_cols_dict = {}
-
-        # This will store the mapping of outcome -> important features
         outcome_to_features_map = {}
 
-        # 1.5. Assign more realistic data types and distributions
-        self._assign_feature_types(df)
-
-        # 2. Determine number of important features
-        n_important = int(self.n_features * self.percent_important_features)
-        n_important = max(1, n_important)  # Ensure at least one important feature
+        # 3. Determine number of important features
+        n_important = max(1, int(self.n_features * self.percent_important_features))
 
         self.logger.info(f"Generating {self.n_outcome_vars} outcome variables.")
 
-        # 3. Generate outcome variables
-        for i in range(1, self.n_outcome_vars + 1):
+        # 4. Generate outcome variables with progress bar
+        for i in tqdm(
+            range(1, self.n_outcome_vars + 1),
+            desc="Creating outcomes",
+            disable=not self.logger.isEnabledFor(logging.INFO),
+        ):
             outcome_col_name = f"outcome_var_{i}"
 
             # Select a unique set of important features for *this* outcome
@@ -232,58 +312,78 @@ class SyntheticDataGenerator:
                 .tolist()
             )
             outcome_to_features_map[outcome_col_name] = important_features
-            self.logger.info(
-                f"  For '{outcome_col_name}', selected {len(important_features)} important features: {important_features[:3]}..."
-            )
 
-            # Create signal from important features
-            signal = df[important_features].sum(axis=1) * self.feature_strength
+            if i <= 3 or i == self.n_outcome_vars:  # Only log first 3 and last
+                self.logger.info(
+                    f"  For '{outcome_col_name}', selected {len(important_features)} important features"
+                )
+
+            # Create signal from important features (vectorized)
+            signal = df[important_features].values.sum(axis=1) * self.feature_strength
 
             # Create noise
             noise_strength = 1 - self.feature_strength
-            noise = np.random.randn(self.n_rows) * noise_strength * signal.std()
+            noise = (
+                np.random.randn(self.n_rows).astype(np.float32)
+                * noise_strength
+                * signal.std()
+            )
 
             # Combine signal and noise, then create binary outcome
             combined_signal = signal + noise
-            # Use median as a threshold to get a balanced-ish outcome
-            threshold = combined_signal.median()
-            df[outcome_col_name] = (combined_signal > threshold).astype(int)
+            threshold = np.median(combined_signal)
+            outcome = (combined_signal > threshold).astype(np.int8)
 
-            # Randomly flip some outcomes to make it harder
-            flip_mask = np.random.rand(self.n_rows) < 0.1  # Flip 10%
-            df.loc[flip_mask, outcome_col_name] = (
-                1 - df.loc[flip_mask, outcome_col_name]
-            )
+            # Randomly flip 10% of outcomes
+            flip_mask = np.random.rand(self.n_rows) < 0.1
+            outcome[flip_mask] = 1 - outcome[flip_mask]
 
-            # Move the new outcome column to the dictionary for later concatenation
-            new_cols_dict[outcome_col_name] = df.pop(outcome_col_name)
+            new_cols_dict[outcome_col_name] = outcome
 
-        # 4. Add metadata columns to match real data format
+        # 5. Add metadata columns
+        self.logger.info("Adding metadata columns...")
         if "client_idcode" not in df.columns:
             new_cols_dict["client_idcode"] = [f"id_{j}" for j in range(self.n_rows)]
 
-        # Add 'Unnamed: 0' to mimic CSV read-in
-        new_cols_dict["Unnamed: 0"] = range(self.n_rows)
+        new_cols_dict["Unnamed: 0"] = np.arange(self.n_rows, dtype=np.int32)
 
-        # Concatenate all new columns at once to avoid fragmentation
+        # 6. Concatenate all at once
+        self.logger.info("Concatenating final DataFrame...")
         new_cols_df = pd.DataFrame(new_cols_dict, index=df.index)
         df = pd.concat(
-            [new_cols_df[["Unnamed: 0"]], df, new_cols_df.drop(columns=["Unnamed: 0"])],
+            [
+                new_cols_df[["Unnamed: 0"]],
+                df,
+                new_cols_df.drop(columns=["Unnamed: 0"]),
+            ],
             axis=1,
         )
 
-        # Introduce some missing values
-        for col in df.columns:
-            if (
+        # 7. Introduce missing values (vectorized per column)
+        self.logger.info("Introducing missing values...")
+        feature_cols = [
+            col
+            for col in df.columns
+            if not (
                 col.startswith("outcome_var")
                 or col == "client_idcode"
                 or col == "Unnamed: 0"
-            ):
-                continue
-            if random.random() < 0.15:  # 15% chance for a column to have NaNs
-                nan_mask = df.sample(frac=random.uniform(0.01, 0.2)).index
-                df.loc[nan_mask, col] = np.nan
+            )
+        ]
 
+        cols_with_nans = random.sample(feature_cols, int(len(feature_cols) * 0.15))
+
+        for col in tqdm(
+            cols_with_nans,
+            desc="Adding NaNs",
+            disable=not self.logger.isEnabledFor(logging.INFO),
+        ):
+            frac = random.uniform(0.01, 0.2)
+            n_nans = int(self.n_rows * frac)
+            nan_indices = np.random.choice(self.n_rows, size=n_nans, replace=False)
+            df.loc[nan_indices, col] = np.nan
+
+        self.logger.info(f"Generation complete! Shape: {df.shape}")
         return df, outcome_to_features_map
 
 
