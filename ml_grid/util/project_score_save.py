@@ -185,7 +185,7 @@ class project_score_save_class:
             logger = logging.getLogger("ml_grid")
             logger.info("Writing grid permutation to log")
             # write line to best grid scores---------------------
-            
+
             # --- OPTIMIZATION: Construct dictionary first to avoid slow DataFrame element-wise setting ---
             row_data = {}
             column_list = _get_score_log_columns(list(global_params.metric_list.keys()))
@@ -253,7 +253,9 @@ class project_score_save_class:
                     for key_1 in ml_grid_object.local_param_dict.get("data"):
                         # print(key_1)
                         if key_1 in column_list:
-                            row_data[key_1] = ml_grid_object.local_param_dict.get("data").get(key_1)
+                            row_data[key_1] = ml_grid_object.local_param_dict.get(
+                                "data"
+                            ).get(key_1)
 
             current_f = ml_grid_object.final_column_list
             # current_f = list(self.X_test.columns)

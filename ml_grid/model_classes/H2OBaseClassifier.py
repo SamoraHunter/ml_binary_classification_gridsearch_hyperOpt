@@ -354,8 +354,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         train_df = pd.concat([X, y_series], axis=1)
         # Optimization: Provide destination_frame to avoid expensive gc.get_referrers() name search
         train_h2o = h2o.H2OFrame(
-            train_df,
-            destination_frame=f"train_{uuid.uuid4().hex}"
+            train_df, destination_frame=f"train_{uuid.uuid4().hex}"
         )
 
         # Explicitly convert the outcome column to factor
@@ -412,7 +411,9 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             self._estimator_signature_cache[self.estimator_class] = inspect.signature(
                 self.estimator_class
             ).parameters
-        valid_param_keys = set(self._estimator_signature_cache[self.estimator_class].keys())
+        valid_param_keys = set(
+            self._estimator_signature_cache[self.estimator_class].keys()
+        )
 
         model_params = {
             key: value for key, value in all_params.items() if key in valid_param_keys
@@ -633,7 +634,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                 X,
                 column_names=self.feature_names_,
                 column_types=col_types,
-                destination_frame=f"pred_{uuid.uuid4().hex}"
+                destination_frame=f"pred_{uuid.uuid4().hex}",
             )
 
             # Optimization: Use the temporary frame directly.
@@ -761,7 +762,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                 X,
                 column_names=self.feature_names_,
                 column_types=col_types,
-                destination_frame=f"prob_{uuid.uuid4().hex}"
+                destination_frame=f"prob_{uuid.uuid4().hex}",
             )
         except Exception as e:
             raise RuntimeError(f"Failed to create H2O frame for prediction: {e}")
@@ -926,7 +927,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                 for p in init_signature.parameters.values()
                 if p.name not in ("self", "args", "kwargs")
             ]
-        
+
         init_params = self._init_param_names_cache[cls]
 
         # Optimization: Use sets for O(1) lookup

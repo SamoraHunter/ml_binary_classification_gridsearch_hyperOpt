@@ -250,7 +250,9 @@ class HyperparameterSearch:
                 y_train_reset = y_train_reset.values
 
         # Force integer encoding if possible to speed up unique() calls
-        if hasattr(y_train_reset, "dtype") and not pd.api.types.is_integer_dtype(y_train_reset):
+        if hasattr(y_train_reset, "dtype") and not pd.api.types.is_integer_dtype(
+            y_train_reset
+        ):
             try:
                 y_train_reset = y_train_reset.astype(int)
             except (ValueError, TypeError):

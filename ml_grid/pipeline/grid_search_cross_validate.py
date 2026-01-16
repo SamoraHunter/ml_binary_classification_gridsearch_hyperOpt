@@ -231,9 +231,13 @@ class grid_search_crossvalidate:
             self.logger.debug("Dropping 'client_idcode' from training data.")
             self.X_train = self.X_train.drop(columns=["client_idcode"], errors="ignore")
             if isinstance(self.X_test, pd.DataFrame):
-                self.X_test = self.X_test.drop(columns=["client_idcode"], errors="ignore")
+                self.X_test = self.X_test.drop(
+                    columns=["client_idcode"], errors="ignore"
+                )
             if isinstance(self.X_test_orig, pd.DataFrame):
-                self.X_test_orig = self.X_test_orig.drop(columns=["client_idcode"], errors="ignore")
+                self.X_test_orig = self.X_test_orig.drop(
+                    columns=["client_idcode"], errors="ignore"
+                )
 
         max_param_space_iter_value = (
             self.global_params.max_param_space_iter_value
@@ -292,7 +296,9 @@ class grid_search_crossvalidate:
         if "catboost" in method_name.lower() and hasattr(
             current_algorithm, "set_params"
         ):
-            ml_grid_object.logger.info("Silencing CatBoost verbose output and file writing.")
+            ml_grid_object.logger.info(
+                "Silencing CatBoost verbose output and file writing."
+            )
             current_algorithm.set_params(verbose=0, allow_writing_files=False)
 
         # Check for GPU availability and set device for torch-based models
@@ -563,7 +569,9 @@ class grid_search_crossvalidate:
                     # --- OPTIMIZATION: Force threading backend for search ---
                     # Prevents 'loky' overhead (abort_everything ~273s) which occurs even with n_jobs=1
                     with joblib.parallel_backend("threading"):
-                        current_algorithm = search.run_search(X_train_reset, y_train_search)
+                        current_algorithm = search.run_search(
+                            X_train_reset, y_train_search
+                        )
 
             except TimeoutError:
                 self.logger.warning("Timeout occurred during hyperparameter search.")
