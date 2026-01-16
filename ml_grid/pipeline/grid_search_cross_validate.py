@@ -1,6 +1,7 @@
 import time
 import logging
 import multiprocessing
+import joblib
 import warnings
 from typing import Any, Dict, List, Optional, Union
 
@@ -64,6 +65,14 @@ H2O_MODEL_TYPES = (
     H2OXGBoostClassifier,
     H2OStackedEnsembleClassifier,
 )
+
+# --- OPTIMIZATION: Disable TF Traceback Filtering Globally ---
+# This reduces overhead in Keras model building (sequential.py, tracking.py)
+# seen in profiling (traceback_utils.py taking ~60s).
+try:
+    tf.debugging.disable_traceback_filtering()
+except (AttributeError, ImportError):
+    pass
 
 
 class grid_search_crossvalidate:
@@ -157,13 +166,6 @@ class grid_search_crossvalidate:
                     pass
 
             # --- OPTIMIZATION: One-time TF/GPU Setup ---
-            if is_gpu_model:
-                # Optimize Keras/TF runtime by disabling traceback filtering
-                try:
-                    tf.debugging.disable_traceback_filtering()
-                except AttributeError:
-                    pass
-
             if is_gpu_model and not _TF_INITIALIZED:
                 try:
                     gpu_devices = tf.config.experimental.list_physical_devices("GPU")
@@ -222,6 +224,17 @@ class grid_search_crossvalidate:
         # the "response_column must match" error in H2O StackedEnsemble.
         self.y_train.name = "outcome"
 
+        # --- OPTIMIZATION: Drop ID column if present ---
+        # client_idcode is metadata and should not be used for training.
+        # It can cause issues with models like CatBoost (high cardinality string) and slow down training.
+        if "client_idcode" in self.X_train.columns:
+            self.logger.debug("Dropping 'client_idcode' from training data.")
+            self.X_train = self.X_train.drop(columns=["client_idcode"], errors="ignore")
+            if isinstance(self.X_test, pd.DataFrame):
+                self.X_test = self.X_test.drop(columns=["client_idcode"], errors="ignore")
+            if isinstance(self.X_test_orig, pd.DataFrame):
+                self.X_test_orig = self.X_test_orig.drop(columns=["client_idcode"], errors="ignore")
+
         max_param_space_iter_value = (
             self.global_params.max_param_space_iter_value
         )  # hard limit on param space exploration
@@ -279,8 +292,8 @@ class grid_search_crossvalidate:
         if "catboost" in method_name.lower() and hasattr(
             current_algorithm, "set_params"
         ):
-            ml_grid_object.logger.info("Silencing CatBoost verbose output.")
-            current_algorithm.set_params(verbose=0)
+            ml_grid_object.logger.info("Silencing CatBoost verbose output and file writing.")
+            current_algorithm.set_params(verbose=0, allow_writing_files=False)
 
         # Check for GPU availability and set device for torch-based models
         if "simbsig" in str(type(algorithm_implementation)):
@@ -360,6 +373,8 @@ class grid_search_crossvalidate:
                     else:  # It's a skopt object, a single value, or a list of lists (like for 'hidden')
                         new_parameter_space[key] = value
                 parameter_space = new_parameter_space
+            # Ensure the 'parameters' variable points to the updated parameter_space for Bayes search
+            parameters = parameter_space
 
         # Use the new n_iter parameter from the config
         # Default to 2 if not present, preventing AttributeError
@@ -452,7 +467,7 @@ class grid_search_crossvalidate:
             # Instantiate and run the hyperparameter grid/random search
             search = HyperparameterSearch(
                 algorithm=current_algorithm,
-                parameter_space=parameter_space,
+                parameter_space=parameters,  # Use the validated/modified parameters
                 method_name=method_name,
                 global_params=self.global_parameters,
                 sub_sample_pct=self.sub_sample_param_space_pct,  # Explore 50% of the parameter space
@@ -523,6 +538,16 @@ class grid_search_crossvalidate:
                 else:
                     y_train_search = y_train_reset
 
+                # --- OPTIMIZATION: Force integer encoding for y ---
+                # This avoids expensive np.unique checks on string/object arrays in sklearn (arraysetops.py:unique ~221s)
+                # AND speeds up checks on float arrays (common in H2O/Pandas)
+                if not pd.api.types.is_integer_dtype(y_train_search):
+                    try:
+                        y_train_search = y_train_search.astype(int)
+                    except (ValueError, TypeError):
+                        y_train_search, _ = pd.factorize(y_train_search, sort=True)
+                        y_train_search = y_train_search.astype(int)
+
                 # --- OPTIMIZATION: Skip parameter validation overhead ---
                 # Use set_config to ensure it propagates to all internal calls
                 with sklearn.config_context(skip_parameter_validation=True):
@@ -535,7 +560,10 @@ class grid_search_crossvalidate:
                         except Exception:
                             pass
 
-                    current_algorithm = search.run_search(X_train_reset, y_train_search)
+                    # --- OPTIMIZATION: Force threading backend for search ---
+                    # Prevents 'loky' overhead (abort_everything ~273s) which occurs even with n_jobs=1
+                    with joblib.parallel_backend("threading"):
+                        current_algorithm = search.run_search(X_train_reset, y_train_search)
 
             except TimeoutError:
                 self.logger.warning("Timeout occurred during hyperparameter search.")
@@ -641,13 +669,15 @@ class grid_search_crossvalidate:
                 else:
                     y_train_final = self.y_train.values
 
-            # --- OPTIMIZATION: Convert y to int if possible ---
-            # This speeds up sklearn metric calculations (confusion_matrix, unique_labels)
-            # significantly compared to string/object arrays.
-            try:
-                y_train_final = y_train_final.astype(int)
-            except (ValueError, TypeError):
-                pass
+            # --- OPTIMIZATION: Force integer encoding for y ---
+            # This avoids expensive np.unique checks on string/object arrays in sklearn (arraysetops.py:unique ~173s)
+            # AND speeds up checks on float arrays (common in H2O/Pandas)
+            if not pd.api.types.is_integer_dtype(y_train_final):
+                try:
+                    y_train_final = y_train_final.astype(int)
+                except (ValueError, TypeError):
+                    y_train_final, _ = pd.factorize(y_train_final, sort=True)
+                    y_train_final = y_train_final.astype(int)
 
             scores = None
 
@@ -766,16 +796,22 @@ class grid_search_crossvalidate:
                             except Exception:
                                 pass
 
-                        scores = cross_validate(
-                            current_algorithm,
-                            X_train_final,
-                            y_train_final,  # Use optimized y (numpy for sklearn, Series for H2O)
-                            scoring=self.metric_list,
-                            cv=self.cv,
-                            n_jobs=final_cv_n_jobs,  # Use adjusted n_jobs
-                            pre_dispatch="2*n_jobs",
-                            error_score=self.error_raise,  # Raise error if cross-validation fails
-                        )
+                        # --- OPTIMIZATION: Always use threading backend ---
+                        # The overhead of 'loky' (multiprocessing) is excessive (sleep + memmapping ~300s).
+                        # Threading is sufficient and much faster for this pipeline.
+                        backend = "threading"
+
+                        with joblib.parallel_backend(backend):
+                            scores = cross_validate(
+                                current_algorithm,
+                                X_train_final,
+                                y_train_final,  # Use optimized y (numpy for sklearn, Series for H2O)
+                                scoring=self.metric_list,
+                                cv=self.cv,
+                                n_jobs=final_cv_n_jobs,  # Use adjusted n_jobs
+                                pre_dispatch="2*n_jobs",
+                                error_score=self.error_raise,  # Raise error if cross-validation fails
+                            )
 
                     # Pre-compile the predict function for Keras/TF models to avoid retracing warnings.
                     # This is done AFTER fitting and before cross-validation.

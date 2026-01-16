@@ -241,6 +241,25 @@ class HyperparameterSearch:
         else:
             y_train_reset = y_train
 
+        # --- OPTIMIZATION: Convert y to numpy array and ensure integer encoding ---
+        # This avoids expensive sklearn type_of_target checks (np.unique) on Pandas Series
+        if isinstance(y_train_reset, pd.Series):
+            if isinstance(y_train_reset.dtype, pd.CategoricalDtype):
+                y_train_reset = y_train_reset.cat.codes.values
+            else:
+                y_train_reset = y_train_reset.values
+
+        # Force integer encoding if possible to speed up unique() calls
+        if hasattr(y_train_reset, "dtype") and not pd.api.types.is_integer_dtype(y_train_reset):
+            try:
+                y_train_reset = y_train_reset.astype(int)
+            except (ValueError, TypeError):
+                try:
+                    y_train_reset, _ = pd.factorize(y_train_reset, sort=True)
+                    y_train_reset = y_train_reset.astype(int)
+                except Exception:
+                    pass  # Keep original if conversion fails
+
         # Determine scoring and refit metric from global parameters
         scoring = getattr(self.global_params, "metric_list", None)
         refit_metric = None

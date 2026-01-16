@@ -3,6 +3,7 @@ import logging
 import os
 import shutil
 import tempfile
+import uuid
 from typing import Any, Dict, List, Optional, Tuple
 
 import h2o
@@ -42,6 +43,20 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
     """
 
     MIN_SAMPLES_FOR_STABLE_FIT = 10
+
+    # Class-level cache for init parameters to avoid repeated inspect.signature calls
+    _init_param_names_cache = {}
+
+    # Class-level cache for estimator class signatures to avoid repeated inspect.signature calls in fit()
+    _estimator_signature_cache = {}
+
+    # Class-level set of keys to exclude from get_params, avoiding recreation overhead
+    _excluded_param_keys = {
+        "estimator_class",
+        "logger",
+        "model",
+        "model_id",
+    }
 
     def __init__(self, estimator_class=None, **kwargs):
         """Initializes the H2OBaseClassifier.
@@ -99,6 +114,8 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
 
         # H2O models are not safe with joblib's process-based parallelism.
         self._n_jobs = 1
+
+        self._cached_param_names = None  # Cache for get_params
 
     def __del__(self):
         """Cleans up the shared checkpoint directory if this is the last instance."""
@@ -335,7 +352,11 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             )
 
         train_df = pd.concat([X, y_series], axis=1)
-        train_h2o = h2o.H2OFrame(train_df)
+        # Optimization: Provide destination_frame to avoid expensive gc.get_referrers() name search
+        train_h2o = h2o.H2OFrame(
+            train_df,
+            destination_frame=f"train_{uuid.uuid4().hex}"
+        )
 
         # Explicitly convert the outcome column to factor
         train_h2o[outcome_var] = train_h2o[outcome_var].asfactor()
@@ -349,7 +370,12 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         model_params = self._get_model_params()
 
         # Get valid parameters for the specific H2O estimator
-        estimator_params = inspect.signature(self.estimator_class).parameters
+        # Optimization: Use cached signature
+        if self.estimator_class not in self._estimator_signature_cache:
+            self._estimator_signature_cache[self.estimator_class] = inspect.signature(
+                self.estimator_class
+            ).parameters
+        estimator_params = self._estimator_signature_cache[self.estimator_class]
 
         # If there's only one feature, prevent H2O from dropping it if it's constant
         if len(x_vars) == 1 and self.estimator_class:
@@ -381,9 +407,12 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             if k != "estimator_class"
         }
 
-        valid_param_keys = set(
-            inspect.signature(self.estimator_class).parameters.keys()
-        )
+        # Optimization: Use cached signature
+        if self.estimator_class not in self._estimator_signature_cache:
+            self._estimator_signature_cache[self.estimator_class] = inspect.signature(
+                self.estimator_class
+            ).parameters
+        valid_param_keys = set(self._estimator_signature_cache[self.estimator_class].keys())
 
         model_params = {
             key: value for key, value in all_params.items() if key in valid_param_keys
@@ -473,9 +502,21 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             # Sanitize parameters to prevent backend errors (e.g. HGLM)
             self._sanitize_model_params()
 
+            # --- OPTIMIZATION: Force disable progress bar immediately before train ---
+            # This addresses profiling results showing significant overhead in progressbar.py
+            if not getattr(global_parameters, "h2o_show_progress", False):
+                h2o.no_progress()
+
             # Call the train() method with ONLY the data-related arguments
             self.logger.debug("Calling H2O model.train()...")
             self.model_.train(x=x_vars, y=outcome_var, training_frame=train_h2o)
+
+            # --- OPTIMIZATION: Explicitly cleanup training frame ---
+            # This reduces overhead from H2O's reference counting (gc.get_referrers)
+            try:
+                h2o.remove(train_h2o)
+            except Exception:
+                pass
 
             # Store model_id for recovery - THIS IS CRITICAL for predict() to work
             self.logger.debug(
@@ -566,11 +607,11 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             )
             return np.full(len(X), dummy_prediction)
 
-        # Ensure H2O is running
-        self._ensure_h2o_is_running()
-
-        # OPTIMIZATION: Lazy load model. Only check if we don't have the object.
+        # OPTIMIZATION: Lazy load model and optimistically assume H2O is running.
+        # Only check/init cluster if we don't have the model object or if prediction fails.
+        # This saves an API call (h2o.cluster()) per predict.
         if self.model_ is None:
+            self._ensure_h2o_is_running()
             self._ensure_model_is_loaded()
 
         try:
@@ -589,7 +630,10 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                 }
 
             tmp_frame = h2o.H2OFrame(
-                X, column_names=self.feature_names_, column_types=col_types
+                X,
+                column_names=self.feature_names_,
+                column_types=col_types,
+                destination_frame=f"pred_{uuid.uuid4().hex}"
             )
 
             # Optimization: Use the temporary frame directly.
@@ -607,6 +651,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             # Try reloading and predicting again.
             self.logger.debug(f"Prediction failed ({e}), attempting to reload model...")
             try:
+                self._ensure_h2o_is_running()
                 self._ensure_model_is_loaded()
                 predictions = self.model_.predict(test_h2o)
             except Exception as e2:
@@ -626,9 +671,27 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                 raise RuntimeError(f"H2O prediction failed: {e2}")
 
         # Extract predictions
+        # Optimization: Download full frame to avoid H2O slicing overhead (gc.get_referrers ~48s)
+        # Slicing in H2O (predictions['predict']) creates a new unnamed frame which triggers a stack scan.
         pred_df = predictions.as_data_frame(use_multi_thread=False)
+
+        # --- OPTIMIZATION: Explicitly cleanup frames ---
+        try:
+            h2o.remove(test_h2o)
+            h2o.remove(predictions)
+        except Exception:
+            pass
+
         if "predict" in pred_df.columns:
-            return pred_df["predict"].values.ravel()
+            preds = pred_df["predict"].values.ravel()
+            # OPTIMIZATION: Cast to the same type as classes_ to avoid object/string overhead
+            # in sklearn metrics (which triggers expensive np.unique on object arrays).
+            if self.classes_ is not None:
+                try:
+                    preds = preds.astype(self.classes_.dtype)
+                except (ValueError, TypeError):
+                    pass
+            return preds
         else:
             raise RuntimeError("Prediction output missing 'predict' column")
 
@@ -680,11 +743,9 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             dummy_probas = np.full((len(X), n_classes), 1 / n_classes)
             return dummy_probas
 
-        # Ensure H2O is running
-        self._ensure_h2o_is_running()
-
-        # OPTIMIZATION: Lazy load model.
+        # OPTIMIZATION: Lazy load model and optimistically assume H2O is running.
         if self.model_ is None:
+            self._ensure_h2o_is_running()
             self._ensure_model_is_loaded()
 
         # Create H2O frame with explicit column names
@@ -697,7 +758,10 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                 }
 
             test_h2o = h2o.H2OFrame(
-                X, column_names=self.feature_names_, column_types=col_types
+                X,
+                column_names=self.feature_names_,
+                column_types=col_types,
+                destination_frame=f"prob_{uuid.uuid4().hex}"
             )
         except Exception as e:
             raise RuntimeError(f"Failed to create H2O frame for prediction: {e}")
@@ -709,6 +773,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             # Retry logic for unloaded models
             self.logger.debug(f"Prediction failed ({e}), attempting to reload model...")
             try:
+                self._ensure_h2o_is_running()
                 self._ensure_model_is_loaded()
                 predictions = self.model_.predict(test_h2o)
             except Exception as e2:
@@ -728,7 +793,20 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                 raise RuntimeError(f"H2O prediction failed: {e2}")
 
         # Extract probabilities (drop the 'predict' column)
-        prob_df = predictions.drop("predict").as_data_frame(use_multi_thread=False)
+        # Optimization: Download full frame then drop in pandas to avoid H2O slicing overhead
+        res_df = predictions.as_data_frame(use_multi_thread=False)
+        if "predict" in res_df.columns:
+            prob_df = res_df.drop(columns=["predict"])
+        else:
+            prob_df = res_df
+
+        # --- OPTIMIZATION: Explicitly cleanup frames ---
+        try:
+            h2o.remove(test_h2o)
+            h2o.remove(predictions)
+        except Exception:
+            pass
+
         return prob_df.values
 
     def _ensure_model_is_loaded(self):
@@ -828,21 +906,6 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         )
         return cloned
 
-    def __sklearn_clone__(self):
-        """Custom cloning method for sklearn compatibility.
-
-        This ensures that when sklearn clones the estimator, we return a properly
-        initialized new instance with the same parameters.
-        """
-        # Get all parameters (not fitted attributes)
-        params = self.get_params(deep=False)
-        # Create new instance with same parameters
-        cloned = self.__class__(**params)
-        self.logger.debug(
-            f"__sklearn_clone__ called: original instance {id(self)}, clone instance {id(cloned)}"
-        )
-        return cloned  # Removing dead code
-
     def _get_param_names(self):
         """Get parameter names for the estimator.
 
@@ -851,24 +914,45 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
 
         CRITICAL: This should ONLY return parameter names, NOT fitted attribute names.
         """
-        init_signature = inspect.signature(self.__class__.__init__)
-        init_params = [
-            p.name
-            for p in init_signature.parameters.values()
-            if p.name not in ("self", "args", "kwargs")
-        ]
+        if self._cached_param_names is not None:
+            return self._cached_param_names
+
+        # Optimization: Cache the signature inspection on the class
+        cls = self.__class__
+        if cls not in self._init_param_names_cache:
+            init_signature = inspect.signature(cls.__init__)
+            self._init_param_names_cache[cls] = [
+                p.name
+                for p in init_signature.parameters.values()
+                if p.name not in ("self", "args", "kwargs")
+            ]
+        
+        init_params = self._init_param_names_cache[cls]
+
+        # Optimization: Use sets for O(1) lookup
+        init_params_set = set(init_params)
 
         extra_params = [
             key
             for key in self.__dict__
             if not key.startswith("_")
             and not (key.endswith("_") and key != "lambda_")  # Allow lambda_
-            and key not in init_params
-            and key not in ["estimator_class", "logger"]
-            and key not in ["model", "model_", "classes_", "feature_names_", "model_id"]
+            and key not in init_params_set
+            and key not in self._excluded_param_keys
         ]
 
-        return sorted(init_params + extra_params)
+        self._cached_param_names = sorted(init_params + extra_params)
+        return self._cached_param_names
+
+    def get_params(self, deep=True):
+        """Get parameters for this estimator.
+
+        Optimized implementation that bypasses BaseEstimator.get_params overhead.
+        """
+        # Optimization: Directly construct dict from cached param names
+        # We bypass the deep=True recursion check for speed, as H2O estimators
+        # don't have nested sklearn estimators.
+        return {key: getattr(self, key) for key in self._get_param_names()}
 
     def set_params(self: "H2OBaseClassifier", **kwargs: Any) -> "H2OBaseClassifier":
         """Sets the parameters of this estimator, compatible with scikit-learn.
@@ -910,6 +994,8 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             else:
                 # This shouldn't happen for our use case, but handle it anyway
                 setattr(self, key, value)
+
+        self._cached_param_names = None  # Invalidate cache
 
         # Restore fitted attributes
         for attr, value in fitted_attributes.items():
