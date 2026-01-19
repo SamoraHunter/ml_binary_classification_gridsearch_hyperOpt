@@ -578,6 +578,18 @@ class grid_search_crossvalidate:
                 failed = "Timeout"
                 scores = default_scores
 
+            except KeyboardInterrupt:
+                if "catboost" in method_name.lower():
+                    self.logger.warning(
+                        "KeyboardInterrupt detected during hyperparameter search. "
+                        "This is likely a signal handling artifact (e.g. from CatBoost) triggered by the timeout. "
+                        "Treating as a timeout."
+                    )
+                    failed = "KeyboardInterrupt"
+                    scores = default_scores
+                else:
+                    raise
+
             except Exception as e:
                 if "dual coefficients or intercepts are not finite" in str(e):
                     self.logger.warning(
@@ -918,6 +930,18 @@ class grid_search_crossvalidate:
             self.logger.warning("Timeout occurred during cross-validation.")
             failed = "Timeout"
             scores = default_scores
+
+        except KeyboardInterrupt:
+            if "catboost" in method_name.lower():
+                self.logger.warning(
+                    "KeyboardInterrupt detected during cross-validation. "
+                    "This is likely a signal handling artifact (e.g. from CatBoost) triggered by the timeout. "
+                    "Treating as a timeout."
+                )
+                failed = "KeyboardInterrupt"
+                scores = default_scores
+            else:
+                raise
 
         except Exception as e:
             # Catch any other general exceptions and log them
