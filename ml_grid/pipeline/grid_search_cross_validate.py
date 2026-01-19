@@ -178,6 +178,8 @@ class grid_search_crossvalidate:
                     else:
                         # Explicitly set CPU as the visible device for TensorFlow to avoid CUDA init errors
                         tf.config.set_visible_devices([], "GPU")
+                    
+                    tf.config.run_functions_eagerly(False)
                 except Exception as e:
                     self.logger.warning(f"Could not configure GPU for TensorFlow: {e}")
                 finally:
@@ -537,22 +539,7 @@ class grid_search_crossvalidate:
                 # --- OPTIMIZATION: Convert y to numpy for ALL models ---
                 # This avoids expensive sklearn type_of_target checks on Pandas Series (overhead seen in profiling)
                 # Most sklearn models handle numpy arrays efficiently.
-                if isinstance(y_train_reset.dtype, pd.CategoricalDtype):
-                    y_train_search = y_train_reset.cat.codes.values
-                elif hasattr(y_train_reset, "values"):
-                    y_train_search = y_train_reset.values
-                else:
-                    y_train_search = y_train_reset
-
-                # --- OPTIMIZATION: Force integer encoding for y ---
-                # This avoids expensive np.unique checks on string/object arrays in sklearn (arraysetops.py:unique ~221s)
-                # AND speeds up checks on float arrays (common in H2O/Pandas)
-                if not pd.api.types.is_integer_dtype(y_train_search):
-                    try:
-                        y_train_search = y_train_search.astype(int)
-                    except (ValueError, TypeError):
-                        y_train_search, _ = pd.factorize(y_train_search, sort=True)
-                        y_train_search = y_train_search.astype(int)
+                y_train_search = self._optimize_y(y_train_reset)
 
                 # --- OPTIMIZATION: Skip parameter validation overhead ---
                 # Use set_config to ensure it propagates to all internal calls
@@ -683,21 +670,7 @@ class grid_search_crossvalidate:
             else:
                 X_train_final = self.X_train.values  # Use NumPy array for other models
                 # Optimization: Pass numpy array for y to avoid pandas overhead in sklearn
-                # If it was converted to categorical (unlikely for sklearn now), get codes
-                if isinstance(self.y_train.dtype, pd.CategoricalDtype):
-                    y_train_final = self.y_train.cat.codes.values
-                else:
-                    y_train_final = self.y_train.values
-
-            # --- OPTIMIZATION: Force integer encoding for y ---
-            # This avoids expensive np.unique checks on string/object arrays in sklearn (arraysetops.py:unique ~173s)
-            # AND speeds up checks on float arrays (common in H2O/Pandas)
-            if not pd.api.types.is_integer_dtype(y_train_final):
-                try:
-                    y_train_final = y_train_final.astype(int)
-                except (ValueError, TypeError):
-                    y_train_final, _ = pd.factorize(y_train_final, sort=True)
-                    y_train_final = y_train_final.astype(int)
+                y_train_final = self._optimize_y(self.y_train)
 
             scores = None
 
@@ -1021,6 +994,27 @@ class grid_search_crossvalidate:
         self.grid_search_cross_validate_score_result = auc
 
         self._shutdown_h2o_if_needed(current_algorithm)
+
+    def _optimize_y(self, y):
+        """Helper to optimize y for sklearn/H2O to reduce type_of_target overhead."""
+        # Convert to numpy if it's a Series or Categorical
+        if hasattr(y, "dtype") and isinstance(y.dtype, pd.CategoricalDtype):
+            y_opt = y.cat.codes.values
+        elif hasattr(y, "values"):
+            y_opt = y.values
+        else:
+            y_opt = y
+
+        # Force integer encoding
+        if not pd.api.types.is_integer_dtype(y_opt):
+            try:
+                y_opt = y_opt.astype(int)
+            except (ValueError, TypeError):
+                y_opt, _ = pd.factorize(y_opt, sort=True)
+                y_opt = y_opt.astype(int)
+
+        # Ensure contiguous array for speed in np.unique and other ops
+        return np.ascontiguousarray(y_opt)
 
     def _adjust_knn_parameters(self, parameter_space: Union[Dict, List[Dict]]):
         """

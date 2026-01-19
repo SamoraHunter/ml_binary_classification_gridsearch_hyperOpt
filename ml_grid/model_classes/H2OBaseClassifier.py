@@ -642,6 +642,8 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             test_h2o = tmp_frame
 
         except Exception as e:
+            if isinstance(e, TimeoutError):
+                raise
             raise RuntimeError(f"Failed to create H2O frame for prediction: {e}")
 
         # Make prediction
@@ -649,6 +651,8 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             predictions = self.model_.predict(test_h2o)
         except Exception as e:
             # If prediction failed, it might be because the model was unloaded/GC'd on server.
+            if isinstance(e, TimeoutError):
+                raise
             # Try reloading and predicting again.
             self.logger.debug(f"Prediction failed ({e}), attempting to reload model...")
             try:
@@ -656,6 +660,8 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                 self._ensure_model_is_loaded()
                 predictions = self.model_.predict(test_h2o)
             except Exception as e2:
+                if isinstance(e2, TimeoutError):
+                    raise
                 # --- FIX: Catch H2O backend crashes (NPE) during prediction and fallback ---
                 if "java.lang.NullPointerException" in str(e):
                     self.logger.warning(
@@ -765,6 +771,8 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                 destination_frame=f"prob_{uuid.uuid4().hex}",
             )
         except Exception as e:
+            if isinstance(e, TimeoutError):
+                raise
             raise RuntimeError(f"Failed to create H2O frame for prediction: {e}")
 
         # Make prediction
@@ -772,6 +780,8 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             predictions = self.model_.predict(test_h2o)
         except Exception as e:
             # Retry logic for unloaded models
+            if isinstance(e, TimeoutError):
+                raise
             self.logger.debug(f"Prediction failed ({e}), attempting to reload model...")
             try:
                 self._ensure_h2o_is_running()
@@ -779,6 +789,8 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                 predictions = self.model_.predict(test_h2o)
             except Exception as e2:
                 # --- FIX: Catch H2O backend crashes (NPE) during prediction and fallback ---
+                if isinstance(e2, TimeoutError):
+                    raise
                 if "java.lang.NullPointerException" in str(e):
                     self.logger.warning(
                         f"H2O backend crashed with NPE during predict_proba(). Returning dummy probabilities. Details: {e}"
