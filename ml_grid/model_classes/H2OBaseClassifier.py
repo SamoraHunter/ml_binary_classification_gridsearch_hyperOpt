@@ -1,7 +1,6 @@
 import inspect
 import logging
 import os
-import shutil
 import tempfile
 import uuid
 from typing import Any, Dict, List, Optional, Tuple
@@ -24,13 +23,7 @@ _SHARED_CHECKPOINT_DIR = tempfile.mkdtemp(prefix="h2o_checkpoints_")
 
 
 class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
-    """A base class for scikit-learn compatible H2O classifier wrappers.
-
-    This class provides common functionality for H2O model wrappers, including:
-    - H2O cluster management (initialization and shutdown).
-    - scikit-learn API compatibility (`get_params`, `set_params`).
-    - Common `predict` and `predict_proba` implementations.
-    - Robust handling of small datasets in the `fit` method.
+    """Base class for scikit-learn compatible H2O classifier wrappers.
 
     Attributes:
         estimator_class: The H2O estimator class to be wrapped.
@@ -44,13 +37,10 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
 
     MIN_SAMPLES_FOR_STABLE_FIT = 10
 
-    # Class-level cache for init parameters to avoid repeated inspect.signature calls
+    # Class-level caches
     _init_param_names_cache = {}
-
-    # Class-level cache for estimator class signatures to avoid repeated inspect.signature calls in fit()
     _estimator_signature_cache = {}
 
-    # Class-level set of keys to exclude from get_params, avoiding recreation overhead
     _excluded_param_keys = {
         "estimator_class",
         "logger",
@@ -67,7 +57,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             **kwargs: Additional keyword arguments to be passed to the H2O
                 estimator during initialization.
         """
-        # Handle estimator_class - it might come in kwargs during cloning
+        # Handle estimator_class
         self.estimator_class = kwargs.pop("estimator_class", estimator_class)
 
         if not inspect.isclass(self.estimator_class):
@@ -76,13 +66,12 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                 f"Received: {self.estimator_class}"
             )
 
-        # --- FIX: Ensure lambda is never stored as 'lambda', always as 'lambda_' ---
+        # Ensure lambda is stored as 'lambda_'
         if "lambda" in kwargs:
             kwargs["lambda_"] = kwargs.pop("lambda")
 
         # Set all kwargs as attributes for proper sklearn compatibility
         for key, value in kwargs.items():
-            # CRITICAL: Never allow 'model' as a parameter - it conflicts with 'model_'
             if key == "model":
                 self.logger.warning(
                     "Rejecting 'model' parameter in __init__ - this conflicts with fitted attribute 'model_'"
@@ -93,23 +82,18 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         # Initialize logger for this instance
         self.logger = logging.getLogger("ml_grid")
 
-        # Internal state attributes (not parameters)
-        # These attributes are set by fit() but must be initialized to None
-        # for scikit-learn's clone() and get_params() to work correctly.
+        # Internal state attributes
         self.model_: Optional[Any] = None
         self.classes_: Optional[np.ndarray] = None
         self.feature_names_: Optional[list] = None
-        self.feature_types_: Optional[Dict[str, str]] = None  # To store column types
-        # self.model_id: Optional[str] - set by fit()
+        self.feature_types_: Optional[Dict[str, str]] = None
 
         self._is_cluster_owner = False
         self._was_fit_on_constant_feature = False
         self._using_dummy_model = False
         self._rename_cols_on_predict = True
 
-        # --- CRITICAL FIX: Use shared checkpoint directory across all clones ---
-        # This allows clones created by sklearn's cross-validation to access
-        # models trained by other clone instances
+        # Use shared checkpoint directory across all clones
         self._checkpoint_dir = _SHARED_CHECKPOINT_DIR
 
         # H2O models are not safe with joblib's process-based parallelism.
@@ -117,25 +101,20 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
 
         self._cached_param_names = None  # Cache for get_params
 
+    # Class-level flag to track if H2O is initialized to avoid repeated API calls
+    _h2o_initialized = False
+
     def __del__(self):
         """Cleans up the shared checkpoint directory if this is the last instance."""
-        # This is a best-effort cleanup. In multi-process scenarios,
-        # the directory might be in use by other processes. Add hasattr check for partial init.
-        if (
-            hasattr(self, "_checkpoint_dir")
-            and os.path.exists(self._checkpoint_dir)
-            and not os.listdir(self._checkpoint_dir)
-        ):
-            shutil.rmtree(self._checkpoint_dir, ignore_errors=True)
-            logger.debug(
-                f"Cleaned up empty shared checkpoint directory: {self._checkpoint_dir}"
-            )
+        if hasattr(self, "_checkpoint_dir"):
+            try:
+                os.rmdir(self._checkpoint_dir)
+            except OSError:
+                pass
 
     def __getstate__(self):
         """Custom pickling to handle H2O models properly."""
         state = self.__dict__.copy()
-        # Don't pickle the H2O model object itself - just keep model_id and other fitted attributes
-        # The model_ will be reconstructed from model_id when needed
         if "model_" in state:
             state["model_"] = None
         return state
@@ -143,10 +122,17 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
     def __setstate__(self, state):
         """Custom unpickling to restore state."""
         self.__dict__.update(state)
-        # model_ will be reloaded from checkpoint when needed via _ensure_model_is_loaded
 
     def _ensure_h2o_is_running(self):
         """Safely checks for and initializes an H2O cluster if not running."""
+        # Optimization: Check class-level flag first to avoid API overhead
+        if H2OBaseClassifier._h2o_initialized:
+            try:
+                if h2o.connection().connected:
+                    return
+            except Exception:
+                pass  # Fall through to full check
+
         try:
             cluster = h2o.cluster()
         except Exception:
@@ -158,8 +144,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         if cluster and cluster.is_running():
             is_healthy = True
             try:
-                # Check if cluster has memory.
-                # total_mem is in bytes. If it's 0 or None, it's broken.
+                # Check if cluster has memory
                 memory = None
                 try:
                     memory = cluster.total_mem()
@@ -191,6 +176,8 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             h2o.init(strict_version_check=False)
             self._is_cluster_owner = True
 
+        H2OBaseClassifier._h2o_initialized = True
+
         # Set progress bar visibility based on the global parameter
         h2o.no_progress() if not show_progress else h2o.show_progress()
 
@@ -213,20 +200,15 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         if not isinstance(X, pd.DataFrame):
             if self.feature_names_ is not None:
                 X = pd.DataFrame(X, columns=self.feature_names_)
-                # Additional check if X was a numpy array and column count doesn't match
                 if X.shape[1] != len(self.feature_names_):
                     raise ValueError(
                         f"Input data (X) has {X.shape[1]} columns, but expected {len(self.feature_names_)} "
                         f"based on training features. Please ensure column count matches."
-                    )  # This was the syntax error fix
+                    )
             else:
-                # If X is a numpy array, convert it to a DataFrame and ensure
-                # its columns are strings to prevent KeyErrors with H2O.
                 X = pd.DataFrame(X)
                 X.columns = [str(c) for c in X.columns]
         else:
-            # If it's already a DataFrame, ensure columns are strings.
-            # This is necessary for H2O even if validation is skipped.
             if any(not isinstance(c, str) for c in X.columns):
                 X.columns = X.columns.astype(str)
 
@@ -234,8 +216,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         if sklearn.get_config().get("skip_parameter_validation"):
             return X, y
 
-        # Reset index to avoid sklearn CV indexing issues
-        # CRITICAL: If we reset X, we MUST also reset y to maintain alignment.
+        # Reset index to avoid sklearn CV indexing issues and maintain alignment
         if not isinstance(X.index, pd.RangeIndex):
             X = X.reset_index(drop=True)
             if y is not None and hasattr(y, "reset_index"):
@@ -267,15 +248,12 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                 )
 
             # Get unique classes
-            # --- OPTIMIZATION: Use pd.unique which is faster than np.unique ---
             if isinstance(y, pd.Series):
                 unique_classes = y.unique()
             elif isinstance(y, pd.Categorical):
                 unique_classes = y.categories
             else:
-                # Fallback for numpy arrays
                 unique_classes = pd.unique(y)
-                # Note: pd.unique includes NaNs, but we checked for NaNs above
 
             if len(unique_classes) < 2:
                 raise ValueError(
@@ -322,9 +300,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         if not isinstance(y, pd.Series):
             y = pd.Series(y, name="outcome")
 
-        # --- CRITICAL FIX for index misalignment ---
-        # Reset indices here, just before creating the H2OFrame, to ensure
-        # X and y are perfectly aligned.
+        # Reset indices to ensure X and y are perfectly aligned
         X = X.reset_index(drop=True)
         y = y.reset_index(drop=True)
 
@@ -352,7 +328,6 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             )
 
         train_df = pd.concat([X, y_series], axis=1)
-        # Optimization: Provide destination_frame to avoid expensive gc.get_referrers() name search
         train_h2o = h2o.H2OFrame(
             train_df, destination_frame=f"train_{uuid.uuid4().hex}"
         )
@@ -360,8 +335,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         # Explicitly convert the outcome column to factor
         train_h2o[outcome_var] = train_h2o[outcome_var].asfactor()
 
-        # --- CRITICAL FIX for predict-time type mismatch ---
-        # Store the column types from the training frame to enforce them at predict time.
+        # Store column types to enforce them at predict time
         all_types = train_h2o.types
         self.feature_types_ = {col: all_types[col] for col in x_vars}
 
@@ -387,8 +361,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             if "ignore_const_cols" in estimator_params:
                 model_params.setdefault("ignore_const_cols", False)
 
-        # --- ROBUSTNESS FIX: Save checkpoints for model recovery ---
-        # Conditionally add checkpoint directory, as not all estimators (e.g., RuleFit) support it.
+        # Conditionally add checkpoint directory
         if "export_checkpoints_dir" in estimator_params:
             model_params["export_checkpoints_dir"] = self._checkpoint_dir
 
@@ -419,9 +392,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             key: value for key, value in all_params.items() if key in valid_param_keys
         }
 
-        # --- FIX for H2OTypeError (e.g., max_depth, sample_rate, learn_rate) ---
-        # Scikit-learn's ParameterGrid/RandomizedSearchCV can pass single-element numpy arrays or lists.
-        # H2O expects native Python types (int, float), so we convert them.
+        # Convert single-element numpy arrays/lists to native types for H2O
         for key, value in model_params.items():
             if isinstance(value, np.ndarray) and value.size == 1:
                 model_params[key] = value.item()
@@ -452,8 +423,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
     def _sanitize_model_params(self):
         """Removes problematic parameters from the H2O model instance before training.
 
-        This handles version mismatches where the Python client sends parameters
-        (like HGLM) that the H2O backend does not recognize.
+        Handles version mismatches (e.g., removing 'HGLM').
         """
         if self.model_ and hasattr(self.model_, "_parms"):
             if "HGLM" in self.model_._parms:
@@ -461,6 +431,37 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                     "Removing 'HGLM' parameter from H2O model to prevent backend error."
                 )
                 del self.model_._parms["HGLM"]
+
+    def _has_constant_columns(self, X: pd.DataFrame) -> bool:
+        """Checks for constant columns efficiently."""
+        if X.empty:
+            return False
+
+        # Fast path for numeric data
+        numeric_cols = X.select_dtypes(include=np.number)
+        if not numeric_cols.empty:
+            mins = numeric_cols.min()
+            maxs = numeric_cols.max()
+
+            # Check 1: All NaNs (min is NaN)
+            if mins.isna().any():
+                return True
+
+            # Check 2: Single value (min == max) AND No NaNs
+            candidates = mins == maxs
+            if candidates.any():
+                candidate_cols = candidates[candidates].index
+                # Check if any candidate has no NaNs
+                if (numeric_cols[candidate_cols].count() == len(X)).any():
+                    return True
+
+        # Check remaining columns (objects, categoricals) using nunique
+        other_cols = X.select_dtypes(exclude=np.number)
+        if not other_cols.empty:
+            if (other_cols.nunique(dropna=False) <= 1).any():
+                return True
+
+        return False
 
     def fit(self, X: pd.DataFrame, y: pd.Series, **kwargs) -> "H2OBaseClassifier":
         """Fits the H2O model.
@@ -488,7 +489,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             # Validate input data. This now returns a potentially modified X and y.
             X, y = self._validate_input_data(X, y)
 
-            self.logger.debug("About to call _prepare_fit...")
+            self.logger.debug("Calling _prepare_fit...")
             # Fit the actual model
             train_h2o, x_vars, outcome_var, model_params = self._prepare_fit(X, y)
 
@@ -503,8 +504,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             # Sanitize parameters to prevent backend errors (e.g. HGLM)
             self._sanitize_model_params()
 
-            # --- OPTIMIZATION: Force disable progress bar immediately before train ---
-            # This addresses profiling results showing significant overhead in progressbar.py
+            # Force disable progress bar immediately before train
             if not getattr(global_parameters, "h2o_show_progress", False):
                 h2o.no_progress()
 
@@ -512,8 +512,6 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             self.logger.debug("Calling H2O model.train()...")
             self.model_.train(x=x_vars, y=outcome_var, training_frame=train_h2o)
 
-            # --- OPTIMIZATION: Explicitly cleanup training frame ---
-            # This reduces overhead from H2O's reference counting (gc.get_referrers)
             try:
                 h2o.remove(train_h2o)
             except Exception:
@@ -559,9 +557,8 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         Raises:
             RuntimeError: If the model is not fitted or if prediction fails.
         """
-        # CRITICAL: Check that model was fitted
-        # sklearn's check_is_fitted will check for these attributes
-        try:  # --- FIX: Add feature_types_ to the check ---
+        # Check that model was fitted
+        try:
             check_is_fitted(self, ["model_id", "classes_", "feature_names_"])
         except Exception as e:
             # Add detailed debugging information
@@ -591,9 +588,8 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         # Validate input
         X, _ = self._validate_input_data(X)
 
-        # --- ROBUSTNESS FIX: Check for any constant columns to prevent H2O backend crash ---
-        # This can happen in CV splits and crashes H2O's GLM/predict.
-        if X.shape[1] > 0 and (X.nunique(dropna=False) <= 1).any():
+        # Check for constant columns to prevent H2O backend crash
+        if X.shape[1] > 0 and self._has_constant_columns(X):
             constant_cols = X.columns[X.nunique(dropna=False) <= 1].tolist()
             self.logger.warning(
                 f"Prediction data contains constant columns: {constant_cols}. "
@@ -608,22 +604,13 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             )
             return np.full(len(X), dummy_prediction)
 
-        # OPTIMIZATION: Lazy load model and optimistically assume H2O is running.
-        # Only check/init cluster if we don't have the model object or if prediction fails.
-        # This saves an API call (h2o.cluster()) per predict.
+        # Lazy load model and optimistically assume H2O is running
         if self.model_ is None:
             self._ensure_h2o_is_running()
             self._ensure_model_is_loaded()
 
         try:
-            # --- ROBUSTNESS FIX for java.lang.NullPointerException ---
-            # Instead of creating the frame directly, upload the data and then assign it.
-            # This seems to create a more 'stable' frame in the H2O cluster, preventing
-            # internal errors during prediction with some models like GLM.
-
-            # Optimization: Pass column_types directly to constructor to avoid
-            # expensive column-by-column casting loop (which triggers GC overhead).
-            # We filter feature_types_ to ensure only present columns are passed.
+            # Pass column_types directly to constructor to avoid expensive casting loop
             col_types = None
             if self.feature_types_:
                 col_types = {
@@ -637,8 +624,6 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                 destination_frame=f"pred_{uuid.uuid4().hex}",
             )
 
-            # Optimization: Use the temporary frame directly.
-            # Explicitly assigning a key (h2o.assign) triggers expensive GC checks.
             test_h2o = tmp_frame
 
         except Exception as e:
@@ -662,7 +647,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             except Exception as e2:
                 if isinstance(e2, TimeoutError):
                     raise
-                # --- FIX: Catch H2O backend crashes (NPE) during prediction and fallback ---
+                # Catch H2O backend crashes (NPE) during prediction and fallback
                 if "java.lang.NullPointerException" in str(e):
                     self.logger.warning(
                         f"H2O backend crashed with NPE during predict(). Returning dummy predictions. Details: {e}"
@@ -678,11 +663,8 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                 raise RuntimeError(f"H2O prediction failed: {e2}")
 
         # Extract predictions
-        # Optimization: Download full frame to avoid H2O slicing overhead (gc.get_referrers ~48s)
-        # Slicing in H2O (predictions['predict']) creates a new unnamed frame which triggers a stack scan.
         pred_df = predictions.as_data_frame(use_multi_thread=False)
 
-        # --- OPTIMIZATION: Explicitly cleanup frames ---
         try:
             h2o.remove(test_h2o)
             h2o.remove(predictions)
@@ -691,11 +673,15 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
 
         if "predict" in pred_df.columns:
             preds = pred_df["predict"].values.ravel()
-            # OPTIMIZATION: Cast to the same type as classes_ to avoid object/string overhead
-            # in sklearn metrics (which triggers expensive np.unique on object arrays).
+            # Cast to the same type as classes_ to avoid object/string overhead
             if self.classes_ is not None:
                 try:
-                    preds = preds.astype(self.classes_.dtype)
+                    # Ensure we are casting to a native numpy type, not object
+                    dtype = self.classes_.dtype
+                    if dtype == np.object_:
+                        preds = preds.astype(str)
+                    else:
+                        preds = preds.astype(dtype)
                 except (ValueError, TypeError):
                     pass
             return preds
@@ -714,7 +700,6 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         Raises:
             RuntimeError: If the model is not fitted or if prediction fails.
         """
-        # CRITICAL: Check that model was fitted
         try:
             check_is_fitted(
                 self, ["model_id", "classes_", "feature_names_", "feature_types_"]
@@ -734,8 +719,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         # Validate input
         X, _ = self._validate_input_data(X)
 
-        # --- ROBUSTNESS FIX: Check for any constant columns to prevent H2O backend crash ---
-        if X.shape[1] > 0 and (X.nunique(dropna=False) <= 1).any():
+        if X.shape[1] > 0 and self._has_constant_columns(X):
             constant_cols = X.columns[X.nunique(dropna=False) <= 1].tolist()
             self.logger.warning(
                 f"Prediction data contains constant columns: {constant_cols}. "
@@ -750,14 +734,13 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             dummy_probas = np.full((len(X), n_classes), 1 / n_classes)
             return dummy_probas
 
-        # OPTIMIZATION: Lazy load model and optimistically assume H2O is running.
+        # Lazy load model and optimistically assume H2O is running
         if self.model_ is None:
             self._ensure_h2o_is_running()
             self._ensure_model_is_loaded()
 
         # Create H2O frame with explicit column names
         try:
-            # Optimization: Pass column_types directly to constructor
             col_types = None
             if self.feature_types_:
                 col_types = {
@@ -788,7 +771,6 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                 self._ensure_model_is_loaded()
                 predictions = self.model_.predict(test_h2o)
             except Exception as e2:
-                # --- FIX: Catch H2O backend crashes (NPE) during prediction and fallback ---
                 if isinstance(e2, TimeoutError):
                     raise
                 if "java.lang.NullPointerException" in str(e):
@@ -806,21 +788,20 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                 raise RuntimeError(f"H2O prediction failed: {e2}")
 
         # Extract probabilities (drop the 'predict' column)
-        # Optimization: Download full frame then drop in pandas to avoid H2O slicing overhead
         res_df = predictions.as_data_frame(use_multi_thread=False)
         if "predict" in res_df.columns:
             prob_df = res_df.drop(columns=["predict"])
         else:
             prob_df = res_df
 
-        # --- OPTIMIZATION: Explicitly cleanup frames ---
         try:
             h2o.remove(test_h2o)
             h2o.remove(predictions)
         except Exception:
             pass
 
-        return prob_df.values
+        # Ensure strictly float64 to avoid object overhead in sklearn metrics
+        return prob_df.values.astype(np.float64)
 
     def _ensure_model_is_loaded(self):
         """
@@ -925,7 +906,7 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         This override is necessary because we use **kwargs in __init__.
         It's an instance method to access parameters stored on self.
 
-        CRITICAL: This should ONLY return parameter names, NOT fitted attribute names.
+        This should ONLY return parameter names, NOT fitted attribute names.
         """
         if self._cached_param_names is not None:
             return self._cached_param_names
@@ -983,17 +964,14 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
         if "lambda" in kwargs:
             kwargs["lambda_"] = kwargs.pop("lambda")
 
-        # CRITICAL: Preserve fitted attributes
-        # sklearn convention: fitted attributes end with underscore
-        # We must not allow set_params to overwrite these
+        # Preserve fitted attributes
         fitted_attributes = {}
         for attr in ["model_", "classes_", "feature_names_", "model_id"]:
             if hasattr(self, attr):
                 fitted_attributes[attr] = getattr(self, attr)
                 self.logger.debug(f"Preserving fitted attribute: {attr}")
 
-        # CRITICAL: Reject any attempts to set 'model' or other fitted-like attributes
-        # These should never come from get_params()
+        # Reject any attempts to set 'model' or other fitted-like attributes
         forbidden_keys = ["model", "model_", "classes_", "feature_names_", "model_id"]
         for key in list(kwargs.keys()):
             if key in forbidden_keys:

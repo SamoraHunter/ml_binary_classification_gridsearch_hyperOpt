@@ -66,9 +66,7 @@ H2O_MODEL_TYPES = (
     H2OStackedEnsembleClassifier,
 )
 
-# --- OPTIMIZATION: Disable TF Traceback Filtering Globally ---
-# This reduces overhead in Keras model building (sequential.py, tracking.py)
-# seen in profiling (traceback_utils.py taking ~60s).
+# Disable TF Traceback Filtering to reduce overhead in Keras model building
 try:
     tf.debugging.disable_traceback_filtering()
 except (AttributeError, ImportError):
@@ -88,11 +86,7 @@ class grid_search_crossvalidate:
     ):
         """Initializes and runs a cross-validated hyperparameter search.
 
-        This class takes a given algorithm, its parameter space, and data from
-        the main pipeline object to perform either a grid search, randomized
-        search, or Bayesian search for the best hyperparameters. It then logs
-        the results.
-
+        Performs grid, randomized, or Bayesian search for hyperparameters and logs results.
         Args:
             algorithm_implementation (Any): The scikit-learn compatible estimator
                 instance.
@@ -107,7 +101,7 @@ class grid_search_crossvalidate:
             project_score_save_class_instance (Optional[project_score_save_class], optional):
                 An instance of the score saving class. Defaults to None.
         """
-        # Set each warning filter individually for robustness
+        # Set warning filters
         warnings.filterwarnings("ignore", category=UserWarning)
         warnings.filterwarnings("ignore", category=ConvergenceWarning)
         warnings.filterwarnings("ignore", category=FutureWarning)
@@ -130,9 +124,7 @@ class grid_search_crossvalidate:
 
         self.sub_sample_parameter_val = sub_sample_parameter_val
 
-        # --- OPTIMIZATION: Detect Nested Parallelism ---
-        # If running inside a worker process (daemon), force n_jobs=1 to prevent
-        # oversubscription (outer loop parallel * inner loop parallel).
+        # Detect nested parallelism: force n_jobs=1 if running inside a worker process
         if multiprocessing.current_process().daemon:
             self.global_params.grid_n_jobs = 1
             grid_n_jobs = 1
@@ -153,8 +145,7 @@ class grid_search_crossvalidate:
         if is_gpu_model or is_h2o_model:
             grid_n_jobs = 1
 
-            # --- OPTIMIZATION: Disable H2O Progress Bar ---
-            # This saves significant time (~95s) spent in progressbar updates
+            # Disable H2O Progress Bar to save time
             if is_h2o_model:
                 try:
                     import h2o
@@ -165,7 +156,7 @@ class grid_search_crossvalidate:
                 except Exception:
                     pass
 
-            # --- OPTIMIZATION: One-time TF/GPU Setup ---
+            # One-time TF/GPU Setup
             if is_gpu_model and not _TF_INITIALIZED:
                 try:
                     gpu_devices = tf.config.experimental.list_physical_devices("GPU")
@@ -174,11 +165,11 @@ class grid_search_crossvalidate:
                             try:
                                 tf.config.experimental.set_memory_growth(device, True)
                             except RuntimeError:
-                                pass  # Memory growth must be set before GPUs have been initialized
+                                pass
                     else:
                         # Explicitly set CPU as the visible device for TensorFlow to avoid CUDA init errors
                         tf.config.set_visible_devices([], "GPU")
-                    
+
                     tf.config.run_functions_eagerly(False)
                 except Exception as e:
                     self.logger.warning(f"Could not configure GPU for TensorFlow: {e}")
@@ -208,27 +199,18 @@ class grid_search_crossvalidate:
 
         self.y_test_orig = self.ml_grid_object_iter.y_test_orig
 
-        # --- ROBUST DATA TYPE HANDLING ---
-        # Ensure X_train is a pandas DataFrame and y_train is a pandas Series
-        # with aligned indices. This handles inputs being numpy arrays (from tests)
-        # or pandas objects, preventing AttributeError and ensuring consistency.
-
-        # 1. Ensure X_train is a DataFrame.
+        # Ensure X_train is a DataFrame
         if not isinstance(self.X_train, pd.DataFrame):
             self.X_train = pd.DataFrame(self.X_train).rename(columns=str)
 
-        # 2. Ensure y_train is a Series, using X_train's index for alignment.
+        # Ensure y_train is a Series with aligned index
         if not isinstance(self.y_train, (pd.Series, pd.DataFrame)):
             self.y_train = pd.Series(self.y_train, index=self.X_train.index)
 
-        # --- CRITICAL FIX for H2O Stacked Ensemble response column mismatch ---
-        # Enforce a consistent name for the target variable series. This prevents
-        # the "response_column must match" error in H2O StackedEnsemble.
+        # Enforce consistent target variable name for H2O compatibility
         self.y_train.name = "outcome"
 
-        # --- OPTIMIZATION: Drop ID column if present ---
-        # client_idcode is metadata and should not be used for training.
-        # It can cause issues with models like CatBoost (high cardinality string) and slow down training.
+        # Drop ID column if present
         if "client_idcode" in self.X_train.columns:
             self.logger.debug("Dropping 'client_idcode' from training data.")
             self.X_train = self.X_train.drop(columns=["client_idcode"], errors="ignore")
@@ -241,9 +223,9 @@ class grid_search_crossvalidate:
                     columns=["client_idcode"], errors="ignore"
                 )
 
-        max_param_space_iter_value = (
+        max_param_space_iter_value = (  # hard limit on param space exploration
             self.global_params.max_param_space_iter_value
-        )  # hard limit on param space exploration
+        )
 
         # Allow local override for max_param_space_iter_value
         if (
@@ -275,9 +257,11 @@ class grid_search_crossvalidate:
                 index=self.X_test_orig.index,
             )
 
-        # --- PERFORMANCE FIX for testing ---
-        # Use a much faster CV strategy when in test_mode.
-        # This MUST be defined before HyperparameterSearch is instantiated.
+        # Optimize y_test and y_test_orig to reduce metric calculation overhead
+        self.y_test = self._optimize_y(self.y_test)
+        self.y_test_orig = self._optimize_y(self.y_test_orig)
+
+        # Use faster CV strategy in test mode
         if getattr(self.global_parameters, "test_mode", False):
             self.logger.info("Test mode enabled. Using fast KFold(n_splits=2) for CV.")
             self.cv = KFold(n_splits=2, shuffle=True, random_state=1)
@@ -294,14 +278,22 @@ class grid_search_crossvalidate:
 
         current_algorithm = algorithm_implementation
 
-        # Silence verbose models like CatBoost to keep logs clean
-        if "catboost" in method_name.lower() and hasattr(
-            current_algorithm, "set_params"
-        ):
-            ml_grid_object.logger.info(
-                "Silencing CatBoost verbose output and file writing."
-            )
-            current_algorithm.set_params(verbose=0, allow_writing_files=False)
+        # Silence verbose models to keep logs clean and reduce I/O overhead
+        if hasattr(current_algorithm, "set_params"):
+            if "catboost" in method_name.lower():
+                ml_grid_object.logger.info(
+                    "Silencing CatBoost verbose output and file writing."
+                )
+                current_algorithm.set_params(verbose=0, allow_writing_files=False)
+            elif "xgb" in method_name.lower():
+                ml_grid_object.logger.info("Silencing XGBoost verbose output.")
+                current_algorithm.set_params(verbosity=0)
+            elif "keras" in method_name.lower() or "neural" in method_name.lower():
+                ml_grid_object.logger.info("Silencing Keras verbose output.")
+                try:
+                    current_algorithm.set_params(verbose=0)
+                except Exception:
+                    pass
 
         # Check for GPU availability and set device for torch-based models
         if "simbsig" in str(type(algorithm_implementation)):
@@ -325,7 +317,7 @@ class grid_search_crossvalidate:
                 f"algorithm_implementation: {algorithm_implementation}, type: {type(algorithm_implementation)}"
             )
 
-        # Validate parameters for non-Bayesian searches
+        # Validate parameters
         if not self.global_params.bayessearch:
             parameters = validate_parameters_helper(
                 algorithm_implementation=algorithm_implementation,
@@ -333,22 +325,13 @@ class grid_search_crossvalidate:
                 ml_grid_object=ml_grid_object,
             )
 
-        # --- FIX for skopt ValueError ---
-        # If using Bayesian search, ensure all list-based parameters are wrapped
-        # in skopt.space.Categorical to prevent "can only convert an array of size 1" error.
+        # Ensure list-based parameters are wrapped in Categorical for Bayesian search
         if self.global_params.bayessearch:
             self.logger.debug("Validating parameter space for Bayesian search...")
-            if isinstance(
-                parameter_space, list
-            ):  # For models like LogisticRegression with multiple dicts
-                # This part remains the same as it handles lists of dictionaries correctly.
+            if isinstance(parameter_space, list):
                 for i, space in enumerate(parameter_space):
                     new_space = {}
                     for key, value in space.items():
-                        # --- REFINED FIX for skopt ValueError ---
-                        # Check if the value is a list of potential choices that needs wrapping.
-                        # This is true if it's a list/array, not already a skopt space,
-                        # and its elements are not lists themselves (e.g., for H2O's 'hidden' param).
                         is_list_of_choices = (
                             isinstance(value, (list, np.ndarray))
                             and value
@@ -359,15 +342,12 @@ class grid_search_crossvalidate:
                                 f"Auto-correcting param '{key}' for BayesSearch: wrapping list in Categorical."
                             )
                             new_space[key] = Categorical(value)
-                        else:  # It's a skopt object, a single value, or a list of lists (like for 'hidden')
+                        else:
                             new_space[key] = value
                     parameter_space[i] = new_space
-            elif isinstance(parameter_space, dict):  # For standard single-dict spaces
-                # This is the key change: iterate and build a new dictionary
-                # to avoid issues with modifying a dictionary while iterating.
+            elif isinstance(parameter_space, dict):
                 new_parameter_space = {}
                 for key, value in parameter_space.items():
-                    # --- REFINED FIX for skopt ValueError ---
                     is_list_of_choices = (
                         isinstance(value, (list, np.ndarray))
                         and value
@@ -378,14 +358,12 @@ class grid_search_crossvalidate:
                             f"Auto-correcting param '{key}' for BayesSearch: wrapping list in Categorical."
                         )
                         new_parameter_space[key] = Categorical(value)
-                    else:  # It's a skopt object, a single value, or a list of lists (like for 'hidden')
+                    else:
                         new_parameter_space[key] = value
                 parameter_space = new_parameter_space
-            # Ensure the 'parameters' variable points to the updated parameter_space for Bayes search
             parameters = parameter_space
 
-        # Use the new n_iter parameter from the config
-        # Default to 2 if not present, preventing AttributeError
+        # Determine n_iter
         try:
             n_iter_v = getattr(self.global_params, "n_iter", 2)
             if n_iter_v is None:
@@ -417,15 +395,14 @@ class grid_search_crossvalidate:
                 )
                 n_iter_v = max_param_space_iter_value
 
-        # For GridSearchCV, n_iter is not used, but we calculate the grid size for logging.
+        # Log grid size or iterations
         if not self.global_params.bayessearch and not random_grid_search:
             pg = len(ParameterGrid(parameter_space))
             self.logger.info(f"Parameter grid size: {pg}")
         else:
-            # For Random and Bayes search, log the number of iterations
             self.logger.info(f"Using n_iter={n_iter_v} for search.")
+            pg = "N/A"
 
-        # Calculate pg for logging purposes
         pg = (
             len(ParameterGrid(parameter_space))
             if not self.global_params.bayessearch
@@ -451,22 +428,14 @@ class grid_search_crossvalidate:
                 self.grid_search_cross_validate_score_result = 0.5
                 return
 
-        # Dynamically adjust CatBoost subsample parameter for small datasets
+        # Adjust CatBoost parameters for small datasets
         if "catboost" in method_name.lower():
             self._adjust_catboost_parameters(parameter_space)
             self.logger.debug(
                 "Adjusted CatBoost subsample parameter space to prevent errors on small CV folds."
             )
 
-        # --- CRITICAL FIX for H2OStackedEnsemble ---
-        # The special handling logic has been moved inside the H2OStackedEnsembleClassifier
-        # class itself, making it a self-contained scikit-learn meta-estimator.
-        # No special orchestration is needed here anymore.
-
-        # --- OPTIMIZATION: Force Sequential Search for H2O/GPU Models ---
-        # Save original n_jobs to restore later. This prevents HyperparameterSearch
-        # from spawning parallel jobs for models that are not thread/process safe
-        # or have their own internal parallelism (like H2O).
+        # Force sequential search for H2O/GPU models
         original_grid_n_jobs = self.global_parameters.grid_n_jobs
         if is_gpu_model or is_h2o_model:
             self.global_parameters.grid_n_jobs = 1
@@ -524,8 +493,7 @@ class grid_search_crossvalidate:
                     )
                     self.y_train = pd.Series(self.y_train, index=self.X_train.index)
 
-                # CRITICAL FIX: Reset indices to ensure integer-based indexing for sklearn
-                # This prevents "String indexing is not supported with 'axis=0'" errors
+                # Reset indices for integer-based indexing
                 X_train_reset = self.X_train.reset_index(drop=True)
                 y_train_reset = self.y_train.reset_index(drop=True)
 
@@ -536,13 +504,15 @@ class grid_search_crossvalidate:
                     f"y_train index after reset: {y_train_reset.index[:5]}"
                 )
 
-                # --- OPTIMIZATION: Convert y to numpy for ALL models ---
-                # This avoids expensive sklearn type_of_target checks on Pandas Series (overhead seen in profiling)
-                # Most sklearn models handle numpy arrays efficiently.
+                # Convert y to numpy for ALL models
                 y_train_search = self._optimize_y(y_train_reset)
 
-                # --- OPTIMIZATION: Skip parameter validation overhead ---
-                # Use set_config to ensure it propagates to all internal calls
+                if not is_h2o_model:
+                    X_train_search = X_train_reset.values
+                else:
+                    X_train_search = X_train_reset
+
+                # Skip parameter validation overhead
                 with sklearn.config_context(skip_parameter_validation=True):
                     # Pass reset data to search
                     if is_h2o_model:
@@ -553,11 +523,10 @@ class grid_search_crossvalidate:
                         except Exception:
                             pass
 
-                    # --- OPTIMIZATION: Force threading backend for search ---
-                    # Prevents 'loky' overhead (abort_everything ~273s) which occurs even with n_jobs=1
+                    # Force threading backend for search
                     with joblib.parallel_backend("threading"):
                         current_algorithm = search.run_search(
-                            X_train_reset, y_train_search
+                            X_train_search, y_train_search
                         )
 
             except TimeoutError:
@@ -585,8 +554,6 @@ class grid_search_crossvalidate:
                     self.grid_search_cross_validate_score_result = 0.5
                     return
 
-                # Log the error and re-raise it to stop the entire execution,
-                # allowing the main loop in main.py to handle it based on error_raise.
                 self.logger.error(
                     f"An exception occurred during hyperparameter search for {method_name}: {e}",
                     exc_info=True,
@@ -596,9 +563,7 @@ class grid_search_crossvalidate:
             # Restore the original grid_n_jobs setting
             self.global_parameters.grid_n_jobs = original_grid_n_jobs
 
-        # --- PERFORMANCE FIX for testing ---
-        # If in test_mode, we have already verified that the search runs without crashing.
-        # We can skip the final, slow cross-validation and return a dummy score.
+        # Skip final CV in test mode
         if not failed and getattr(self.global_parameters, "test_mode", False):
             self.logger.info(
                 "Test mode enabled. Skipping final cross-validation for speed."
@@ -611,14 +576,8 @@ class grid_search_crossvalidate:
         if not failed and self.global_parameters.verbose >= 3:
             self.logger.debug("Fitting final model")
 
-        # In production, we re-fit the best estimator on the full training data before CV.
-        # In test_mode, the estimator from the search is already fitted, and re-fitting
-        # can invalidate complex models like H2OStackedEnsemble before the final assert.
-
         metric_list = self.metric_list
 
-        # Catch only one class present AUC not defined (check only if not already failed)
-        # Optimization: Use pandas nunique() which is faster than converting to numpy and sorting
         if not failed and self.y_train.nunique() < 2:
             raise ValueError(
                 "Only one class present in y_train. ROC AUC score is not defined "
@@ -635,13 +594,6 @@ class grid_search_crossvalidate:
         # Set a time threshold in seconds
         time_threshold = 60  # For example, 60 seconds
 
-        # --- CRITICAL FIX for H2O multiprocessing error ---
-        # H2O models cannot be pickled and sent to other processes for parallel
-        # execution with joblib. We must detect if the current algorithm is an
-        # H2O model and, if so, force n_jobs=1 for cross_validate.
-        # (H2O_MODEL_TYPES is now defined at module level)
-
-        # Keras/TensorFlow models also require single-threaded execution.
         keras_model_types = (NeuralNetworkClassifier, KerasClassifierClass)
 
         is_h2o_model = isinstance(current_algorithm, H2O_MODEL_TYPES)
@@ -658,24 +610,16 @@ class grid_search_crossvalidate:
             if failed:
                 raise TimeoutError
 
-            # H2O models require pandas DataFrames with column names, while other
-            # sklearn models can benefit from using NumPy arrays.
             if isinstance(current_algorithm, H2O_MODEL_TYPES):
                 X_train_final = self.X_train  # Pass DataFrame directly
-                # Optimization: Pass numpy array for y to avoid pandas overhead in sklearn checks
-                if isinstance(self.y_train.dtype, pd.CategoricalDtype):
-                    y_train_final = self.y_train.cat.codes.values
-                else:
-                    y_train_final = self.y_train.values
+                y_train_final = self._optimize_y(self.y_train)
             else:
                 X_train_final = self.X_train.values  # Use NumPy array for other models
-                # Optimization: Pass numpy array for y to avoid pandas overhead in sklearn
                 y_train_final = self._optimize_y(self.y_train)
 
             scores = None
 
             # Check for user override to force second CV
-            # Check local params first, then global params
             force_second_cv = self.ml_grid_object_iter.local_param_dict.get(
                 "force_second_cv", getattr(self.global_params, "force_second_cv", False)
             )
@@ -723,8 +667,6 @@ class grid_search_crossvalidate:
                         )
                     else:
                         # Fallback: Use mean score time.
-                        # We use .get() with a default that is safe to index into if the key is missing.
-                        # If 'mean_score_time' is missing, we default to a list of 0s large enough to cover 'index'.
                         default_times = np.zeros(index + 1)
                         temp_scores["score_time"] = np.full(
                             n_splits,
@@ -765,8 +707,19 @@ class grid_search_crossvalidate:
                     current_algorithm, (KerasClassifier, KerasClassifierClass)
                 ):
                     self.logger.debug("Fitting Keras model with internal CV handling.")
-                    y_train_values = self.y_train.values
-                    current_algorithm.fit(self.X_train, y_train_values, cv=self.cv)
+                    y_train_values = (
+                        self.y_train.values
+                        if hasattr(self.y_train, "values")
+                        else self.y_train
+                    )
+                    X_train_values = (
+                        self.X_train.values
+                        if hasattr(self.X_train, "values")
+                        else self.X_train
+                    )
+                    current_algorithm.fit(
+                        X_train_values, y_train_values, cv=self.cv, verbose=0
+                    )
                     # Since fit already did the CV, create a dummy scores dictionary.
                     scores = {
                         "test_roc_auc": [
@@ -774,11 +727,7 @@ class grid_search_crossvalidate:
                         ]
                     }
                 else:
-                    # For all other models, perform standard cross-validation.
-                    # Note: current_algorithm is already fitted on full X_train by HyperparameterSearch (refit=True)
-                    # so we do not need to call .fit() again here.
-
-                    # --- OPTIMIZATION: Skip parameter validation overhead (99s) ---
+                    # Skip parameter validation overhead
                     with sklearn.config_context(skip_parameter_validation=True):
                         # Ensure H2O progress is disabled before CV
                         if is_h2o_model:
@@ -789,9 +738,7 @@ class grid_search_crossvalidate:
                             except Exception:
                                 pass
 
-                        # --- OPTIMIZATION: Always use threading backend ---
-                        # The overhead of 'loky' (multiprocessing) is excessive (sleep + memmapping ~300s).
-                        # Threading is sufficient and much faster for this pipeline.
+                        # Always use threading backend
                         backend = "threading"
 
                         with joblib.parallel_backend(backend):
@@ -806,8 +753,7 @@ class grid_search_crossvalidate:
                                 error_score=self.error_raise,  # Raise error if cross-validation fails
                             )
 
-                    # Pre-compile the predict function for Keras/TF models to avoid retracing warnings.
-                    # This is done AFTER fitting and before cross-validation.
+                    # Pre-compile the predict function for Keras/TF models
                     if isinstance(
                         current_algorithm,
                         (
@@ -887,10 +833,6 @@ class grid_search_crossvalidate:
                 scores = default_scores  # Use default scores for other errors
 
         except RuntimeError as e:
-            # raise e  # raise h2o errors to aid development
-            # --- FIX for UnboundLocalError with H2OStackedEnsemble ---
-            # Catch any RuntimeError, which can be raised by H2O models during fit
-            # (e.g., base model training failure) or predict.
             self.logger.error(
                 f"A RuntimeError occurred during cross-validation (often H2O related): {e}",
                 exc_info=True,
@@ -944,7 +886,6 @@ class grid_search_crossvalidate:
                 )
 
         current_algorithm_scores = scores
-        #     scores_tuple_list.append((method_name, current_algorithm_scores, grid))
 
         if self.global_parameters.verbose >= 4:
 
@@ -955,10 +896,6 @@ class grid_search_crossvalidate:
             # This was passing a classifier trained on the test dataset....
             self.logger.debug("Plotting AUC is disabled.")
 
-            # plot_auc_results(current_algorithm, self.X_test_orig[self.X_train.columns], self.y_test_orig, self.cv)
-            # plot_auc_results(grid.best_estimator_, X_test_orig, self.y_test_orig, cv)
-
-        #         this should be x_test...?
         try:
             best_pred_orig = current_algorithm.predict(self.X_test)  # exp
         except Exception:
@@ -1023,9 +960,7 @@ class grid_search_crossvalidate:
         """
         n_splits = self.cv.get_n_splits()
 
-        # --- CRITICAL FIX: Correctly calculate the training fold size ---
-        # The previous calculation was incorrect for some CV strategies.
-        # This method is robust: create a dummy split to get the exact train fold size.
+        # Correctly calculate the training fold size
         dummy_indices = np.arange(len(self.X_train))
         train_indices, _ = next(self.cv.split(dummy_indices))
         n_samples_train_fold = len(train_indices)
@@ -1136,10 +1071,6 @@ class grid_search_crossvalidate:
         """Safely shuts down the H2O cluster if the algorithm is an H2O model."""
         # Use the module-level tuple
         if isinstance(algorithm, H2O_MODEL_TYPES):
-            # --- FIX for repeated H2O cluster shutdown ---
-            # We no longer shut down the cluster after each model.
-            # The cluster is now managed globally and should be shut down
-            # at the end of the entire experiment run.
             import h2o
 
             cluster = h2o.cluster()
@@ -1147,7 +1078,6 @@ class grid_search_crossvalidate:
                 self.logger.info(
                     "H2O model finished. Leaving cluster running for next H2O model."
                 )
-            # The shutdown call was removed from H2OBaseClassifier. The cluster is managed globally.
 
 
 def dummy_auc() -> float:
