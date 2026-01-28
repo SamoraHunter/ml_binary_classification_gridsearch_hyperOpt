@@ -130,5 +130,23 @@ class TestProjectScoreSave(unittest.TestCase):
         df = pd.read_csv(log_path)
         self.assertEqual(len(df), 1)
 
+    def test_initialization_does_not_overwrite(self):
+        """Test that re-initializing the class does not wipe an existing log file."""
+        # First initialization
+        saver1 = project_score_save_class(str(self.experiment_dir))
+        log_path = self.experiment_dir / "final_grid_score_log.csv"
+        
+        # Simulate writing some data
+        with open(log_path, "a") as f:
+            f.write("test_data_entry\n")
+            
+        # Second initialization on same directory
+        saver2 = project_score_save_class(str(self.experiment_dir))
+        
+        # Verify data persists
+        with open(log_path, "r") as f:
+            content = f.read()
+        self.assertIn("test_data_entry", content)
+
 if __name__ == "__main__":
     unittest.main()

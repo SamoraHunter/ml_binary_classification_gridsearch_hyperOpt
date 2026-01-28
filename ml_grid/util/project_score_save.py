@@ -127,7 +127,8 @@ class project_score_save_class:
         self.log_path.parent.mkdir(parents=True, exist_ok=True)
         self.models_dir.mkdir(parents=True, exist_ok=True)
 
-        df.to_csv(self.log_path, mode="w", header=True, index=False)
+        if not self.log_path.exists():
+            df.to_csv(self.log_path, mode="w", header=True, index=False)
 
     def update_score_log(
         self,
