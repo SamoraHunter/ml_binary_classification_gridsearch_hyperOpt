@@ -188,8 +188,7 @@ class project_score_save_class:
 
             # --- OPTIMIZATION: Construct dictionary first to avoid slow DataFrame element-wise setting ---
             row_data = {}
-            column_list = _get_score_log_columns(list(global_params.metric_list.keys()))
-            line = pd.DataFrame(data=None, columns=column_list)
+            column_list = self.column_list
 
             # --- OPTIMIZATION: Pre-process targets for faster metric calculation ---
             # Convert to numpy arrays to avoid pandas overhead in sklearn metrics
@@ -244,24 +243,25 @@ class project_score_save_class:
             accuracy = accuracy_score(y_test_np, best_pred_np)
 
             # Populate row_data dictionary instead of repeated DataFrame indexing
-            for key in ml_grid_object.local_param_dict:
+            local_params = getattr(ml_grid_object, "local_param_dict", {})
+            for key in local_params:
                 # print(key)
                 if key != "data":
                     if key in column_list:
-                        row_data[key] = ml_grid_object.local_param_dict.get(key)
+                        row_data[key] = local_params.get(key)
                 else:
-                    for key_1 in ml_grid_object.local_param_dict.get("data"):
+                    data_dict = local_params.get("data", {})
+                    for key_1 in data_dict:
                         # print(key_1)
                         if key_1 in column_list:
-                            row_data[key_1] = ml_grid_object.local_param_dict.get(
-                                "data"
-                            ).get(key_1)
+                            row_data[key_1] = data_dict.get(key_1)
 
-            current_f = ml_grid_object.final_column_list
+            current_f = getattr(ml_grid_object, "final_column_list", [])
             # current_f = list(self.X_test.columns)
             current_f_vector = []
             f_list = []
-            for elem in ml_grid_object.orignal_feature_names:
+            feature_names = getattr(ml_grid_object, "original_feature_names", getattr(ml_grid_object, "orignal_feature_names", []))
+            for elem in feature_names:
                 if elem in current_f:
                     current_f_vector.append(1)
                 else:
@@ -376,5 +376,6 @@ class project_score_save_class:
         except Exception as e:
             logger = logging.getLogger("ml_grid")
             logger.error(f"Failed to update score log: {e}", exc_info=True)
+            print(f"Error updating score log: {e}")
             if global_params.error_raise:
                 raise e
