@@ -88,6 +88,7 @@ def setup_logger(
 
             def __init__(self, original_stream, log_file_path):
                 self.original_stream = original_stream
+                self.log_file_path = log_file_path  # Store path for pickling
                 self.log_file = open(log_file_path, "a", buffering=1, encoding="utf-8")
                 # Preserve attributes from original stream
                 self.encoding = getattr(original_stream, "encoding", "utf-8")
@@ -106,10 +107,12 @@ def setup_logger(
                         written = len(message)
 
                     # Then append to log file
-                    try:
-                        self.log_file.write(message)
-                    except Exception:
-                        pass
+                    # Filter out progress bar updates (containing carriage return) to reduce I/O overhead
+                    if "\r" not in message:
+                        try:
+                            self.log_file.write(message)
+                        except Exception:
+                            pass
 
                 return written
 
@@ -143,7 +146,33 @@ def setup_logger(
 
             def __getattr__(self, name):
                 """Delegate any other attributes to the original stream."""
+                # This check prevents infinite recursion if original_stream is missing
+                if name == "original_stream":
+                    raise AttributeError(
+                        f"'{type(self).__name__}' object has no attribute 'original_stream'"
+                    )
+
+                if not hasattr(self, "original_stream"):
+                    raise AttributeError(
+                        f"'{type(self).__name__}' object has no attribute 'original_stream'"
+                    )
+
                 return getattr(self.original_stream, name)
+
+            def __getstate__(self):
+                state = self.__dict__.copy()
+                if "original_stream" in state:
+                    del state["original_stream"]
+                if "log_file" in state:
+                    del state["log_file"]
+                return state
+
+            def __setstate__(self, state):
+                self.__dict__.update(state)
+                self.original_stream = sys.__stdout__
+                self.log_file = open(
+                    self.log_file_path, "a", buffering=1, encoding="utf-8"
+                )
 
         sys.stdout = TeeWriter(original_stdout, stdout_log)
         sys.stderr = TeeWriter(original_stderr, stderr_log)
