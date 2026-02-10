@@ -55,6 +55,7 @@ from ml_grid.model_classes.randomforest_classifier_class import (
 )
 from ml_grid.model_classes.svc_class import SVCClass
 from ml_grid.model_classes.xgb_classifier_class import XGBClassifierClass
+from ml_grid.model_classes.tabpfn_classifier_class import TabPFNClassifierClass
 
 
 # --- ROBUST MAPPING of config names to class objects ---
@@ -79,6 +80,7 @@ MODEL_CLASS_MAP = {
     "QuadraticDiscriminantAnalysisClass": QuadraticDiscriminantAnalysisClass,
     "SVCClass": SVCClass,
     "NeuralNetworkClassifier_class": NeuralNetworkClassifier_class,  # Corrected mapping
+    "TabPFNClassifierClass": TabPFNClassifierClass,
     # GPU specific
     "KerasClassifierClass": KerasClassifierClass,
     # "KNNGpuWrapperClass": KNNGpuWrapperClass, #deprecated by python 3.12 and simsig dependency
@@ -163,6 +165,7 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
             "H2O_XGBoost_class": True,  # H2O XGBoost
             "H2O_StackedEnsemble_class": True,  # H2O Stacked Ensemble
             "H2O_GAM_class": True,  # H2O Generalized Additive Models
+            "TabPFNClassifierClass": False, # requires hf token and agreement
         }
 
     # If running in a CI environment, explicitly disable resource-intensive models

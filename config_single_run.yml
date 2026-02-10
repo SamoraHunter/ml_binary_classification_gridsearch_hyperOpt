@@ -46,6 +46,7 @@ models:
   H2O_StackedEnsemble_class: false
   H2O_GAM_class: true
   knn__gpu_wrapper_class: false
+  TabPFNClassifierClass: true # requires hf token and agreement
 
 # This section defines a single set of parameters for a standalone run.
 run_params:

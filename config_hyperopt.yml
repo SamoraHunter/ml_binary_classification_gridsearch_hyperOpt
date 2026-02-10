@@ -62,6 +62,8 @@ models:
   # Set the following to true if a GPU is available and configured
   kerasClassifier_class: false
   knn__gpu_wrapper_class: false
+  TabPFNClassifierClass: false # requires hf token and agreement
+
 
 # This section defines the parameter search space for Hyperopt.
 # The structure uses lists of options, which will be parsed into hp.choice.

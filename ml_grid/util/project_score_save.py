@@ -271,7 +271,16 @@ class project_score_save_class:
             f_list.append(current_f_vector)
 
             row_data["algorithm_implementation"] = current_algorithm
-            row_data["parameter_sample"] = current_algorithm.get_params()
+            
+            # Filter out large data objects from parameters to prevent logging errors and bloat
+            params = current_algorithm.get_params()
+            safe_params = {}
+            for k, v in params.items():
+                # Skip data arguments and large pandas/numpy objects
+                if k not in ['X', 'y', 'data', 'validation_frame', 'training_frame'] and \
+                   not isinstance(v, (pd.DataFrame, pd.Series, np.ndarray)):
+                    safe_params[k] = v
+            row_data["parameter_sample"] = safe_params
             row_data["method_name"] = method_name
             row_data["nb_size"] = sum(np.array(current_f_vector))
             row_data["n_features"] = len(current_f_vector)
