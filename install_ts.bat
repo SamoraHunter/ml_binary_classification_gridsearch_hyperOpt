@@ -42,7 +42,7 @@ echo Virtual environment activated.
 
 rem Upgrade pip
 echo Upgrading pip...
-call ml_grid_ts_env\Scripts\python.exe -m pip install --upgrade pip
+call ml_grid_ts_env\Scripts\python.exe -m pip install --upgrade pip setuptools wheel
 if errorlevel 1 (
     echo ERROR: Failed to upgrade pip. Exiting.
     exit /b

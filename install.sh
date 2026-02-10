@@ -43,7 +43,8 @@ echo "Virtual environment activated."
 
 # Upgrade pip
 echo "Upgrading pip..."
-pip install --upgrade pip
+pip install 'setuptools<70.0.0' wheel || print_error_and_exit "Failed to upgrade pip."
+
 
 # Install the project in editable mode along with testing dependencies.
 # This reads all dependencies from pyproject.toml.

@@ -12,6 +12,9 @@ jobs:
       NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ca-certificates.crt
       SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
       REQUESTS_CA_BUNDLE: /etc/ssl/certs/ca-certificates.crt
+      # Always use CPU-only PyTorch to ensure consistency and save resources
+      PIP_EXTRA_INDEX_URL: https://download.pytorch.org/whl/cpu
+      TORCH_CPU_ONLY: "true"
 
     steps:
       - name: Check out repository
@@ -20,14 +23,7 @@ jobs:
       - name: Set environment variables
         run: |
           echo "DEBIAN_FRONTEND=noninteractive" >> $GITHUB_ENV
-          
-          # Detect if running on GitHub Actions (not Gitea or act)
-          if [[ "${{ github.server_url }}" == "https://github.com" ]] && [[ -z "${{ env.ACT }}" ]]; then
-            echo "Running on GitHub - using CPU-only PyTorch"
-            echo "PIP_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cpu" >> $GITHUB_ENV
-            echo "TORCH_CPU_ONLY=true" >> $GITHUB_ENV
-          fi
-          
+
           if [[ "${{ vars.IS_GITEA }}" == "true" ]]; then
             echo "Setting thread limits for Gitea runner"
             echo "OMP_NUM_THREADS=1" >> $GITHUB_ENV
@@ -95,6 +91,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y python3.12 python3.12-venv python3.12-dev
 
+          # Install pip for Python 3.12
+          curl -sS https://bootstrap.pypa.io/get-pip.py | sudo python3.12 - --break-system-packages
+
           sudo ln -sf /usr/bin/python3.12 /usr/local/bin/python
           sudo ln -sf /usr/bin/python3.12 /usr/local/bin/python3
 
@@ -104,6 +103,7 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE
           chmod +x install.sh
+          sudo python -m pip install --upgrade pip setuptools wheel --break-system-packages
           # The install.sh will use PIP_EXTRA_INDEX_URL if set for CPU-only PyTorch
           ./install.sh
 
@@ -123,7 +123,9 @@ jobs:
           set -e
           cd $GITHUB_WORKSPACE
           source "$VENV_PATH/bin/activate"
-          pytest --nbmake --nbmake-timeout=4500 notebooks/unit_test_synthetic.ipynb
+          echo "Ensuring setuptools is installed to provide pkg_resources for hyperopt..."
+          python -m pip install 'setuptools<70.0.0'
+          pytest --nbmake --nbmake-timeout=4500 --nbmake-kernel=ml_grid_env notebooks/unit_test_synthetic.ipynb
           
           echo "Running Python unit tests..."
           pytest tests/

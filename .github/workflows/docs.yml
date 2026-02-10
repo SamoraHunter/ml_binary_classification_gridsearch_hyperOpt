@@ -65,7 +65,10 @@ jobs:
           cache: 'pip'
 
       - name: Install dependencies
-        run: pip install .[docs]
+        run: |
+          # Ensure setuptools and wheel are present before installing the project
+          pip install --upgrade pip setuptools wheel
+          pip install .[docs]
 
       - name: Verify PyTorch installation
         run: |

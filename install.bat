@@ -50,7 +50,7 @@ echo Virtual environment activated successfully.
 
 rem Upgrade pip
 echo Upgrading pip...
-pip install --upgrade pip
+pip install --upgrade pip setuptools wheel
 
 rem Install the project in editable mode along with testing dependencies.
 rem This reads all dependencies from pyproject.toml.

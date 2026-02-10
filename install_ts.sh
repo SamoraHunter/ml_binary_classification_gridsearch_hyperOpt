@@ -26,7 +26,7 @@ fi
 source ml_grid_ts_env/bin/activate || print_error_and_exit "Failed to activate virtual environment"
 
 # Upgrade pip
-$PYTHON_CMD -m pip install --upgrade pip
+$PYTHON_CMD -m pip install --upgrade pip setuptools wheel
 
 # Install the project in editable mode with time-series and testing dependencies
 $PYTHON_CMD -m pip install -e .[test,ts]

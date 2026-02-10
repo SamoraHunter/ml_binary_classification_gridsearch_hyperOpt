@@ -40,7 +40,7 @@ dependencies = [
     "scikeras==0.13.0",
 
     # Hyperparameter optimization and feature tools
-    "hyperopt==0.2.7",
+    "hyperopt",#==0.2.7",
     "scikit-optimize==0.10.2",
     "shap==0.46.0",
     "pyimpetus==4.1.2",
@@ -63,6 +63,7 @@ dependencies = [
     "pyarrow==18.1.0",
     "pyyaml==6.0.2",
     "lxml==5.3.0",
+    "setuptools<70.0.0", # Added for pkg_resources, required by hyperopt in Py3.12+
 
     # Dev
     "black",
