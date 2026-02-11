@@ -187,6 +187,7 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
             "H2O_StackedEnsemble_class",
             "H2O_GAM_class",
             "TabTransformerClass",
+            "TabPFNClassifierClass",
         ]
         for model_name in models_to_disable:
             if model_name in model_class_dict:
