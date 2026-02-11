@@ -7,6 +7,7 @@ from contextlib import contextmanager
 
 import numpy as np
 from sklearn.model_selection import ParameterGrid
+from skopt.space import Categorical, Integer, Real
 
 from ml_grid.pipeline import grid_search_cross_validate
 from ml_grid.pipeline.data import pipe
@@ -181,16 +182,26 @@ class run:
 
         for elem in self.model_class_list:
 
-            if not self.global_params.bayessearch:
-                # ParameterGrid can now be called directly, as the model class
-                # provides a grid-search-compatible parameter space.
+            # Check if the parameter space contains skopt objects
+            is_bayes_space = False
+            space_to_check = elem.parameter_space
+            if isinstance(space_to_check, list) and space_to_check:
+                space_to_check = space_to_check[0]  # Check the first dict
+
+            if isinstance(space_to_check, dict):
+                if any(
+                    isinstance(v, (Real, Integer, Categorical))
+                    for v in space_to_check.values()
+                ):
+                    is_bayes_space = True
+
+            if not self.global_params.bayessearch and not is_bayes_space:
+                # This is a true grid search space
                 pg = ParameterGrid(elem.parameter_space)
                 pg = len(pg)
             else:
-
+                # This handles both explicit bayessearch=True and mismatched grid spaces
                 pg = calculate_combinations(elem.parameter_space, steps=10)
-
-            # pg = ParameterGrid(elem.parameter_space)
 
             self.pg_list.append(pg)
 
