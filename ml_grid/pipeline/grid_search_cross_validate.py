@@ -396,18 +396,35 @@ class grid_search_crossvalidate:
                 n_iter_v = max_param_space_iter_value
 
         # Log grid size or iterations
-        if not self.global_params.bayessearch and not random_grid_search:
-            pg = len(ParameterGrid(parameter_space))
-            self.logger.info(f"Parameter grid size: {pg}")
+        # Check for skopt space to avoid ParameterGrid errors
+        is_bayes_space = False
+        if isinstance(parameter_space, list):
+            for space in parameter_space:
+                if isinstance(space, dict) and any(
+                    is_skopt_space(v) for v in space.values()
+                ):
+                    is_bayes_space = True
+                    break
+        elif isinstance(parameter_space, dict):
+            if any(is_skopt_space(v) for v in parameter_space.values()):
+                is_bayes_space = True
+
+        if (
+            not self.global_params.bayessearch
+            and not random_grid_search
+            and not is_bayes_space
+        ):
+            try:
+                pg = len(ParameterGrid(parameter_space))
+                self.logger.info(f"Parameter grid size: {pg}")
+            except TypeError:
+                self.logger.warning(
+                    "Could not calculate ParameterGrid size (likely skopt objects)."
+                )
+                pg = "N/A"
         else:
             self.logger.info(f"Using n_iter={n_iter_v} for search.")
             pg = "N/A"
-
-        pg = (
-            len(ParameterGrid(parameter_space))
-            if not self.global_params.bayessearch
-            else "N/A"
-        )
 
         # Dynamically adjust KNN parameter space for small datasets
         if "kneighbors" in method_name.lower() or "simbsig" in method_name.lower():
