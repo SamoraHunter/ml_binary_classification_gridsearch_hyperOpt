@@ -306,12 +306,19 @@ class TestAllClassifierParamSpaces(unittest.TestCase):
                         elif not values:
                             continue
                         # Check if all values are numeric (int or float)
-                        is_numeric = all(isinstance(v, (int, float)) for v in values)
-                        if is_numeric and len(values) > 2:
-                            reduced_grid[param] = [min(values), max(values)]
+                        if isinstance(values, Categorical):
+                            reduced_grid[param] = values.categories
                         else:
-                            # Keep all values for categorical or short lists
-                            reduced_grid[param] = values
+                            # Handle skopt Integer/Real that might leak into grid space definitions
+                            if isinstance(values, (Integer, Real)):
+                                reduced_grid[param] = [values.low, values.high]
+                            else:
+                                is_numeric = all(isinstance(v, (int, float)) for v in values)
+                                if is_numeric and len(values) > 2:
+                                    reduced_grid[param] = [min(values), max(values)]
+                                else:
+                                    # Keep all values for categorical or short lists
+                                    reduced_grid[param] = values
 
                     if not reduced_grid:
                         continue
