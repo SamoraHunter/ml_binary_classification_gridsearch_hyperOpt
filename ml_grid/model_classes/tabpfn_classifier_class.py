@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import torch
 from sklearn.base import BaseEstimator, ClassifierMixin
-from skopt.space import Categorical, Integer, Real
+from skopt.space import Categorical, Integer
 
 from ml_grid.util import param_space
 from ml_grid.util.global_params import global_parameters
@@ -15,6 +15,7 @@ from ml_grid.util.global_params import global_parameters
 try:
     from tabpfn import TabPFNClassifier
     from tabpfn.constants import ModelVersion
+
     TABPFN_AVAILABLE = True
 except ImportError:
     TABPFN_AVAILABLE = False
@@ -27,11 +28,11 @@ logging.getLogger("ml_grid").debug("Imported TabPFNClassifier class")
 
 class TabPFNClassifierClass(BaseEstimator, ClassifierMixin):
     """TabPFN Classifier with support for hyperparameter tuning.
-    
-    TabPFN is a foundation model for tabular data that performs well on small 
-    to medium-sized datasets (up to 50,000 rows). It requires GPU for optimal 
+
+    TabPFN is a foundation model for tabular data that performs well on small
+    to medium-sized datasets (up to 50,000 rows). It requires GPU for optimal
     performance on datasets larger than ~1000 samples.
-    
+
     Note: TabPFN-2.5 model weights require accepting license terms at:
     https://huggingface.co/Prior-Labs/tabpfn_2_5
     """
@@ -86,21 +87,19 @@ class TabPFNClassifierClass(BaseEstimator, ClassifierMixin):
         if global_params.bayessearch:
             self.parameter_space = {
                 # Model version selection
-                "model_version": Categorical([
-                    "v2.5_default",  # Default: finetuned on real data
-                    "v2.5_synthetic",  # Trained on synthetic data only
-                    "v2"  # TabPFN v2
-                ]),
-                
+                "model_version": Categorical(
+                    [
+                        "v2.5_default",  # Default: finetuned on real data
+                        "v2.5_synthetic",  # Trained on synthetic data only
+                        "v2",  # TabPFN v2
+                    ]
+                ),
                 # Device selection - can be optimized based on availability
                 "device": Categorical(["cuda", "cpu"]),
-                
                 # Number of ensemble members (more = better but slower)
                 "n_estimators": Integer(1, 8),
-                
                 # Training subsample size (for large datasets)
                 "subsample_samples": Categorical([None, 5000, 10000, 20000]),
-                
                 # Random state for reproducibility
                 "random_state": Categorical([42]),
             }
@@ -151,10 +150,7 @@ class TabPFNClassifierClass(BaseEstimator, ClassifierMixin):
         model_version = params.pop("model_version", "v2.5_default")
 
         # Filter out non-TabPFN params that might be in get_params()
-        valid_tabpfn_params = [
-            "device", "n_estimators",
-            "random_state"
-        ]
+        valid_tabpfn_params = ["device", "n_estimators", "random_state"]
         params_copy = {k: v for k, v in params.items() if k in valid_tabpfn_params}
 
         if model_version == "v2.5_synthetic":

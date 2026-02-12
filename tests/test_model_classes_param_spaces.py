@@ -313,7 +313,9 @@ class TestAllClassifierParamSpaces(unittest.TestCase):
                             if isinstance(values, (Integer, Real)):
                                 reduced_grid[param] = [values.low, values.high]
                             else:
-                                is_numeric = all(isinstance(v, (int, float)) for v in values)
+                                is_numeric = all(
+                                    isinstance(v, (int, float)) for v in values
+                                )
                                 if is_numeric and len(values) > 2:
                                     reduced_grid[param] = [min(values), max(values)]
                                 else:

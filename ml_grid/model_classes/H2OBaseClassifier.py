@@ -157,7 +157,9 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
                         pass
 
                 if memory is None:
-                    self.logger.warning("H2O cluster memory check failed (None). Treating as unhealthy.")
+                    self.logger.warning(
+                        "H2O cluster memory check failed (None). Treating as unhealthy."
+                    )
                     is_healthy = False
                 elif isinstance(memory, (int, float)):
                     if memory < 1024 * 1024:  # < 1MB
@@ -185,21 +187,31 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             try:
                 available_memory_bytes = psutil.virtual_memory().available
                 memory_to_allocate_gb = int((available_memory_bytes * 0.8) / (1024**3))
-                memory_to_allocate_gb = max(1, memory_to_allocate_gb)  # Ensure at least 1GB
-                
-                self.logger.info(f"Available system memory: {available_memory_bytes / (1024**3):.2f} GB")
-                self.logger.info(f"Allocating {memory_to_allocate_gb} GB to H2O cluster (80% of available)")
-                
+                memory_to_allocate_gb = max(
+                    1, memory_to_allocate_gb
+                )  # Ensure at least 1GB
+
+                self.logger.info(
+                    f"Available system memory: {available_memory_bytes / (1024**3):.2f} GB"
+                )
+                self.logger.info(
+                    f"Allocating {memory_to_allocate_gb} GB to H2O cluster (80% of available)"
+                )
+
                 h2o.init(
                     max_mem_size=f"{memory_to_allocate_gb}G",
                     nthreads=-1,
-                    strict_version_check=False
+                    strict_version_check=False,
                 )
-                
-                self.logger.info(f"H2O cluster initialized successfully with {h2o.cluster().free_mem()} free memory")
-                
+
+                self.logger.info(
+                    f"H2O cluster initialized successfully with {h2o.cluster().free_mem()} free memory"
+                )
+
             except Exception as e:
-                self.logger.warning(f"Failed to allocate dynamic memory: {e}. Falling back to default initialization.")
+                self.logger.warning(
+                    f"Failed to allocate dynamic memory: {e}. Falling back to default initialization."
+                )
                 h2o.init(strict_version_check=False)
 
             self._is_cluster_owner = True
@@ -356,29 +368,33 @@ class H2OBaseClassifier(BaseEstimator, ClassifierMixin):
             )
 
         train_df = pd.concat([X, y_series], axis=1)
-        
+
         try:
             train_h2o = h2o.H2OFrame(
                 train_df, destination_frame=f"train_{uuid.uuid4().hex}"
             )
         except Exception as e:
             # Catch "Zero memory" error or other H2O server errors
-            if "total cluster memory of Zero" in str(e) or "IllegalArgumentException" in str(e):
-                self.logger.warning(f"H2OFrame creation failed: {e}. Attempting to restart H2O cluster.")
-                
+            if "total cluster memory of Zero" in str(
+                e
+            ) or "IllegalArgumentException" in str(e):
+                self.logger.warning(
+                    f"H2OFrame creation failed: {e}. Attempting to restart H2O cluster."
+                )
+
                 # Force shutdown
                 try:
                     h2o.cluster().shutdown()
                 except Exception:
                     pass
-                
+
                 # Reset flag and wait
                 H2OBaseClassifier._h2o_initialized = False
                 time.sleep(3)
-                
+
                 # Re-initialize
                 self._ensure_h2o_is_running()
-                
+
                 # Retry creation
                 train_h2o = h2o.H2OFrame(
                     train_df, destination_frame=f"train_{uuid.uuid4().hex}"

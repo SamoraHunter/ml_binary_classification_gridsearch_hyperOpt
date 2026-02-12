@@ -165,7 +165,7 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
             "H2O_XGBoost_class": True,  # H2O XGBoost
             "H2O_StackedEnsemble_class": True,  # H2O Stacked Ensemble
             "H2O_GAM_class": True,  # H2O Generalized Additive Models
-            "TabPFNClassifierClass": False, # requires hf token and agreement
+            "TabPFNClassifierClass": False,  # requires hf token and agreement
         }
 
     # If running in a CI environment, explicitly disable resource-intensive models

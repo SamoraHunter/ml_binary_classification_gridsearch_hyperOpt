@@ -13,7 +13,7 @@ if project_root not in sys.path:
 
 # -------------------------------------------------------------------------
 # MOCK SETUP
-# We mock dependencies before importing the class to ensure the test 
+# We mock dependencies before importing the class to ensure the test
 # runs even if tabpfn or ml_grid are not fully installed in the test env.
 # -------------------------------------------------------------------------
 
@@ -44,7 +44,9 @@ class TestTabPFNClassifierClass(unittest.TestCase):
         # also reset the instance mock
         mock_tabpfn_classifier_instance.reset_mock()
         # re-assign the return value in case it was modified
-        mock_tabpfn_module.TabPFNClassifier.return_value = mock_tabpfn_classifier_instance
+        mock_tabpfn_module.TabPFNClassifier.return_value = (
+            mock_tabpfn_classifier_instance
+        )
         mock_tabpfn_module.TabPFNClassifier.create_default_for_version.return_value = (
             mock_tabpfn_classifier_instance
         )
@@ -81,14 +83,14 @@ class TestTabPFNClassifierClass(unittest.TestCase):
         """Ensure parameter space keys are valid parameters of the estimator."""
         model = TabPFNClassifierClass()
         valid_params = model.get_params()
-        
+
         for param in model.parameter_space.keys():
             self.assertIn(
-                param, 
-                valid_params, 
-                f"Parameter '{param}' in parameter_space is not a valid parameter of the estimator."
+                param,
+                valid_params,
+                f"Parameter '{param}' in parameter_space is not a valid parameter of the estimator.",
             )
-            
+
         # Explicitly check that removed parameters are NOT in the space
         removed_params = ["rf_n_estimators", "use_rf_preprocessing", "lowrank_attn_dim"]
         for param in removed_params:
@@ -184,8 +186,7 @@ class TestTabPFNClassifierClass(unittest.TestCase):
 
         subsample_size = 10
         model_wrapper = TabPFNClassifierClass(
-            subsample_samples=subsample_size,
-            random_state=42
+            subsample_samples=subsample_size, random_state=42
         )
 
         model_wrapper.fit(X_large, y_large)
