@@ -75,12 +75,20 @@ jobs:
           python -c "import torch; print(f'PyTorch version: {torch.__version__}'); print(f'CUDA available: {torch.cuda.is_available()}')"
 
       - name: Build documentation
-        run: sphinx-build -b html docs/source docs/build
+        run: sphinx-build -b html -D html_baseurl="" docs/source docs/build
 
-      - name: Upload artifact
-        if: ${{ !env.ACT }}
+      - name: Upload artifact for GitHub Pages
+        if: ${{ !env.ACT && github.server_url == 'https://github.com' }}
         uses: actions/upload-pages-artifact@v3
         with:
+          path: ./docs/build
+
+      - name: Upload artifact for Gitea
+        # Use a GHES-compatible version of upload-artifact for Gitea
+        if: ${{ !env.ACT && github.server_url != 'https://github.com' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: docs-artifact
           path: ./docs/build
 
   # Deploy job for GitHub Pages
@@ -132,20 +140,22 @@ jobs:
           sudo update-ca-certificates
 
       - name: Download artifact
-        uses: actions/download-artifact@v4
+        # Use a GHES-compatible version of download-artifact
+        uses: actions/download-artifact@v3
         with:
-          name: github-pages # This is the default artifact name for upload-pages-artifact
+          name: docs-artifact
           path: ./docs-site
 
       - name: Deploy to Gitea docs location
         run: |
           echo "Deploying documentation to Gitea's special directory..."
-          # Extract the artifact.tar (created by upload-pages-artifact)
-          tar -xf ./docs-site/artifact.tar -C ./docs-site
-          rm ./docs-site/artifact.tar
-
+          # upload-artifact@v3 does not create a tarball, so no extraction is needed.
           # The '/pages' directory is a mounted volume on the Gitea runner for serving static content.
           # Deploy to a subfolder named after the repository
           TARGET_DIR="/pages/docs/${{ github.event.repository.name }}"
+
+          # Clean, recreate, copy, and set permissions
+          sudo rm -rf "$TARGET_DIR"
           sudo mkdir -p "$TARGET_DIR"
-          sudo cp -r ./docs-site/* "$TARGET_DIR/"
+          sudo cp -r ./docs-site/. "$TARGET_DIR/"
+          sudo chmod -R 755 "$TARGET_DIR"
