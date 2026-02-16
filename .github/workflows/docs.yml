@@ -20,9 +20,10 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Build job: builds the documentation and uploads it as an artifact.
-  build:
+  # Build job for GitHub
+  build-github:
     runs-on: ubuntu-latest
+    if: ${{ github.server_url == 'https://github.com' }}
     # Set ENV vars at the job level to be inherited by all steps, including actions
     env:
       NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ca-certificates.crt
@@ -78,29 +79,75 @@ jobs:
         run: sphinx-build -b html -D html_baseurl="" docs/source docs/build
 
       - name: Upload artifact for GitHub Pages
-        if: ${{ !env.ACT && github.server_url == 'https://github.com' }}
+        if: ${{ !env.ACT }}
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./docs/build
 
-      - name: Upload artifact for Gitea
-        # Use a GHES-compatible version of upload-artifact for Gitea
-        if: ${{ github.server_url != 'https://github.com' }}
-        uses: actions/upload-artifact@v3
+      - name: Upload artifact for GitHub
+        uses: actions/upload-artifact@v4
         with:
           name: docs-artifact
           path: ./docs/build
 
-      - name: Upload artifact for GitHub
-        if: ${{ github.server_url == 'https://github.com' }}
-        uses: actions/upload-artifact@v4
+  # Build job for Gitea
+  build-gitea:
+    runs-on: ubuntu-latest
+    if: ${{ github.server_url != 'https://github.com' }}
+    env:
+      NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ca-certificates.crt
+      SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+      REQUESTS_CA_BUNDLE: /etc/ssl/certs/ca-certificates.crt
+      PIP_EXTRA_INDEX_URL: https://download.pytorch.org/whl/cpu
+      TORCH_CPU_ONLY: "true"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Act dependencies
+        if: ${{ env.ACT }}
+        run: |
+          if ! command -v apt-get &> /dev/null; then
+            echo "apt-get not found, cannot proceed"
+            exit 1
+          fi
+          DEBIAN_FRONTEND=noninteractive apt-get update && \
+          DEBIAN_FRONTEND=noninteractive apt-get install -y apt-utils sudo
+
+      - name: Install Runner Dependencies & Configure CA
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y lsb-release nodejs ca-certificates
+          sudo update-ca-certificates
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.3'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip setuptools wheel
+          pip install .[docs]
+
+      - name: Verify PyTorch installation
+        run: |
+          python -c "import torch; print(f'PyTorch version: {torch.__version__}'); print(f'CUDA available: {torch.cuda.is_available()}')"
+
+      - name: Build documentation
+        run: sphinx-build -b html -D html_baseurl="" docs/source docs/build
+
+      - name: Upload artifact for Gitea
+        uses: actions/upload-artifact@v3
         with:
           name: docs-artifact
           path: ./docs/build
 
   # Deploy job for GitHub Pages
   deploy-github:
-    needs: build
+    needs: build-github
     if: ${{ github.server_url == 'https://github.com' }}
     environment:
       name: github-pages
@@ -128,7 +175,7 @@ jobs:
 
   # Deploy job for Gitea
   deploy-gitea:
-    needs: build
+    needs: build-gitea
     if: ${{ github.server_url != 'https://github.com' }}
     runs-on: ubuntu-latest
     env:
