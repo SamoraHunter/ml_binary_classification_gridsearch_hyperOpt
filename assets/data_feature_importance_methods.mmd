@@ -1,33 +1,33 @@
 flowchart TD
     A[ml_grid_object] --> B[feature_importance_methods]
-    
+
     B --> C{Check feature_selection_method}
-    
+
     C -->|"anova or None"| D[ANOVA Method]
     C -->|"markov_blanket"| E[Markov Blanket Method]
-    
+
     D --> F[feature_methods.getNfeaturesANOVAF]
     E --> G[feature_methods.getNFeaturesMarkovBlanket]
-    
+
     F --> H[Calculate F-values using f_classif]
     F --> I[Sort features by F-value]
     F --> J[Return top n feature names]
-    
+
     G --> K[Initialize PPIMBC with SVC]
     G --> L[Fit and transform training data]
     G --> M[Extract top n features from MB]
-    
+
     J --> N[Apply feature selection]
     M --> N
-    
+
     N --> O[Filter X_train with selected features]
     N --> P[Filter X_test with selected features]
     N --> Q[Filter X_test_orig with selected features]
-    
+
     O --> R[Return filtered datasets]
     P --> R
     Q --> R
-    
+
     subgraph "Input Data"
         S[target_n_features]
         T[X_train]
@@ -35,7 +35,7 @@ flowchart TD
         V[y_train]
         W[X_test_orig]
     end
-    
+
     subgraph "Feature Methods Class"
         F
         G
@@ -46,23 +46,23 @@ flowchart TD
         L
         M
     end
-    
+
     subgraph "Output"
         X[Filtered X_train]
         Y[Filtered X_test]
         Z[Filtered X_test_orig]
     end
-    
+
     S --> B
     T --> B
     U --> B
     V --> B
     W --> B
-    
+
     R --> X
     R --> Y
     R --> Z
-    
+
     style B fill:#e1f5fe
     style C fill:#fff3e0
     style D fill:#f3e5f5

@@ -1,10 +1,10 @@
 flowchart TD
     A[Initialize project_score_save_class] --> B[Setup CSV with column_list]
     B --> C[Create final_grid_score_log.csv]
-    
+
     D[ML Grid Process] --> E[Call update_score_log]
     E --> F[Extract ML Grid Object Data]
-    
+
     F --> G[Calculate Core Metrics]
     G --> G1[AUC Score]
     G --> G2[Matthews Correlation Coefficient]
@@ -12,11 +12,11 @@ flowchart TD
     G --> G4[Precision]
     G --> G5[Recall]
     G --> G6[Accuracy]
-    
+
     F --> H[Extract Parameter Dictionary]
     H --> I[Process Feature List]
     I --> J[Create Feature Vector]
-    
+
     G1 --> K[Populate DataFrame Line]
     G2 --> K
     G3 --> K
@@ -24,27 +24,27 @@ flowchart TD
     G5 --> K
     G6 --> K
     J --> K
-    
+
     K --> L{Bayesian Search?}
     L -->|Yes| M[Process Bayes Scores with numpy arrays]
     L -->|No| N[Process Standard CV Scores]
-    
+
     M --> O[Calculate Mean/Std for Metrics]
     N --> O
-    
+
     O --> P[Add Runtime & Metadata]
     P --> Q[Write to CSV Log]
-    
+
     Q --> R{Store Models?}
     R -->|Yes| S{Not Keras?}
     R -->|No| T[Complete]
-    
+
     S -->|Yes| U[Create Models Directory]
     S -->|No| T
-    
+
     U --> V[Pickle Save Model]
     V --> T
-    
+
     style A fill:#e1f5fe
     style C fill:#f3e5f5
     style G fill:#e8f5e8

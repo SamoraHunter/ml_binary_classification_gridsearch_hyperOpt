@@ -3,34 +3,34 @@ flowchart TD
     B --> C[Separate Features X and Target y]
     C --> D[Train-Test Split]
     D --> E[Train-Validation Split]
-    
+
     E --> F[Identify Column Types]
     F --> G{Are there Numeric Columns?}
-    
+
     G -->|Yes| H[Process Each Numeric Column]
     G -->|No| M[Skip Numeric Imputation]
-    
+
     H --> I{Is Column Completely Empty?}
     I -->|Yes| J[Fill with 0]
     I -->|No| K[Apply Mean Imputation]
-    
+
     J --> L[Continue to Next Column]
     K --> L
     L --> N{More Numeric Columns?}
     N -->|Yes| H
     N -->|No| M
-    
+
     M --> O[Combine Train/Val/Test Sets]
     O --> P[Reset Indices]
     P --> Q[Combine Features and Target]
     Q --> R[Verify No NaN Values]
     R --> S[Return Final DataFrame]
-    
+
     T[save_missing_percentage Function] --> U[Calculate Missing Percentages]
     U --> V[Convert to Dictionary]
     V --> W[Save to Pickle File]
     W --> X[Return Dictionary]
-    
+
     style A fill:#e1f5fe
     style S fill:#c8e6c9
     style T fill:#fff3e0

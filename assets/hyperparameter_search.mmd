@@ -2,10 +2,10 @@ graph TD
     A[HyperparameterSearch.__init__] --> B{Validate ml_grid_object}
     B -->|None| C[Raise ValueError]
     B -->|Valid| D{Check Algorithm Type}
-    
+
     D -->|Module| E[Raise ValueError: Expected classifier instance]
     D -->|Valid Classifier| F[Algorithm Validation]
-    
+
     F --> G{Check Custom Classifiers}
     G -->|KNNWrapper<br/>h2o_classifier_class<br/>kerasClassifier_class| H[Valid Custom Classifier]
     G -->|Other| I{Check sklearn classifier}
@@ -13,44 +13,44 @@ graph TD
     I -->|False| K{Has fit & predict methods?}
     K -->|Yes| L[Valid Generic Classifier]
     K -->|No| M[Raise ValueError: Invalid classifier]
-    
+
     H --> N[Configure Warnings]
     J --> N
     L --> N
-    
+
     N --> O{Method contains keras/xgb/catboost?}
     O -->|Yes| P[Configure GPU]
     O -->|No| Q[Skip GPU Config]
-    
+
     P --> R[run_search Method]
     Q --> R
-    
+
     R --> S{Check bayessearch flag}
     S -->|True| T{Algorithm is KNNWrapper or kerasClassifier?}
     S -->|False| U[Validate Parameters]
-    
+
     T -->|Yes| V[Set grid_n_jobs = 1]
     T -->|No| W[Use default grid_n_jobs]
-    
+
     V --> X[Use parameter_space as-is]
     W --> X
     U --> Y[Get validated parameters]
-    
+
     X --> Z{bayessearch = True?}
     Y --> AA{random_search = True?}
-    
+
     Z -->|True| BB[BayesSearchCV]
     AA -->|True| CC[Calculate n_iter<br/>min max_iter, parameter_grid_size * sub_sample_pct / 100]
     AA -->|False| DD[GridSearchCV]
-    
+
     CC --> EE[RandomizedSearchCV]
-    
+
     BB --> FF[grid.fit X_train, y_train]
     EE --> FF
     DD --> FF
-    
+
     FF --> GG[Return grid.best_estimator_]
-    
+
     style A fill:#e1f5fe
     style R fill:#e8f5e8
     style GG fill:#fff3e0

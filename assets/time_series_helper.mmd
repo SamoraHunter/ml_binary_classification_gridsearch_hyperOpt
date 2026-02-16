@@ -5,16 +5,16 @@ graph TD
     D --> E[Group by client_idcode]
     E --> F[Add date_order_sequence column]
     F --> G[DataFrame with sequence numbers]
-    
+
     G --> H[max_client_idcode_sequence_length]
     H --> I[Count occurrences per client_idcode]
     I --> J[Find maximum count]
     J --> K[Return max_seq_length]
-    
+
     G --> L[Split into X features and y target]
     L --> M[convert_Xy_to_time_series]
     K --> M
-    
+
     M --> N[Initialize empty lists X_list, y_list]
     N --> O[Loop through unique client_idcode values]
     O --> P[Extract patient data for current ID]
@@ -24,13 +24,13 @@ graph TD
     S --> T[Append to X_list]
     P --> U[Extract target variable for patient]
     U --> V[Append to y_list]
-    
+
     T --> W[Check if all patients processed]
     V --> W
     W -->|No| O
     W -->|Yes| X[Convert lists to numpy arrays]
     X --> Y[Return X_array, y_array]
-    
+
     subgraph "Function 1: Date Sequencing"
         B
         C
@@ -38,13 +38,13 @@ graph TD
         E
         F
     end
-    
+
     subgraph "Function 2: Max Length Calculation"
         H
         I
         J
     end
-    
+
     subgraph "Function 3: Time Series Conversion"
         M
         N
@@ -59,7 +59,7 @@ graph TD
         W
         X
     end
-    
+
     style A fill:#e1f5fe
     style Y fill:#c8e6c9
     style K fill:#fff3e0

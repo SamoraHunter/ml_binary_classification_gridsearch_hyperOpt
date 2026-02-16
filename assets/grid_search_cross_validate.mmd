@@ -1,127 +1,127 @@
 graph TB
     Start([Grid Search CV Initialization]) --> Init[Initialize Parameters<br/>- Algorithm<br/>- Parameter Space<br/>- CV Strategy<br/>- Global Config]
-    
+
     Init --> DataPrep[Data Preparation]
-    
+
     DataPrep --> CheckDF{X_train is<br/>DataFrame?}
     CheckDF -->|No| ConvertDF[Convert to DataFrame]
     CheckDF -->|Yes| CheckSeries{y_train is<br/>Series?}
     ConvertDF --> CheckSeries
-    
+
     CheckSeries -->|No| ConvertSeries[Convert to Series<br/>Align with X_train index]
     CheckSeries -->|Yes| SetCategory[Set y_train as category<br/>Name = 'outcome']
     ConvertSeries --> SetCategory
-    
+
     SetCategory --> ModelCheck{Model Type<br/>Detection}
-    
+
     ModelCheck -->|GPU Model| GPUConfig[Configure GPU<br/>n_jobs=1<br/>TF Memory Growth]
     ModelCheck -->|SVC| ScaleData[Apply StandardScaler]
     ModelCheck -->|KNN/SimBSig| AdjustKNN[Adjust n_neighbors<br/>for small datasets]
     ModelCheck -->|CatBoost| CheckSize{Dataset<br/>Size OK?}
     ModelCheck -->|Other| CVSetup
-    
+
     CheckSize -->|Too Small| ReturnDefault[Return Default Score 0.5]
     CheckSize -->|OK| AdjustCatBoost[Adjust subsample/rsm<br/>parameters]
-    
+
     GPUConfig --> CVSetup[CV Strategy Setup]
     ScaleData --> CVSetup
     AdjustKNN --> CVSetup
     AdjustCatBoost --> CVSetup
-    
+
     CVSetup --> TestMode{Test Mode<br/>Enabled?}
     TestMode -->|Yes| FastCV[KFold n_splits=2]
     TestMode -->|No| ProductionCV[RepeatedKFold<br/>n_splits=2, n_repeats=2]
-    
+
     FastCV --> ParamValidation
     ProductionCV --> ParamValidation
-    
+
     ParamValidation[Parameter Validation] --> BayesCheck{Bayesian<br/>Search?}
-    
+
     BayesCheck -->|Yes| WrapCategorical[Wrap lists in<br/>Categorical for skopt]
     BayesCheck -->|No| ValidateParams[Validate parameters<br/>against estimator]
-    
+
     WrapCategorical --> ConfigNIter
     ValidateParams --> ConfigNIter
-    
+
     ConfigNIter[Configure n_iter] --> LocalOverride{Local<br/>Override?}
     LocalOverride -->|Yes| UseLocal[Use local n_iter]
     LocalOverride -->|No| UseGlobal[Use global n_iter]
-    
+
     UseLocal --> CapIter{Exceeds<br/>max_iter?}
     UseGlobal --> CapIter
     CapIter -->|Yes| CapValue[Cap to max value]
     CapIter -->|No| Search
     CapValue --> Search
-    
+
     Search[HyperparameterSearch<br/>Instantiation] --> ResetIndices[Reset DataFrame indices<br/>to integer-based]
-    
+
     ResetIndices --> IndexCheck{Index<br/>Aligned?}
     IndexCheck -->|No| RaiseError[Raise AssertionError]
     IndexCheck -->|Yes| RunSearch[search.run_search]
-    
+
     RunSearch --> SearchError{Search<br/>Error?}
     SearchError -->|SVC Dual Coef| SVCDefault[Return default 0.5]
     SearchError -->|Other Error| LogRaise[Log error & re-raise]
     SearchError -->|Success| TestModeCheck2{Test Mode?}
-    
+
     TestModeCheck2 -->|Yes| SkipCV[Skip final CV<br/>Return 0.5]
     TestModeCheck2 -->|No| CheckClasses{Classes >= 2?}
-    
+
     CheckClasses -->|No| RaiseValueError[Raise ValueError<br/>AUC not defined]
     CheckClasses -->|Yes| H2OCheck{H2O or<br/>Keras Model?}
-    
+
     H2OCheck -->|Yes| SingleThread[Set n_jobs=1<br/>for CV]
     H2OCheck -->|No| MultiThread[Use grid_n_jobs]
-    
+
     SingleThread --> CheckCache{Can reuse<br/>cached CV<br/>results?}
     MultiThread --> CheckCache
-    
+
     CheckCache -->|Yes & Not Forced| ExtractCache[Extract scores from<br/>cv_results_]
     CheckCache -->|No or Forced| FreshCV[Run fresh<br/>cross_validate]
-    
+
     ExtractCache --> CacheError{Extraction<br/>Error?}
     CacheError -->|Yes| FreshCV
     CacheError -->|No| ProcessScores
-    
+
     FreshCV --> CVType{Model<br/>Type?}
     CVType -->|Keras| KerasCV[Internal CV handling<br/>in fit method]
     CVType -->|Other| StandardCV[cross_validate with<br/>multiple metrics]
-    
+
     KerasCV --> CVErrors{CV<br/>Errors?}
     StandardCV --> CVErrors
-    
+
     CVErrors -->|XGBoost GPU Error| FallbackCPU[Fallback to CPU<br/>tree_method='hist']
     CVErrors -->|AdaBoost Poor| AdaBoostDefault[Use default scores]
     CVErrors -->|H2O RuntimeError| H2ODefault[Use default scores]
     CVErrors -->|Other Error| GenericDefault[Use default scores<br/>Log error]
     CVErrors -->|Success| ProcessScores[Process Scores]
-    
+
     FallbackCPU --> Retry[Retry cross_validate]
     Retry --> RetryError{Retry<br/>Error?}
     RetryError -->|Yes| GenericDefault
     RetryError -->|No| ProcessScores
-    
+
     ProcessScores --> TimeCheck{CV time ><br/>threshold?}
     TimeCheck -->|Yes| WarnSlow[Warn about slow CV]
     TimeCheck -->|No| LogTime[Log CV completion time]
-    
+
     WarnSlow --> Predict
     LogTime --> Predict
-    
+
     Predict[Predict on X_test] --> UpdateLog{Score logging<br/>enabled?}
-    
+
     UpdateLog -->|Yes| SaveScores[Update score log with:<br/>- CV scores<br/>- predictions<br/>- best estimator<br/>- timing info]
     UpdateLog -->|No| WarnNoLog[Warn: no logging]
-    
+
     SaveScores --> CalcAUC[Calculate final AUC<br/>on test set]
     WarnNoLog --> CalcAUC
-    
+
     CalcAUC --> H2OCleanup{H2O<br/>Model?}
     H2OCleanup -->|Yes| LeaveRunning[Leave H2O cluster running<br/>for next model]
     H2OCleanup -->|No| End
-    
+
     LeaveRunning --> End([Return AUC Score])
-    
+
     SVCDefault --> End
     SkipCV --> H2OCleanup
     ReturnDefault --> End
@@ -131,7 +131,7 @@ graph TB
     AdaBoostDefault --> CalcAUC
     H2ODefault --> CalcAUC
     GenericDefault --> CalcAUC
-    
+
     style Start fill:#e1f5e1
     style End fill:#ffe1e1
     style SearchError fill:#fff3cd

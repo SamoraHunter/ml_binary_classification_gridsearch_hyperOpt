@@ -3,63 +3,63 @@ flowchart TD
     B --> C[Setup Logging & Directories]
     C --> D[Load Input Data]
     D --> E{Multiple Outcomes?}
-    
+
     E -->|Yes| F[Extract Outcome Variables]
     E -->|No| G[Single Outcome Processing]
-    
+
     F --> H[Parallel Processing Setup]
     H --> I[For Each Outcome Variable]
     I --> J[Create HyperOpt Space]
-    
+
     G --> J
-    
+
     J --> K[Define Objective Function]
     K --> L[Initialize ML Grid Object]
     L --> M[Configure Data Pipeline]
-    
+
     M --> N[Data Preprocessing]
     N --> O[Feature Selection]
     O --> P[Resampling Strategy]
     P --> Q[Scaling]
-    
+
     Q --> R[Model Training Loop]
     R --> S[Multiple Model Classes]
-    
+
     S --> T[LogisticRegression]
     S --> U[RandomForest]
     S --> V[XGBoost]
     S --> W[Neural Networks]
     S --> X[SVM]
     S --> Y[Other Classifiers]
-    
+
     T --> Z[Model Evaluation]
     U --> Z
     V --> Z
     W --> Z
     X --> Z
     Y --> Z
-    
+
     Z --> AA[Calculate AUC Score]
     AA --> BB[Store Results]
     BB --> CC[Update Trials]
-    
+
     CC --> DD{Max Evaluations Reached?}
     DD -->|No| K
     DD -->|Yes| EE[HyperOpt Optimization]
-    
+
     EE --> FF[TPE Algorithm]
     FF --> GG[Find Best Parameters]
     GG --> HH[Save Best Model]
-    
+
     HH --> II{More Outcomes?}
     II -->|Yes| I
     II -->|No| JJ[Aggregate Results]
-    
+
     JJ --> KK[Generate Final Report]
     KK --> LL[Save to CSV]
     LL --> MM[Create Visualizations]
     MM --> NN[End: Results Available]
-    
+
     subgraph "Data Configuration"
         OO[Age] --> PP[Data Features]
         QQ[Sex] --> PP
@@ -70,7 +70,7 @@ flowchart TD
         VV[Drug Orders] --> PP
         WW[Annotations] --> PP
     end
-    
+
     subgraph "Hyperparameter Space"
         XX[Resample Strategy]
         YY[Scaling Method]
@@ -79,7 +79,7 @@ flowchart TD
         BBB[Correlation Threshold]
         CCC[Missing Data %]
     end
-    
+
     subgraph "Model Classes"
         DDD[Logistic Regression]
         EEE[KNN Classifiers]
@@ -91,7 +91,7 @@ flowchart TD
         KKK[CatBoost]
         LLL[LightGBM]
     end
-    
+
     PP --> M
     XX --> J
     YY --> J
@@ -99,7 +99,7 @@ flowchart TD
     AAA --> J
     BBB --> J
     CCC --> J
-    
+
     style A fill:#e1f5fe
     style NN fill:#c8e6c9
     style EE fill:#fff3e0

@@ -2,65 +2,65 @@ flowchart TD
     A[Input CSV Data] --> B[pipe Class Initialize]
     B --> C[Data Reading & Sampling]
     C --> D[Column Processing]
-    
+
     D --> E[Feature Selection Pipeline]
     E --> F[Correlation Analysis]
     F --> G[Missing Data Handling]
     G --> H[Constant Column Removal]
     H --> I[Outcome Variable Processing]
-    
+
     I --> J{Time Series Mode?}
     J -->|Yes| K[Convert to Time Series]
     J -->|No| L[Standard Processing]
-    
+
     K --> M[Data Splitting]
     L --> M
-    
+
     M --> N[Train-Test Split]
     N --> O[Feature Importance Methods]
     O --> P[Data Scaling]
-    
+
     P --> Q[Model Class List Generation]
     Q --> R{Model Type}
     R -->|Time Series| S[get_model_class_list_ts]
     R -->|Standard| T[get_model_class_list]
-    
+
     S --> U[Grid Search Cross Validation]
     T --> U
-    
+
     U --> V[grid_search_crossvalidate Class]
     V --> W[Algorithm Implementation]
     W --> X[Parameter Space Definition]
-    
+
     X --> Y{Search Type}
     Y -->|Bayesian| Z[HyperparameterSearch - Bayesian]
     Y -->|Grid/Random| AA[HyperparameterSearch - Grid/Random]
-    
+
     Z --> BB[Model Training & Validation]
     AA --> BB
-    
+
     BB --> CC[Cross Validation Scoring]
     CC --> DD[Error Handling]
     DD --> EE{GPU Memory Error?}
     EE -->|Yes| FF[Fallback to CPU]
     EE -->|No| GG[Continue Processing]
-    
+
     FF --> GG
     GG --> HH[Final Model Fitting]
     HH --> II[Prediction Generation]
     II --> JJ[Metric Calculation]
     JJ --> KK[Score Logging]
-    
+
     KK --> LL[project_score_save_class]
     LL --> MM[Results Output]
-    
+
     subgraph "Data Processing Pipeline"
         N1[Raw Data] --> N2[Clean Up]
         N2 --> N3[Column Name Processing]
         N3 --> N4[Type Screening]
         N4 --> N5[Duplicate Handling]
     end
-    
+
     subgraph "Model Support"
         M1[Keras/Neural Networks]
         M2[XGBoost]
@@ -68,28 +68,28 @@ flowchart TD
         M4[SVM]
         M5[Traditional ML Models]
     end
-    
+
     subgraph "Validation Framework"
         V1[RepeatedKFold CV]
         V2[Multiple Metrics]
         V3[AUC/ROC Scoring]
         V4[Error Score Handling]
     end
-    
+
     subgraph "Parameter Optimization"
         P1[Grid Search]
         P2[Random Search]
         P3[Bayesian Optimization]
         P4[Parameter Validation]
     end
-    
+
     subgraph "Error Handling"
         E1[XGBoost GPU Errors]
         E2[AdaBoost Failures]
         E3[Cross-validation Timeouts]
         E4[Default Score Fallbacks]
     end
-    
+
     style A fill:#e1f5fe
     style MM fill:#c8e6c9
     style U fill:#fff3e0

@@ -68,7 +68,7 @@ dependencies = [
     # Dev
     "black",
     "ruff",
-    
+
 ]
 
 [project.urls]
@@ -95,7 +95,7 @@ docs = [
     "sphinx",
     "sphinx-rtd-theme",
     "myst_parser",
-    "sphinx-autoapi" 
+    "sphinx-autoapi"
 ]
 
 # Add this section to fix the package discovery error
