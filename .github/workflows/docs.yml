@@ -85,7 +85,7 @@ jobs:
 
       - name: Upload artifact for Gitea
         # Use a GHES-compatible version of upload-artifact for Gitea
-        if: ${{ !env.ACT && github.server_url != 'https://github.com' }}
+        if: ${{ github.server_url != 'https://github.com' }}
         uses: actions/upload-artifact@v3
         with:
           name: docs-artifact
