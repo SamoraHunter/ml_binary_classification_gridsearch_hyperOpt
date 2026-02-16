@@ -31,15 +31,15 @@ jobs:
       # Use CPU-only PyTorch to save disk space
       PIP_EXTRA_INDEX_URL: https://download.pytorch.org/whl/cpu
       TORCH_CPU_ONLY: "true"
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       # Install Act dependencies FIRST (before any apt-get commands)
-      - name: Install Act dependencies 
-        if: ${{ env.ACT }} 
-        run: | 
+      - name: Install Act dependencies
+        if: ${{ env.ACT }}
+        run: |
           # Ensure apt-get is available and install sudo for 'act' environments
           if ! command -v apt-get &> /dev/null; then
             echo "apt-get not found, cannot proceed"
@@ -53,8 +53,8 @@ jobs:
         run: |
           sudo apt-get update
           # Install lsb-release, Node.js, and ca-certificates all at once
-          DEBIAN_FRONTEND=noninteractive sudo apt-get install -y lsb-release nodejs ca-certificates
-          
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y lsb-release nodejs ca-certificates
+
           # Trust your mounted certificate (from the act command)
           sudo update-ca-certificates
 
@@ -78,6 +78,7 @@ jobs:
         run: sphinx-build -b html docs/source docs/build
 
       - name: Upload artifact
+        if: ${{ !env.ACT }}
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./docs/build
@@ -92,21 +93,22 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ca-certificates.crt
-      
+
     steps:
-      - name: Install Act dependencies 
-        if: ${{ env.ACT }} 
-        run: | 
+      - name: Install Act dependencies
+        if: ${{ env.ACT }}
+        run: |
           apt-get update && apt-get install -y sudo
 
       - name: Install Runner Dependencies & Configure CA
         run: |
           sudo apt-get update
-          sudo apt-get install -y nodejs ca-certificates
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs ca-certificates
           sudo update-ca-certificates
-          
+
       - name: Deploy to GitHub Pages
         id: deployment
+        if: ${{ !env.ACT }}
         uses: actions/deploy-pages@v4
 
   # Deploy job for Gitea
@@ -118,15 +120,15 @@ jobs:
       NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ca-certificates.crt
 
     steps:
-      - name: Install Act dependencies 
-        if: ${{ env.ACT }} 
-        run: | 
+      - name: Install Act dependencies
+        if: ${{ env.ACT }}
+        run: |
           apt-get update && apt-get install -y sudo
 
       - name: Install Runner Dependencies & Configure CA
         run: |
           sudo apt-get update
-          sudo apt-get install -y nodejs ca-certificates
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs ca-certificates
           sudo update-ca-certificates
 
       - name: Download artifact
@@ -138,6 +140,12 @@ jobs:
       - name: Deploy to Gitea docs location
         run: |
           echo "Deploying documentation to Gitea's special directory..."
+          # Extract the artifact.tar (created by upload-pages-artifact)
+          tar -xf ./docs-site/artifact.tar -C ./docs-site
+          rm ./docs-site/artifact.tar
+
           # The '/pages' directory is a mounted volume on the Gitea runner for serving static content.
-          sudo mkdir -p /pages/
-          sudo cp -r ./docs-site/* /pages/
+          # Deploy to a subfolder named after the repository
+          TARGET_DIR="/pages/docs/${{ github.event.repository.name }}"
+          sudo mkdir -p "$TARGET_DIR"
+          sudo cp -r ./docs-site/* "$TARGET_DIR/"

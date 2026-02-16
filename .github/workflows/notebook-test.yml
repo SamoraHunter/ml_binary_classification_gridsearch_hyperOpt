@@ -51,38 +51,24 @@ jobs:
           # This trusts your mounted certificate (from the act command)
           sudo update-ca-certificates
 
-      - name: Install ping utility
+      - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y iputils-ping
-
-      - name: Set timezone to UTC
-        run: |
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            iputils-ping \
+            tzdata \
+            libgomp1 \
+            default-jre \
+            build-essential
+          # Set timezone after installing tzdata
           sudo ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
           echo "Etc/UTC" | sudo tee /etc/timezone
-          sudo apt-get update
-          sudo apt-get install -y tzdata
           sudo dpkg-reconfigure -f noninteractive tzdata
-
-      - name: Install libgomp1 for LightGBM
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgomp1
-
-      - name: Install Java for H2O
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y default-jre
-
-      - name: Install build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential
 
       - name: Install Python 3.12 and Git
         run: |
           sudo apt-get update
-          sudo apt-get install -y lsb-release software-properties-common gnupg curl git
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y lsb-release software-properties-common gnupg curl git
 
           # --- THIS IS THE GPG KEY FIX ---
 
@@ -93,7 +79,7 @@ jobs:
           echo "deb [signed-by=/usr/share/keyrings/deadsnakes-archive-keyring.gpg] http://ppa.launchpadcontent.net/deadsnakes/ppa/ubuntu $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/deadsnakes-ppa.list
 
           sudo apt-get update
-          sudo apt-get install -y python3.12 python3.12-venv python3.12-dev
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3.12 python3.12-venv python3.12-dev
 
           # Install pip for Python 3.12 (force reinstall to avoid Debian package conflicts)
           curl -sS https://bootstrap.pypa.io/get-pip.py | sudo python3.12 - --break-system-packages --ignore-installed
@@ -107,7 +93,7 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE
           chmod +x install.sh
-          sudo python -m pip install --upgrade pip setuptools wheel --break-system-packages
+          sudo python -m pip install --upgrade --ignore-installed pip setuptools wheel --break-system-packages
           # The install.sh will use PIP_EXTRA_INDEX_URL if set for CPU-only PyTorch
           ./install.sh
 
