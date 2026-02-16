@@ -6,8 +6,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 120 # Optional: Cap the job at 2 hours
-    
-    
+
+
     env:
       NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ca-certificates.crt
       SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
@@ -20,14 +20,14 @@ jobs:
       - name: Set environment variables
         run: |
           echo "DEBIAN_FRONTEND=noninteractive" >> $GITHUB_ENV
-          
+
           # Detect if running on GitHub Actions (not Gitea or act)
           if [[ "${{ github.server_url }}" == "https://github.com" ]] && [[ -z "${{ env.ACT }}" ]]; then
             echo "Running on GitHub - using CPU-only PyTorch"
             echo "PIP_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cpu" >> $GITHUB_ENV
             echo "TORCH_CPU_ONLY=true" >> $GITHUB_ENV
           fi
-          
+
           if [[ "${{ vars.IS_GITEA }}" == "true" ]]; then
             echo "Setting thread limits for Gitea runner"
             echo "OMP_NUM_THREADS=1" >> $GITHUB_ENV
@@ -37,9 +37,9 @@ jobs:
             echo "NUMEXPR_NUM_THREADS=1" >> $GITHUB_ENV
           fi
 
-      - name: Install Act dependencies 
-        if: ${{ env.ACT }} 
-        run: | 
+      - name: Install Act dependencies
+        if: ${{ env.ACT }}
+        run: |
           apt-get update && apt-get install -y sudo
 
       - name: Install Runner Dependencies & Configure CA
@@ -47,7 +47,7 @@ jobs:
           sudo apt-get update
           # Install Node.js (for JS-based actions) & ca-certificates
           sudo apt-get install -y nodejs ca-certificates
-          
+
           # This trusts your mounted certificate (from the act command)
           sudo update-ca-certificates
 
@@ -68,16 +68,16 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libgomp1
-          
+
       - name: Install Java for H2O
         run: |
           sudo apt-get update
           sudo apt-get install -y default-jre
-          
+
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential    
+          sudo apt-get install -y build-essential
 
       - name: Install Python 3.12 and Git
         run: |
@@ -85,18 +85,18 @@ jobs:
           sudo apt-get install -y lsb-release software-properties-common gnupg curl git
 
           # --- THIS IS THE GPG KEY FIX ---
-          
+
           sudo gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys BA6932366A755776
           sudo gpg --export BA6932366A755776 | sudo gpg --dearmor -o /usr/share/keyrings/deadsnakes-archive-keyring.gpg
           # --- END FIX ---
 
           echo "deb [signed-by=/usr/share/keyrings/deadsnakes-archive-keyring.gpg] http://ppa.launchpadcontent.net/deadsnakes/ppa/ubuntu $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/deadsnakes-ppa.list
-          
+
           sudo apt-get update
           sudo apt-get install -y python3.12 python3.12-venv python3.12-dev
 
           # Install pip for Python 3.12 (force reinstall to avoid Debian package conflicts)
-          curl -sS https://bootstrap.pypa.io/get-pip.py | sudo python3.12 - --break-system-packages --force-reinstall
+          curl -sS https://bootstrap.pypa.io/get-pip.py | sudo python3.12 - --break-system-packages --ignore-installed
 
           sudo ln -sf /usr/bin/python3.12 /usr/local/bin/python
           sudo ln -sf /usr/bin/python3.12 /usr/local/bin/python3
@@ -118,7 +118,7 @@ jobs:
           source "$VENV_PATH/bin/activate"
           which python
           python --version
-          
+
           # Verify PyTorch installation type
           python -c "import torch; print(f'PyTorch version: {torch.__version__}'); print(f'CUDA available: {torch.cuda.is_available()}')"
 
@@ -130,6 +130,6 @@ jobs:
           echo "Ensuring setuptools is installed to provide pkg_resources for hyperopt..."
           python -m pip install 'setuptools<70.0.0'
           pytest --nbmake --nbmake-timeout=4500 --nbmake-kernel=ml_grid_env notebooks/unit_test_synthetic.ipynb
-          
+
           echo "Running Python unit tests..."
           pytest tests/
