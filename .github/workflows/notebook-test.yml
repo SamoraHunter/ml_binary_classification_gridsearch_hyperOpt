@@ -28,7 +28,7 @@ jobs:
             echo "TORCH_CPU_ONLY=true" >> $GITHUB_ENV
           fi
 
-          if [[ "${{ vars.IS_GITEA }}" == "true" ]]; then
+          if [[ "${{ github.server_url }}" != "https://github.com" ]] && [[ -z "${{ env.ACT }}" ]]; then
             echo "Setting thread limits for Gitea runner"
             echo "OMP_NUM_THREADS=1" >> $GITHUB_ENV
             echo "MKL_NUM_THREADS=1" >> $GITHUB_ENV

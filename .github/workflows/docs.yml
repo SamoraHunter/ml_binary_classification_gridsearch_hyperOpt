@@ -86,7 +86,7 @@ jobs:
   # Deploy job for GitHub Pages
   deploy-github:
     needs: build
-    if: ${{ vars.IS_GITEA != 'true' }}
+    if: ${{ github.server_url == 'https://github.com' }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -114,7 +114,7 @@ jobs:
   # Deploy job for Gitea
   deploy-gitea:
     needs: build
-    if: ${{ vars.IS_GITEA == 'true' }}
+    if: ${{ github.server_url != 'https://github.com' }}
     runs-on: ubuntu-latest
     env:
       NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ca-certificates.crt
