@@ -32,8 +32,6 @@ class TemporalDictionaryEnsemble_class:
             ml_grid_object (pipe): An instance of the main data pipeline object.
         """
 
-        verbose_param = ml_grid_object.verbose
-
         random_state_val = ml_grid_object.global_params.random_state_val
 
         time_limit_param = global_parameters.time_limit_param

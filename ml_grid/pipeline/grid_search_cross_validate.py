@@ -593,8 +593,6 @@ class grid_search_crossvalidate:
         if not failed and self.global_parameters.verbose >= 3:
             self.logger.debug("Fitting final model")
 
-        metric_list = self.metric_list
-
         if not failed and self.y_train.nunique() < 2:
             raise ValueError(
                 "Only one class present in y_train. ROC AUC score is not defined "
@@ -902,8 +900,6 @@ class grid_search_crossvalidate:
                     f"Cross-validation for {method_name} completed in {elapsed_time:.2f} seconds."
                 )
 
-        current_algorithm_scores = scores
-
         if self.global_parameters.verbose >= 4:
 
             debug_print_statements_class(scores).debug_print_scores()
@@ -975,7 +971,7 @@ class grid_search_crossvalidate:
         Dynamically adjusts the 'n_neighbors' parameter for KNN-based models
         to prevent errors on small datasets during cross-validation.
         """
-        n_splits = self.cv.get_n_splits()
+        self.cv.get_n_splits()
 
         # Correctly calculate the training fold size
         dummy_indices = np.arange(len(self.X_train))

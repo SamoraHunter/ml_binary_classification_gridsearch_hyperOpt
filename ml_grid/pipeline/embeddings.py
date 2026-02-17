@@ -152,7 +152,10 @@ def create_embedding_pipeline(
     elif method_lower == "select_kbest_mi":
         default_params = {"random_state": 42}
         default_params.update(kwargs)
-        score_func = lambda X, y: mutual_info_classif(X, y, **default_params)
+
+        def score_func(X, y):
+            return mutual_info_classif(X, y, **default_params)
+
         steps.append(("embed", SelectKBest(score_func=score_func, k=n_components)))
 
     else:

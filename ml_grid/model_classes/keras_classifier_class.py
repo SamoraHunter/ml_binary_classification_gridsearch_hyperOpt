@@ -120,20 +120,22 @@ class KerasClassifierClass:
             l1_reg=0.0,  # Register l1_reg with a default value
             l2_reg=0.0,  # Register l2_reg with a default value
         )
-        X_data = self.X
-        y_data = self.y
 
         # vals = np.linspace(2, 750, 6)
         vals = np.logspace(1, 2.0, 3)
 
-        floorer = lambda t: math.floor(t)
+        def floorer(t):
+            return math.floor(t)
+
         floored_width = np.array([floorer(xi) for xi in vals])
         floored_width = np.insert(floored_width, 0, 1, axis=None)
         floored_width
 
         vals = np.logspace(1, 2.0, 3)
 
-        floorer = lambda t: math.floor(t)
+        def floorer(t):
+            return math.floor(t)
+
         floored_depth = np.array([floorer(xi) for xi in vals])
         floored_depth = np.insert(floored_depth, 0, 1, axis=None)
         floored_depth

@@ -31,10 +31,6 @@ class ResNetClassifier_class:
             ml_grid_object (pipe): An instance of the main data pipeline object.
         """
 
-        random_state_val = ml_grid_object.global_params.random_state_val
-
-        n_jobs_model_val = ml_grid_object.global_params.n_jobs_model_val
-
         verbose_param = ml_grid_object.verbose
 
         param_space = ParamSpace(

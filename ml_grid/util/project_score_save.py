@@ -165,15 +165,11 @@ class project_score_save_class:
 
         X_train = ml_grid_object_iter.X_train
 
-        y_train = ml_grid_object_iter.y_train
-
         X_test = ml_grid_object_iter.X_test
 
         y_test = ml_grid_object_iter.y_test
 
         X_test_orig = ml_grid_object_iter.X_test_orig
-
-        y_test_orig = ml_grid_object_iter.y_test_orig
 
         param_space_index = ml_grid_object.param_space_index
 

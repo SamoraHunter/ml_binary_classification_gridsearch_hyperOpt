@@ -42,7 +42,7 @@ class TestProjectScoreSave(unittest.TestCase):
 
     def test_initialization(self):
         """Test that the log file is created with correct headers."""
-        saver = project_score_save_class(str(self.experiment_dir))
+        project_score_save_class(str(self.experiment_dir))
 
         log_path = self.experiment_dir / "final_grid_score_log.csv"
         self.assertTrue(log_path.exists(), "Log file was not created")
@@ -146,7 +146,7 @@ class TestProjectScoreSave(unittest.TestCase):
     def test_initialization_does_not_overwrite(self):
         """Test that re-initializing the class does not wipe an existing log file."""
         # First initialization
-        saver1 = project_score_save_class(str(self.experiment_dir))
+        project_score_save_class(str(self.experiment_dir))
         log_path = self.experiment_dir / "final_grid_score_log.csv"
 
         # Simulate writing some data
@@ -154,7 +154,7 @@ class TestProjectScoreSave(unittest.TestCase):
             f.write("test_data_entry\n")
 
         # Second initialization on same directory
-        saver2 = project_score_save_class(str(self.experiment_dir))
+        project_score_save_class(str(self.experiment_dir))
 
         # Verify data persists
         with open(log_path, "r") as f:

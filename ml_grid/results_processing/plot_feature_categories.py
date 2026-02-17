@@ -187,8 +187,8 @@ class FeatureCategoryPlotter:
             if plot_data[category].nunique() < 2:
                 continue
 
-            mean_with = plot_data[plot_data[category] == True][metric].mean()
-            mean_without = plot_data[plot_data[category] == False][metric].mean()
+            mean_with = plot_data[plot_data[category]][metric].mean()
+            mean_without = plot_data[not plot_data[category]][metric].mean()
 
             impact = mean_with - mean_without
 

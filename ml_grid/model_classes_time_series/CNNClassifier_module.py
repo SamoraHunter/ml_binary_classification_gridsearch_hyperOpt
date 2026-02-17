@@ -29,9 +29,6 @@ class CNNClassifier_class:
         Args:
             ml_grid_object (pipe): An instance of the main data pipeline object.
         """
-        time_limit_param = ml_grid_object.global_params.time_limit_param
-
-        n_jobs_model_val = ml_grid_object.global_params.n_jobs_model_val
 
         random_state_val = ml_grid_object.global_params.random_state_val
 

@@ -361,7 +361,6 @@ class run:
 
         self.model_error_list = []
         self.highest_score = 0
-        highest_score = 0  # for optimisation
 
         if self.multiprocess:
 
@@ -373,11 +372,11 @@ class run:
                 from multiprocessing import Pool
 
                 pool = Pool(8)
-                results = pool.map(multi_run_wrapper, self.arg_list)
+                pool.map(multi_run_wrapper, self.arg_list)
                 # print(results)
                 pool.close()  # exp
 
-        elif self.multiprocess == False:
+        elif not self.multiprocess:
             for k in range(0, len(self.arg_list)):
                 try:
                     self.logger.info(

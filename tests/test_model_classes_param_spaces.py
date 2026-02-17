@@ -84,11 +84,9 @@ class TestAllClassifierParamSpaces(unittest.TestCase):
                 # Determine which object to use for testing
                 # Try algorithm_implementation first (for wrappers), then fall back to the instance itself
                 if hasattr(class_instance, "algorithm_implementation"):
-                    test_object = class_instance.algorithm_implementation
                     object_type = "wrapped sklearn estimator"
                 else:
                     # Use the instance itself if it has the sklearn interface
-                    test_object = class_instance
                     object_type = "direct estimator"
 
                 # Check if the object has parameter_space attribute
@@ -173,9 +171,9 @@ class TestAllClassifierParamSpaces(unittest.TestCase):
 
             # Determine which object to use for validation
             if hasattr(class_instance, "algorithm_implementation"):
-                base_estimator = class_instance.algorithm_implementation
+                pass
             else:
-                base_estimator = class_instance
+                pass
 
             if is_bayes:
                 # Normalize the parameter space to a list of dictionaries,
