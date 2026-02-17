@@ -33,7 +33,9 @@ mock_tabpfn_module.TabPFNClassifier.create_default_for_version.return_value = (
 sys.modules["tabpfn"] = mock_tabpfn_module
 sys.modules["tabpfn.constants"] = MagicMock()
 
-from ml_grid.model_classes.tabpfn_classifier_class import TabPFNClassifierClass
+from ml_grid.model_classes.tabpfn_classifier_class import (
+    TabPFNClassifierClass,
+)  # noqa: E402
 
 
 class TestTabPFNClassifierClass(unittest.TestCase):

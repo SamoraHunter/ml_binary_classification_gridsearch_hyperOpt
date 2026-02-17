@@ -1,5 +1,3 @@
-import math
-
 """Keras Classifier.
 
 This module contains the kerasClassifier_class, which is a configuration
@@ -7,6 +5,7 @@ class for a Keras Sequential model wrapped by KerasClassifier. It provides
 parameter spaces for grid search and Bayesian optimization.
 """
 
+import math
 from typing import Any, Dict, Optional
 
 import numpy as np
