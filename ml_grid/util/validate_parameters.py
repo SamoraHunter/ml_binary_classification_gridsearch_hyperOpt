@@ -102,7 +102,7 @@ def validate_parameters_helper(
         Dict[str, Any]: The validated parameters dictionary.
     """
 
-    if type(algorithm_implementation) == KNeighborsClassifier:
+    if isinstance(algorithm_implementation, KNeighborsClassifier):
 
         parameters = validate_knn_parameters(parameters, ml_grid_object)
 

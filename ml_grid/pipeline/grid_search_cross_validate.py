@@ -31,7 +31,6 @@ from ml_grid.model_classes.NeuralNetworkKerasClassifier import NeuralNetworkClas
 
 # from sklearn.utils.testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.metrics import *
 from sklearn.model_selection import (
     ParameterGrid,
     RepeatedKFold,

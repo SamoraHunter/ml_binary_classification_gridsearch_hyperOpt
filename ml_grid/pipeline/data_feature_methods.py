@@ -145,7 +145,7 @@ class feature_methods:
         if hasattr(model_to_use, "set_params"):
             try:
                 model_to_use.set_params(verbose=False)
-            except:
+            except Exception:
                 pass
         if hasattr(model_to_use, "verbose"):
             model_to_use.verbose = False

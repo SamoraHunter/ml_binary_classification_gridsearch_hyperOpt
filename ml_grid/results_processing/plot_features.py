@@ -6,7 +6,7 @@ Focuses on feature usage and impact on performance, with outcome stratification.
 
 import warnings
 from typing import List, Optional, Tuple
-
+from ml_grid.results_processing.core import get_clean_data
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
@@ -27,8 +27,6 @@ except ImportError:
         "Install with: pip install upsetplot",
         stacklevel=2,
     )
-
-from ml_grid.results_processing.core import get_clean_data
 
 
 class FeatureAnalysisPlotter:
