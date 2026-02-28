@@ -35,9 +35,16 @@ class TPOTClassifierClass:
         self.parameter_space: Union[List[Dict[str, Any]], Dict[str, Any]]
 
         if getattr(global_parameters, "test_mode", False):
-            self.parameter_space = [
-                {"generations": [2], "population_size": [5], "max_time_mins": [1]}
-            ]
+            if global_parameters.bayessearch:
+                self.parameter_space = {
+                    "generations": Integer(2, 5),
+                    "population_size": Integer(5, 10),
+                    "max_time_mins": Integer(1, 2),
+                }
+            else:
+                self.parameter_space = [
+                    {"generations": [2], "population_size": [5], "max_time_mins": [1]}
+                ]
         elif global_parameters.bayessearch:
             # A slightly larger space for Bayesian search, but still constrained
             self.parameter_space = {

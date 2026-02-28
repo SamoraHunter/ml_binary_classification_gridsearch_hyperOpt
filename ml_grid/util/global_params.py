@@ -10,6 +10,9 @@ import sys
 from typing import Any, Callable, Dict, List, Union
 import logging
 
+# Disable aeon telemetry to prevent SSL errors in restricted environments
+os.environ["AEON_TRACKING"] = "False"
+
 
 # --- FIX for TensorFlow "libdevice not found" error ---
 # This error occurs when TensorFlow on GPU cannot locate the CUDA device libraries,
