@@ -42,7 +42,8 @@ from ml_grid.model_classes_time_series.ResNetClassifier_module import (
 from ml_grid.model_classes_time_series.rocketClassifier_module import (
     RocketClassifier_class,
 )
-from ml_grid.model_classes_time_series.shapeDTWClassifier_module import ShapeDTW_class
+
+# from ml_grid.model_classes_time_series.shapeDTWClassifier_module import ShapeDTW_class # deprecated
 from ml_grid.model_classes_time_series.SignatureClassifier_module import (
     SignatureClassifier_class,
 )
@@ -92,7 +93,7 @@ def get_model_class_list_ts(ml_grid_object: pipe) -> List[Any]:
         OrdinalTDE_class(ml_grid_object),
         ResNetClassifier_class(ml_grid_object),
         RocketClassifier_class(ml_grid_object),
-        ShapeDTW_class(ml_grid_object),
+        # ShapeDTW_class(ml_grid_object), # deprecated in newer aeon versions
         SignatureClassifier_class(ml_grid_object),
         SummaryClassifier_class(ml_grid_object),
         TapNetClassifier_class(ml_grid_object),

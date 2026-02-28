@@ -11,7 +11,11 @@ from ml_grid.pipeline.data import pipe
 
 # Import all model classes to make them available for eval()
 from ml_grid.model_classes.adaboost_classifier_class import AdaBoostClassifierClass
+from ml_grid.model_classes.auto_gluon_classifier_class import AutoGluonClassifierClass
 from ml_grid.model_classes.catboost_classifier_class import CatBoostClassifierClass
+from ml_grid.model_classes.tpot_classifier_class import TPOTClassifierClass
+from ml_grid.model_classes.flaml_classifier_class import FLAMLClassifierClass
+from ml_grid.model_classes.auto_keras_classifier_class import AutoKerasClassifierClass
 from ml_grid.model_classes.gaussiannb_class import (
     GaussianNBClassifierClass,
 )
@@ -57,7 +61,6 @@ from ml_grid.model_classes.svc_class import SVCClass
 from ml_grid.model_classes.xgb_classifier_class import XGBClassifierClass
 from ml_grid.model_classes.tabpfn_classifier_class import TabPFNClassifierClass
 
-
 # --- ROBUST MAPPING of config names to class objects ---
 # This dictionary provides a direct, secure, and explicit mapping from the
 # string names used in the YAML config files to the actual imported Python classes.
@@ -81,6 +84,10 @@ MODEL_CLASS_MAP = {
     "SVCClass": SVCClass,
     "NeuralNetworkClassifier_class": NeuralNetworkClassifier_class,  # Corrected mapping
     "TabPFNClassifierClass": TabPFNClassifierClass,
+    "AutoGluonClassifierClass": AutoGluonClassifierClass,
+    "TPOTClassifierClass": TPOTClassifierClass,
+    "FLAMLClassifierClass": FLAMLClassifierClass,
+    "AutoKerasClassifierClass": AutoKerasClassifierClass,
     # GPU specific
     "KerasClassifierClass": KerasClassifierClass,
     # "KNNGpuWrapperClass": KNNGpuWrapperClass, #deprecated by python 3.12 and simsig dependency
@@ -132,6 +139,38 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
     if parameter_space_size is None:
         parameter_space_size = "small"
 
+    # Check for AutoGluon availability
+    try:
+        import autogluon.tabular  # noqa: F401
+
+        autogluon_available = True
+    except ImportError:
+        autogluon_available = False
+
+    # Check for TPOT availability
+    try:
+        import tpot  # noqa: F401
+
+        tpot_available = True
+    except ImportError:
+        tpot_available = False
+
+    # Check for FLAML availability
+    try:
+        import flaml  # noqa: F401
+
+        flaml_available = True
+    except ImportError:
+        flaml_available = False
+
+    # Check for AutoKeras availability
+    try:
+        import autokeras  # noqa: F401
+
+        autokeras_available = True
+    except ImportError:
+        autokeras_available = False
+
     model_class_dict: Optional[Dict[str, bool]] = ml_grid_object.model_class_dict
 
     if model_class_dict is None:
@@ -166,6 +205,10 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
             "H2O_StackedEnsemble_class": True,  # H2O Stacked Ensemble
             "H2O_GAM_class": True,  # H2O Generalized Additive Models
             "TabPFNClassifierClass": False,  # requires hf token and agreement
+            "AutoGluonClassifierClass": autogluon_available,
+            "TPOTClassifierClass": tpot_available,
+            "FLAMLClassifierClass": flaml_available,
+            "AutoKerasClassifierClass": autokeras_available,
         }
 
     # If running in a CI environment, explicitly disable resource-intensive models
@@ -188,6 +231,10 @@ def get_model_class_list(ml_grid_object: pipe) -> List[Any]:
             "H2O_GAM_class",
             "TabTransformerClass",
             "TabPFNClassifierClass",
+            "AutoGluonClassifierClass",
+            "TPOTClassifierClass",
+            "FLAMLClassifierClass",
+            "AutoKerasClassifierClass",
         ]
         for model_name in models_to_disable:
             if model_name in model_class_dict:
