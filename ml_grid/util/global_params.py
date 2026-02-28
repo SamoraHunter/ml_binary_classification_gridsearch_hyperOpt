@@ -5,11 +5,67 @@ settings that are accessible throughout the application. It also includes a
 custom scoring function for ROC AUC that handles cases with a single class.
 """
 
+import os
+import sys
 from typing import Any, Callable, Dict, List, Union
 import logging
 
+
+# --- FIX for TensorFlow "libdevice not found" error ---
+# This error occurs when TensorFlow on GPU cannot locate the CUDA device libraries,
+# a common issue with pip-installed CUDA in virtual environments. This code
+# finds the CUDA path within the environment and sets the XLA_FLAGS environment
+# variable to point to it. This must be done before TensorFlow is initialized.
+def _configure_tensorflow_gpu_env():
+    """Finds pip-installed CUDA libraries and sets XLA_FLAGS if not already set."""
+    logger = logging.getLogger("ml_grid")
+    try:
+        # Check if the flag is already correctly set
+        if (
+            "XLA_FLAGS" in os.environ
+            and "--xla_gpu_cuda_data_dir" in os.environ["XLA_FLAGS"]
+        ):
+            return
+
+        # Find the site-packages directory of the current environment
+        for path in sys.path:
+            if "site-packages" in path:
+                cuda_dir = os.path.join(path, "nvidia", "cuda_nvcc")
+                # Check for the specific file XLA needs to ensure the path is valid
+                libdevice_path = os.path.join(
+                    cuda_dir, "nvvm", "libdevice", "libdevice.10.bc"
+                )
+                if os.path.isdir(cuda_dir) and os.path.exists(libdevice_path):
+                    logger.info(
+                        f"Found CUDA libraries at {cuda_dir}. Configuring XLA_FLAGS."
+                    )
+                    xla_flags = os.environ.get("XLA_FLAGS", "")
+                    cuda_data_dir_flag = f"--xla_gpu_cuda_data_dir={cuda_dir}"
+                    os.environ["XLA_FLAGS"] = (
+                        f"{xla_flags} {cuda_data_dir_flag}".strip()
+                    )
+                    return  # Exit after finding the first valid path
+
+        logger.warning(
+            "libdevice.10.bc not found. TensorFlow XLA may fail. Ensure nvidia-cuda-nvcc-cu12 is installed."
+        )
+    except Exception as e:
+        logger.error(
+            f"Error configuring TensorFlow GPU environment: {e}", exc_info=True
+        )
+
+
+_configure_tensorflow_gpu_env()
+# --- END FIX ---
+
 import numpy as np
-from sklearn.metrics import make_scorer, roc_auc_score
+from sklearn.metrics import (
+    accuracy_score,
+    f1_score,
+    make_scorer,
+    recall_score,
+    roc_auc_score,
+)
 
 
 def custom_roc_auc_score(y_true: np.ndarray, y_pred: np.ndarray) -> float:
@@ -25,6 +81,14 @@ def custom_roc_auc_score(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     Returns:
         float: The ROC AUC score, or np.nan if the score is undefined.
     """
+    # If y_pred is None (which can happen if a model fails to predict), AUC is undefined.
+    if y_pred is None:
+        # For debugging: raise an error to get a stack trace pointing to the faulty model.
+        # This will stop the execution but pinpoint the source of the None predictions.
+        raise ValueError(
+            "y_pred is None in custom_roc_auc_score. A model's predict() method failed."
+        )
+
     # Optimization: Check min/max instead of full unique sort (O(N) vs O(N log N))
     # If min == max, there is only one unique value (or array is empty/NaNs which implies undefined AUC)
     # Also handle Categorical data which may not support min/max if unordered
@@ -40,6 +104,36 @@ def custom_roc_auc_score(y_true: np.ndarray, y_pred: np.ndarray) -> float:
                 return np.nan
 
     return roc_auc_score(y_true, y_pred)
+
+
+def custom_f1_score(y_true: np.ndarray, y_pred: np.ndarray, **kwargs) -> float:
+    """Calculates F1 score, handling cases where y_pred is None."""
+    if y_pred is None:
+        # For debugging: raise an error to get a stack trace.
+        raise ValueError(
+            "y_pred is None in custom_f1_score. A model's predict() method failed."
+        )
+    return f1_score(y_true, y_pred, **kwargs)
+
+
+def custom_accuracy_score(y_true: np.ndarray, y_pred: np.ndarray, **kwargs) -> float:
+    """Calculates accuracy score, handling cases where y_pred is None."""
+    if y_pred is None:
+        # For debugging: raise an error to get a stack trace.
+        raise ValueError(
+            "y_pred is None in custom_accuracy_score. A model's predict() method failed."
+        )
+    return accuracy_score(y_true, y_pred, **kwargs)
+
+
+def custom_recall_score(y_true: np.ndarray, y_pred: np.ndarray, **kwargs) -> float:
+    """Calculates recall score, handling cases where y_pred is None."""
+    if y_pred is None:
+        # For debugging: raise an error to get a stack trace.
+        raise ValueError(
+            "y_pred is None in custom_recall_score. A model's predict() method failed."
+        )
+    return recall_score(y_true, y_pred, **kwargs)
 
 
 class GlobalParameters:
@@ -109,6 +203,8 @@ class GlobalParameters:
     """If True, forces a second cross-validation run even if cached results are available. Defaults to False."""
     model_eval_time_limit: int
     """The time limit in seconds for a single model evaluation. Defaults to None (no limit)."""
+    test_mode: bool
+    """If True, uses minimal parameter spaces and reduced cross-validation for fast testing. Defaults to False."""
 
     def __new__(cls, *args: Any, **kwargs: Any) -> "GlobalParameters":
         """Creates a new instance if one does not already exist (Singleton pattern)."""
@@ -155,13 +251,18 @@ class GlobalParameters:
         self.search_verbose = 0
         self.force_second_cv = False
         self.model_eval_time_limit = None
+        self.test_mode = False
 
-        custom_scorer = make_scorer(custom_roc_auc_score)
+        custom_auc_scorer = make_scorer(custom_roc_auc_score)
+        custom_f1_scorer = make_scorer(custom_f1_score)
+        custom_accuracy_scorer = make_scorer(custom_accuracy_score)
+        custom_recall_scorer = make_scorer(custom_recall_score)
+
         self.metric_list = {
-            "auc": custom_scorer,
-            "f1": "f1",
-            "accuracy": "accuracy",
-            "recall": "recall",
+            "auc": custom_auc_scorer,
+            "f1": custom_f1_scorer,
+            "accuracy": custom_accuracy_scorer,
+            "recall": custom_recall_scorer,
         }
 
     def update_parameters(self, **kwargs: Any) -> None:

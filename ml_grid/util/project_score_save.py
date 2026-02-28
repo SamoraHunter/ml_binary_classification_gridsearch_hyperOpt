@@ -78,6 +78,7 @@ def _get_score_log_columns(metric_list: List[str]) -> List[str]:
         "i",
         "outcome_variable",
         "failed",
+        "timeout",
     ]
 
     metric_names: List[str] = []
@@ -141,6 +142,7 @@ class project_score_save_class:
         start: float,
         n_iter_v: int,
         failed: bool,
+        timeout: bool = False,
     ):
         """Updates the score log with the results of a single experiment run.
 
@@ -157,6 +159,7 @@ class project_score_save_class:
             start (float): The start time of the run (from `time.time()`).
             n_iter_v (int): The number of iterations performed in the search.
             failed (bool): A flag indicating if the run failed.
+            timeout (bool): A flag indicating if the run timed out.
         """
 
         global_params = global_parameters
@@ -200,6 +203,11 @@ class project_score_save_class:
             y_test_np = np.ravel(y_test_np)
             best_pred_np = np.ravel(best_pred_np)
 
+            # If predictions contain only one class, consider the model failed.
+            if not failed and not timeout and len(np.unique(best_pred_np)) < 2:
+                logger.warning("Model predicted only one class. Marking run as failed.")
+                failed = True
+
             # Attempt to convert to integers (e.g. "0"/"1" strings from H2O) for faster np.unique
             try:
                 y_test_np = y_test_np.astype(int)
@@ -207,37 +215,51 @@ class project_score_save_class:
             except (ValueError, TypeError):
                 pass
 
-            # best_pred_orig = grid.best_estimator_.predict(X_test_orig)
-            try:
-                auc = metrics.roc_auc_score(y_test_np, best_pred_np)
-            except Exception as e:
-                logger.warning(f"Could not calculate AUC score: {e}")
-                logger.debug(f"y_test unique values: {y_test.unique()!s}")
-                logger.debug(
-                    f"best_pred_orig unique values: {np.unique(best_pred_orig)!s}"
-                )
-                auc = np.nan
+            # Initialize metrics to NaN
+            auc = np.nan
+            mcc = np.nan
+            f1 = np.nan
+            precision = np.nan
+            recall = np.nan
+            accuracy = np.nan
+            support_val = np.nan
 
-            # --- OPTIMIZATION: Calculate metrics efficiently ---
-            # Calculate precision, recall, f1, support in one pass to avoid repeated overhead
-            try:
-                precision, recall, f1, support_val = precision_recall_fscore_support(
-                    y_test_np, best_pred_np, average="binary"
-                )
-                if support_val is None:
-                    # For binary average, support is None. Calculate positive class support manually.
-                    # Assuming positive class is 1.
+            if not failed and not timeout:
+                # best_pred_orig = grid.best_estimator_.predict(X_test_orig)
+                try:
+                    auc = metrics.roc_auc_score(y_test_np, best_pred_np)
+                except Exception as e:
+                    logger.warning(f"Could not calculate AUC score: {e}")
+                    logger.debug(f"y_test_np unique values: {np.unique(y_test_np)!s}")
+                    logger.debug(
+                        f"best_pred_np unique values: {np.unique(best_pred_np)!s}"
+                    )
+                    auc = np.nan
+
+                # --- OPTIMIZATION: Calculate metrics efficiently ---
+                # Calculate precision, recall, f1, support in one pass to avoid repeated overhead
+                try:
+                    precision, recall, f1, support_val = (
+                        precision_recall_fscore_support(
+                            y_test_np, best_pred_np, average="binary"
+                        )
+                    )
+                    if support_val is None:
+                        # For binary average, support is None. Calculate positive class support manually.
+                        # Assuming positive class is 1.
+                        support_val = np.sum(y_test_np == 1)
+                except ValueError:
+                    # Fallback for multiclass or other issues
+                    precision = precision_score(
+                        y_test_np, best_pred_np, average="binary"
+                    )
+                    recall = recall_score(y_test_np, best_pred_np, average="binary")
+                    f1 = f1_score(y_test_np, best_pred_np, average="binary")
+                    # Fallback support calculation
                     support_val = np.sum(y_test_np == 1)
-            except ValueError:
-                # Fallback for multiclass or other issues
-                precision = precision_score(y_test_np, best_pred_np, average="binary")
-                recall = recall_score(y_test_np, best_pred_np, average="binary")
-                f1 = f1_score(y_test_np, best_pred_np, average="binary")
-                # Fallback support calculation
-                support_val = np.sum(y_test_np == 1)
 
-            mcc = matthews_corrcoef(y_test_np, best_pred_np)
-            accuracy = accuracy_score(y_test_np, best_pred_np)
+                mcc = matthews_corrcoef(y_test_np, best_pred_np)
+                accuracy = accuracy_score(y_test_np, best_pred_np)
 
             # Populate row_data dictionary instead of repeated DataFrame indexing
             local_params = getattr(ml_grid_object, "local_param_dict", {})
@@ -273,18 +295,21 @@ class project_score_save_class:
             row_data["algorithm_implementation"] = current_algorithm
 
             # Filter out large data objects from parameters to prevent logging errors and bloat
-            params = current_algorithm.get_params()
             safe_params = {}
-            for k, v in params.items():
-                # Skip data arguments and large pandas/numpy objects
-                if k not in [
-                    "X",
-                    "y",
-                    "data",
-                    "validation_frame",
-                    "training_frame",
-                ] and not isinstance(v, (pd.DataFrame, pd.Series, np.ndarray)):
-                    safe_params[k] = v
+            if current_algorithm is not None and hasattr(
+                current_algorithm, "get_params"
+            ):
+                params = current_algorithm.get_params()
+                for k, v in params.items():
+                    # Skip data arguments and large pandas/numpy objects
+                    if k not in [
+                        "X",
+                        "y",
+                        "data",
+                        "validation_frame",
+                        "training_frame",
+                    ] and not isinstance(v, (pd.DataFrame, pd.Series, np.ndarray)):
+                        safe_params[k] = v
             row_data["parameter_sample"] = safe_params
             row_data["method_name"] = method_name
             row_data["nb_size"] = sum(np.array(current_f_vector))
@@ -312,33 +337,50 @@ class project_score_save_class:
             row_data["i"] = param_space_index  # 0 # should be index of the iterator
             row_data["outcome_variable"] = ml_grid_object_iter.outcome_variable
             row_data["failed"] = failed
+            row_data["timeout"] = timeout
 
             if bayessearch:
                 try:
-                    # Optimization: Use np.mean directly to avoid redundant array creation and nanmean overhead (~68s)
+                    if not failed and not timeout and scores:
+                        # Optimization: Use np.mean directly to avoid redundant array creation and nanmean overhead (~68s)
+                        row_data["fit_time_m"] = np.mean(scores["fit_time"])
+                        row_data["fit_time_std"] = np.std(scores["fit_time"])
+
+                        row_data["score_time_m"] = np.mean(scores["score_time"])
+                        row_data["score_time_std"] = np.std(scores["score_time"])
+
+                        for metric in global_params.metric_list:
+                            row_data[f"{metric}_m"] = np.mean(scores[f"test_{metric}"])
+                            row_data[f"{metric}_std"] = np.std(scores[f"test_{metric}"])
+                    else:
+                        # Fill with NaN if failed or no scores
+                        row_data["fit_time_m"] = np.nan
+                        row_data["fit_time_std"] = np.nan
+                        row_data["score_time_m"] = np.nan
+                        row_data["score_time_std"] = np.nan
+
+                except Exception as e:
+                    logger.error(f"Error processing scores for BayesSearch: {e}")
+                    logger.debug(f"Scores dictionary: {scores}")
+            else:
+                if not failed and not timeout and scores:
+                    # Optimization: Use np.mean directly
                     row_data["fit_time_m"] = np.mean(scores["fit_time"])
                     row_data["fit_time_std"] = np.std(scores["fit_time"])
-
                     row_data["score_time_m"] = np.mean(scores["score_time"])
                     row_data["score_time_std"] = np.std(scores["score_time"])
 
                     for metric in global_params.metric_list:
                         row_data[f"{metric}_m"] = np.mean(scores[f"test_{metric}"])
                         row_data[f"{metric}_std"] = np.std(scores[f"test_{metric}"])
-
-                except Exception as e:
-                    logger.error(f"Error processing scores for BayesSearch: {e}")
-                    logger.debug(f"Scores dictionary: {scores}")
-            else:
-                # Optimization: Use np.mean directly
-                row_data["fit_time_m"] = np.mean(scores["fit_time"])
-                row_data["fit_time_std"] = np.std(scores["fit_time"])
-                row_data["score_time_m"] = np.mean(scores["score_time"])
-                row_data["score_time_std"] = np.std(scores["score_time"])
-
-                for metric in global_params.metric_list:
-                    row_data[f"{metric}_m"] = np.mean(scores[f"test_{metric}"])
-                    row_data[f"{metric}_std"] = np.std(scores[f"test_{metric}"])
+                else:
+                    row_data["fit_time_m"] = np.nan
+                    row_data["fit_time_std"] = np.nan
+                    row_data["score_time_m"] = np.nan
+                    row_data["score_time_std"] = np.nan
+                    for metric in global_params.metric_list:
+                        row_data[f"{metric}_m"] = np.nan
+                        row_data[f"{metric}_std"] = np.nan
 
             # Create the DataFrame once with all data
             line = pd.DataFrame([row_data], columns=column_list)
@@ -355,7 +397,7 @@ class project_score_save_class:
 
             line[column_list].to_csv(self.log_path, mode="a", header=False, index=False)
 
-            if store_models:
+            if store_models and not failed and not timeout:
                 # Check if the model is an H2O model by inspecting its base classes
                 is_h2o_model = any(
                     "h2o" in str(base_class).lower()

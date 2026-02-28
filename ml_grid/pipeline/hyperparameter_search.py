@@ -8,7 +8,8 @@ from sklearn.base import BaseEstimator, is_classifier
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from skopt import BayesSearchCV
-
+from ml_grid.model_classes.AutoKerasClassifierWrapper import AutoKerasClassifierWrapper
+from ml_grid.model_classes.FLAMLClassifierWrapper import FLAMLClassifierWrapper
 from ml_grid.model_classes.H2OAutoMLClassifier import H2OAutoMLClassifier
 from ml_grid.model_classes.H2ODeepLearningClassifier import H2ODeepLearningClassifier
 from ml_grid.model_classes.H2ODRFClassifier import H2ODRFClassifier
@@ -194,7 +195,12 @@ class HyperparameterSearch:
         # Also limit n_jobs for Bayesian search and other specific wrappers to avoid issues.
         is_single_threaded_search = isinstance(
             self.algorithm,
-            (KerasClassifierClass, NeuralNetworkClassifier),  # KNNWrapper,
+            (
+                KerasClassifierClass,
+                NeuralNetworkClassifier,
+                FLAMLClassifierWrapper,
+                AutoKerasClassifierWrapper,
+            ),  # KNNWrapper,
         )
 
         if is_h2o_model or is_single_threaded_search or bayessearch:
