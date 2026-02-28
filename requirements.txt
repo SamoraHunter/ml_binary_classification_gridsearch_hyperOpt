@@ -625,7 +625,7 @@ tensorboard-data-server==0.7.2
     #   tensorboard
 tensorboard-plugin-wit==1.8.1
     # via -r requirements.in
-tensorflow==2.17.0
+tensorflow==2.20.0
     # via -r requirements.in
 tensorflow-addons==0.23.0; sys_platform == "linux"
 tensorflow-addons==0.21.0; sys_platform == "win32"
@@ -651,7 +651,7 @@ threadpoolctl==3.5.0
     #   scikit-learn
 tomli==2.0.2
     # via build
-torch==1.12.1
+torch==2.10.0
     # via
     #   -r requirements.in
     #   simbsig
