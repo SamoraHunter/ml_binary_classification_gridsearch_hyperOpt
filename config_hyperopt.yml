@@ -13,6 +13,7 @@ global_params:
   sub_sample_param_space_pct: 0.05
   force_second_cv: false # If True, forces a second cross-validation run even if cached results are available. Defaults to False.
   model_eval_time_limit: 3600
+  test_mode: true # If True, uses minimal parameter spaces and reduced cross-validation for fast testing.
 
 # Experiment settings for the hyperopt run
 experiment:
@@ -62,7 +63,12 @@ models:
   # Set the following to true if a GPU is available and configured
   kerasClassifier_class: false
   knn__gpu_wrapper_class: false
+  # Additional
   TabPFNClassifierClass: false # requires hf token and agreement
+  AutoGluonClassifierClass: false # disabled by default
+  TPOTClassifierClass: false # disabled by default
+  FLAMLClassifierClass: false # disabled by default
+  AutoKerasClassifierClass: false # disabled by default
 
 
 # This section defines the parameter search space for Hyperopt.

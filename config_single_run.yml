@@ -47,6 +47,10 @@ models:
   H2O_GAM_class: true
   knn__gpu_wrapper_class: false
   TabPFNClassifierClass: false # requires hf token and agreement
+  AutoGluonClassifierClass: false
+  TPOTClassifierClass: false
+  FLAMLClassifierClass: false
+  AutoKerasClassifierClass: false
 
 # This section defines a single set of parameters for a standalone run.
 run_params:
