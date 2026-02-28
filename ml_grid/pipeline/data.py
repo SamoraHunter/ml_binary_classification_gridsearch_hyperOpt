@@ -23,13 +23,12 @@ from ml_grid.pipeline.data_train_test_split import get_data_split
 from ml_grid.pipeline.embeddings import create_embedding_pipeline
 from ml_grid.util.global_params import global_parameters
 from ml_grid.util.logger_setup import setup_logger
-
-warnings.filterwarnings("ignore", category=ConvergenceWarning)
-warnings.filterwarnings("ignore", category=UserWarning)
 from sklearn.preprocessing import (
     StandardScaler,
 )  # Added explicit import for StandardScaler
 
+warnings.filterwarnings("ignore", category=ConvergenceWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 
@@ -135,10 +134,20 @@ class pipe:
                 }
             )
 
-    def _assert_index_alignment(
-        self, df1: pd.DataFrame, df2: pd.Series, step_name: str
-    ):
+    def _assert_index_alignment(self, df1: Any, df2: Any, step_name: str):
         """Helper function to assert that DataFrame and Series indices are equal."""
+        # Handle objects without .index (e.g. numpy arrays in time series mode)
+        if not hasattr(df1, "index") or not hasattr(df2, "index"):
+            if len(df1) != len(df2):
+                self.logger.error(
+                    f"Length mismatch at {step_name}: {len(df1)} vs {len(df2)}"
+                )
+                raise AssertionError(f"Length mismatch at {step_name}")
+            self.logger.debug(
+                f"Length alignment PASSED at: {step_name} (non-pandas objects)"
+            )
+            return
+
         try:
             assert_index_equal(df1.index, df2.index)
             self.logger.debug(f"Index alignment PASSED at: {step_name}")
@@ -499,18 +508,28 @@ class pipe:
         # --- CRITICAL FIX: Reset all indices immediately after splitting ---
         # This ensures all downstream processing (constant removal, feature selection, embedding)
         # operates on data with clean, aligned, 0-based integer indices.
-        self.X_train.reset_index(drop=True, inplace=True)
-        self.y_train.reset_index(drop=True, inplace=True)
-        self.X_test.reset_index(drop=True, inplace=True)
-        self.y_test.reset_index(drop=True, inplace=True)
-        self.X_test_orig.reset_index(drop=True, inplace=True)
-        self.y_test_orig.reset_index(drop=True, inplace=True)
+        if hasattr(self.X_train, "reset_index"):
+            self.X_train.reset_index(drop=True, inplace=True)
+            self.X_test.reset_index(drop=True, inplace=True)
+            self.X_test_orig.reset_index(drop=True, inplace=True)
+
+        if hasattr(self.y_train, "reset_index"):
+            self.y_train.reset_index(drop=True, inplace=True)
+            self.y_test.reset_index(drop=True, inplace=True)
+            self.y_test_orig.reset_index(drop=True, inplace=True)
+
         self._assert_index_alignment(
             self.X_train, self.y_train, "After master reset_index"
         )
 
     def _post_split_cleaning(self):
         """Applies cleaning steps post-split to prevent data leakage."""
+        if not isinstance(self.X_train, pd.DataFrame):
+            self.logger.info(
+                "Skipping post-split cleaning (not a DataFrame, likely Time Series mode)."
+            )
+            return
+
         # Clean column names *before* dropping operations to ensure stable column order.
         cleanup = clean_up_class()
         cleanup.screen_non_float_types(self.X_train)
@@ -608,6 +627,12 @@ class pipe:
 
     def _scale_features(self):
         """Applies standard scaling to the feature sets."""
+        if not isinstance(self.X_train, pd.DataFrame):
+            self.logger.info(
+                "Skipping scaling (not a DataFrame, likely Time Series mode)."
+            )
+            return
+
         features_before = self.X_train.shape[1]
         scale = self.local_param_dict.get("scale")
         if scale:
@@ -650,6 +675,12 @@ class pipe:
 
     def _select_features_by_importance(self):
         """Selects features based on importance scores if configured."""
+        if not isinstance(self.X_train, pd.DataFrame):
+            self.logger.info(
+                "Skipping feature selection (not a DataFrame, likely Time Series mode)."
+            )
+            return
+
         target_n_features = self.local_param_dict.get("feature_n")
 
         if target_n_features is not None and target_n_features < 100:
@@ -752,6 +783,12 @@ class pipe:
 
     def _apply_embeddings(self):
         """Applies feature embedding/dimensionality reduction if configured."""
+        if not isinstance(self.X_train, pd.DataFrame):
+            self.logger.info(
+                "Skipping embeddings (not a DataFrame, likely Time Series mode)."
+            )
+            return
+
         if self.local_param_dict.get("use_embedding", False):
             features_before = self.X_train.shape[1]
             self.logger.info("Applying embeddings...")
@@ -925,16 +962,9 @@ class pipe:
         # Final definitive assertion before exiting the data pipeline.
         # This ensures that the X_train and y_train that will be passed to the
         # model training steps are perfectly aligned.
-        try:
-            assert_index_equal(self.X_train.index, self.y_train.index)
-            self.logger.info(
-                "Final data alignment check PASSED. X_train and y_train indices are identical."
-            )
-        except AssertionError:
-            self.logger.error(
-                "CRITICAL: Final data alignment check FAILED. X_train and y_train indices are NOT identical."
-            )
-            raise
+        self._assert_index_alignment(
+            self.X_train, self.y_train, "Final data alignment check"
+        )
 
     def _compile_and_log_feature_transformations(self, error_occurred: bool = False):
         """Compiles the feature transformation log and displays it."""

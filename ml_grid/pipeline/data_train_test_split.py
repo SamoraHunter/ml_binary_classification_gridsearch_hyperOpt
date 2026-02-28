@@ -42,6 +42,15 @@ def get_data_split(
     random.seed(1234)
     np.random.seed(1234)
 
+    # --- Handle Numpy Inputs (e.g. from Time Series mode) ---
+    if isinstance(y, np.ndarray):
+        y = pd.Series(y)
+
+    # Ensure X is a pandas DataFrame if it's 2D, to support column access if resampling is used.
+    # If X is >2D (e.g. time series), it stays as numpy array.
+    if isinstance(X, np.ndarray) and X.ndim == 2:
+        X = pd.DataFrame(X)
+
     # Check if data is valid
     if not is_valid_shape(X):
         local_param_dict["resample"] = None
@@ -138,7 +147,11 @@ def get_data_split(
     # --- Fallback for single-class training set ---
     # If the random split resulted in a training set with only 1 class (but we had 2+ available),
     # we attempt to move a sample from the test set to the training set to prevent model failure.
-    if y_train.nunique() < 2 and y_train_processed.nunique() >= 2:
+    if (
+        y_train.nunique() < 2
+        and y_train_processed.nunique() >= 2
+        and isinstance(X_train, pd.DataFrame)
+    ):
         logger.warning(
             "y_train contains only 1 class after split. Attempting to move a sample from X_test to X_train to ensure class presence."
         )

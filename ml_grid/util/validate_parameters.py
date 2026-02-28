@@ -1,7 +1,7 @@
 """Functions to validate model-specific hyperparameters before grid search."""
 
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, List, Union
 
 from sklearn.neighbors import KNeighborsClassifier
 from xgboost import XGBClassifier
@@ -11,8 +11,8 @@ from xgboost import XGBClassifier
 
 
 def validate_knn_parameters(
-    parameters: Dict[str, Any], ml_grid_object: Any
-) -> Dict[str, Any]:
+    parameters: Union[Dict[str, Any], List[Dict[str, Any]]], ml_grid_object: Any
+) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """Validates the `n_neighbors` parameter for KNN classifiers.
 
     This function ensures that the values for `n_neighbors` do not exceed the
@@ -20,13 +20,18 @@ def validate_knn_parameters(
     capped at `n_samples - 1`.
 
     Args:
-        parameters (Dict[str, Any]): The dictionary of parameters to validate.
+        parameters (Union[Dict[str, Any], List[Dict[str, Any]]]): The dictionary or list of dictionaries of parameters to validate.
         ml_grid_object (Any): The main pipeline object containing the training
             data (`X_train`).
 
     Returns:
-        Dict[str, Any]: The validated parameters dictionary.
+        Union[Dict[str, Any], List[Dict[str, Any]]]: The validated parameters.
     """
+
+    if isinstance(parameters, list):
+        for i in range(len(parameters)):
+            parameters[i] = validate_knn_parameters(parameters[i], ml_grid_object)
+        return parameters
 
     logger = logging.getLogger("ml_grid")
     # Get the number of samples in the training data
@@ -58,22 +63,30 @@ def validate_knn_parameters(
 
 
 def validate_XGB_parameters(
-    parameters: Dict[str, Any], ml_grid_object: Any
-) -> Dict[str, Any]:
+    parameters: Union[Dict[str, Any], List[Dict[str, Any]]], ml_grid_object: Any
+) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """Validates the `max_bin` parameter for XGBoost.
 
     This function checks that the max_bin values are greater than or equal to 2,
     and if not, it sets them to 2.
 
     Args:
-        parameters (Dict[str, Any]): The dictionary of parameters to validate.
+        parameters (Union[Dict[str, Any], List[Dict[str, Any]]]): The dictionary or list of dictionaries of parameters to validate.
         ml_grid_object (Any): The main pipeline object (currently unused).
 
     Returns:
-        Dict[str, Any]: The validated parameters dictionary.
+        Union[Dict[str, Any], List[Dict[str, Any]]]: The validated parameters.
     """
 
+    if isinstance(parameters, list):
+        for i in range(len(parameters)):
+            parameters[i] = validate_XGB_parameters(parameters[i], ml_grid_object)
+        return parameters
+
     max_bin_array = parameters.get("max_bin")
+
+    if max_bin_array is None:
+        return parameters
 
     # Iterate over each value in the max_bin array
     for i in range(len(max_bin_array)):
@@ -89,17 +102,19 @@ def validate_XGB_parameters(
 
 
 def validate_parameters_helper(
-    algorithm_implementation: Any, parameters: Dict[str, Any], ml_grid_object: Any
-) -> Dict[str, Any]:
+    algorithm_implementation: Any,
+    parameters: Union[Dict[str, Any], List[Dict[str, Any]]],
+    ml_grid_object: Any,
+) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """Dispatches to the correct parameter validation function based on algorithm type.
 
     Args:
         algorithm_implementation (Any): The scikit-learn estimator instance.
-        parameters (Dict[str, Any]): The dictionary of parameters to validate.
+        parameters (Union[Dict[str, Any], List[Dict[str, Any]]]): The parameters to validate.
         ml_grid_object (Any): The main pipeline object containing training data.
 
     Returns:
-        Dict[str, Any]: The validated parameters dictionary.
+        Union[Dict[str, Any], List[Dict[str, Any]]]: The validated parameters.
     """
 
     if isinstance(algorithm_implementation, KNeighborsClassifier):

@@ -44,6 +44,7 @@ class TestDataPipeline(unittest.TestCase):
         global_parameters.verbose = 0  # Keep test output clean
         global_parameters.error_raise = True
         global_parameters.bayessearch = False  # Explicitly set search mode
+        global_parameters.test_mode = True  # Enable fast test mode
 
         # Define a base configuration for the pipeline
         self.base_local_param_dict = {

@@ -3,6 +3,8 @@ import logging
 import multiprocessing
 import joblib
 import warnings
+import os
+import sys
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
@@ -15,7 +17,9 @@ import sklearn
 from sklearn import metrics
 from pandas.testing import assert_index_equal
 from xgboost.core import XGBoostError
+from ml_grid.model_classes.AutoKerasClassifierWrapper import AutoKerasClassifierWrapper
 from ml_grid.model_classes.H2OAutoMLClassifier import H2OAutoMLClassifier
+from ml_grid.model_classes.FLAMLClassifierWrapper import FLAMLClassifierWrapper
 from ml_grid.model_classes.H2OGBMClassifier import H2OGBMClassifier
 from ml_grid.model_classes.H2ODRFClassifier import H2ODRFClassifier
 from ml_grid.model_classes.H2OGAMClassifier import H2OGAMClassifier
@@ -158,6 +162,34 @@ class grid_search_crossvalidate:
             # One-time TF/GPU Setup
             if is_gpu_model and not _TF_INITIALIZED:
                 try:
+                    # --- FIX for libdevice error ---
+                    # Set XLA_FLAGS to point to the CUDA toolkit installed by pip.
+                    # This is crucial for XLA to find the libdevice library for GPU compilation.
+                    if "XLA_FLAGS" not in os.environ:
+                        # Find site-packages directory
+                        site_packages_path = next(
+                            (p for p in sys.path if "site-packages" in p), None
+                        )
+                        if site_packages_path:
+                            # The 'nvidia-cuda-nvcc-cu12' package installs the compiler toolkit here.
+                            # XLA needs this path to find the 'nvvm/libdevice' directory.
+                            cuda_path = os.path.join(
+                                site_packages_path, "nvidia", "cuda_nvcc"
+                            )
+
+                            if os.path.exists(cuda_path):
+                                self.logger.info(
+                                    f"Found CUDA compiler toolkit at {cuda_path}. Setting XLA_FLAGS."
+                                )
+                                os.environ["XLA_FLAGS"] = (
+                                    f"--xla_gpu_cuda_data_dir={cuda_path}"
+                                )
+                            else:
+                                self.logger.warning(
+                                    "Could not find 'nvidia/cuda_nvcc' directory. Falling back to site-packages root. "
+                                    "Install 'nvidia-cuda-nvcc-cu12' for a reliable setup."
+                                )
+
                     gpu_devices = tf.config.experimental.list_physical_devices("GPU")
                     if gpu_devices:
                         for device in gpu_devices:
@@ -523,7 +555,10 @@ class grid_search_crossvalidate:
                 # Convert y to numpy for ALL models
                 y_train_search = self._optimize_y(y_train_reset)
 
-                if not is_h2o_model:
+                # Pass DataFrame to H2O and FLAML, which need column info.
+                # Other models get a numpy array for performance.
+                is_flaml_model = isinstance(current_algorithm, FLAMLClassifierWrapper)
+                if not is_h2o_model and not is_flaml_model:
                     X_train_search = X_train_reset.values
                 else:
                     X_train_search = X_train_reset
@@ -579,16 +614,6 @@ class grid_search_crossvalidate:
             # Restore the original grid_n_jobs setting
             self.global_parameters.grid_n_jobs = original_grid_n_jobs
 
-        # Skip final CV in test mode
-        if not failed and getattr(self.global_parameters, "test_mode", False):
-            self.logger.info(
-                "Test mode enabled. Skipping final cross-validation for speed."
-            )
-            self.grid_search_cross_validate_score_result = 0.5  # Return a valid float
-            # Final cleanup for H2O models
-            self._shutdown_h2o_if_needed(current_algorithm)
-            return
-
         if not failed and self.global_parameters.verbose >= 3:
             self.logger.debug("Fitting final model")
 
@@ -612,19 +637,26 @@ class grid_search_crossvalidate:
 
         is_h2o_model = isinstance(current_algorithm, H2O_MODEL_TYPES)
         is_keras_model = isinstance(current_algorithm, keras_model_types)
+        is_flaml_model = isinstance(current_algorithm, FLAMLClassifierWrapper)
+        is_autokeras_model = isinstance(current_algorithm, AutoKerasClassifierWrapper)
 
         # H2O and Keras models require single-threaded execution for CV
-        final_cv_n_jobs = 1 if is_h2o_model or is_keras_model else grid_n_jobs
+        final_cv_n_jobs = (
+            1
+            if is_h2o_model or is_keras_model or is_flaml_model or is_autokeras_model
+            else grid_n_jobs
+        )
         if final_cv_n_jobs == 1:
             self.logger.debug(
-                "H2O or Keras model detected. Forcing n_jobs=1 for final cross-validation."
+                "H2O, Keras, FLAML, or AutoKeras model detected. Forcing n_jobs=1 for final cross-validation."
             )
 
         try:
             if failed:
                 raise TimeoutError
 
-            if isinstance(current_algorithm, H2O_MODEL_TYPES):
+            # H2O, FLAML and AutoKeras require pandas DataFrame to handle categorical features correctly.
+            if is_h2o_model or is_flaml_model or is_autokeras_model:
                 X_train_final = self.X_train  # Pass DataFrame directly
                 y_train_final = self._optimize_y(self.y_train)
             else:
