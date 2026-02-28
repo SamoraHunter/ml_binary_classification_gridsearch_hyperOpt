@@ -47,7 +47,14 @@ class LightGBMClassifierWrapper:
 
         self.parameter_space: Union[Dict[str, Any], List[Dict[str, Any]]]
 
-        if global_params.bayessearch:
+        if getattr(global_parameters, "test_mode", False):
+            self.parameter_space = [
+                {
+                    "n_estimators": [2],
+                    "num_leaves": [2],
+                }
+            ]
+        elif global_parameters.bayessearch:
             self.parameter_space = {
                 "boosting_type": Categorical(("gbdt", "dart", "goss")),
                 "num_leaves": Integer(2, 100),

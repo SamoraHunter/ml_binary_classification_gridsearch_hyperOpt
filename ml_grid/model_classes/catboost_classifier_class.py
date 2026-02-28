@@ -50,7 +50,14 @@ class CatBoostClassifierClass:
 
         self.parameter_space: Union[List[Dict[str, Any]], Dict[str, Any]]
         # Define parameter space for Bayesian search or traditional grid search
-        if global_parameters.bayessearch:
+        if getattr(global_parameters, "test_mode", False):
+            self.parameter_space = [
+                {
+                    "iterations": [2],
+                    "depth": [4],
+                }
+            ]
+        elif global_parameters.bayessearch:
             self.parameter_space = {
                 "iterations": Integer(100, 1000),
                 "learning_rate": Real(0.01, 0.3, prior="uniform"),

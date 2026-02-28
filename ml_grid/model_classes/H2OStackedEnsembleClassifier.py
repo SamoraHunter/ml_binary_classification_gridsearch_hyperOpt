@@ -144,7 +144,7 @@ class H2OStackedEnsembleClassifier(H2OBaseClassifier):
             base_models_list = []
             for i, model_wrapper in enumerate(
                 self.base_models
-            ):  # type:H2OBaseClassifier
+            ):  # type: H2OBaseClassifier
                 self.logger.debug(
                     f"Fitting base model {i+1}: {type(model_wrapper).__name__}"
                 )

@@ -54,7 +54,14 @@ class RandomForestClassifierClass:
         self.parameter_space: Dict[str, Any]
 
         # Define the parameter space for Bayesian and traditional search
-        if global_parameters.bayessearch:
+        if getattr(global_parameters, "test_mode", False):
+            self.parameter_space = [
+                {
+                    "n_estimators": [2],
+                    "max_depth": [2],
+                }
+            ]
+        elif global_parameters.bayessearch:
             # Bayesian Optimization: Adjust parameters if traditional doesn't use param_dict
             self.parameter_space = {
                 "bootstrap": Categorical([True, False]),

@@ -55,7 +55,14 @@ class GradientBoostingClassifierClass:
         )
         self.parameter_space: Dict[str, Any]
 
-        if global_params.bayessearch:
+        if getattr(global_parameters, "test_mode", False):
+            self.parameter_space = [
+                {
+                    "n_estimators": [2],
+                    "max_depth": [2],
+                }
+            ]
+        elif global_parameters.bayessearch:
             # Define the parameter space for Bayesian optimization
             self.parameter_space = {
                 "ccp_alpha": Real(0.0, 1.0, prior="uniform"),

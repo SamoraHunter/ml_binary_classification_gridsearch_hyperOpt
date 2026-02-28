@@ -1,6 +1,6 @@
 from typing import Any, Dict, List
 
-from aeon.classification.convolution_based._rocket_classifier import RocketClassifier
+from aeon.classification.convolution_based import RocketClassifier
 
 from ml_grid.pipeline.data import pipe
 

@@ -85,7 +85,14 @@ class XGBClassifierClass:
                 return param_value
 
         # Set up the parameter space based on the selected optimization method
-        if global_parameters.bayessearch:
+        if getattr(global_parameters, "test_mode", False):
+            self.parameter_space = [
+                {
+                    "n_estimators": [2],
+                    "max_depth": [2],
+                }
+            ]
+        elif global_parameters.bayessearch:
             # Bayesian Optimization: Define parameter space using Real and Categorical
             self.parameter_space = {
                 "objective": Categorical(

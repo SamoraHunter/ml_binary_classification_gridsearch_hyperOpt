@@ -53,7 +53,15 @@ class H2OAutoMLClass:
         self.method_name: str = "H2OAutoMLClassifier"
         self.parameter_space: List[Dict[str, Any]]
 
-        if global_params.bayessearch:
+        if getattr(global_parameters, "test_mode", False):
+            self.parameter_space = [
+                {
+                    "max_runtime_secs": [5],
+                    "max_models": [1],
+                    "nfolds": [2],
+                }
+            ]
+        elif global_parameters.bayessearch:
             # Define the parameter space for Bayesian optimization
             self.parameter_space = [
                 {

@@ -49,7 +49,13 @@ class AdaBoostClassifierClass:
         self.parameter_space: List[Dict[str, Any]]
         is_bayes_search = global_parameters.bayessearch
 
-        if is_bayes_search:
+        if getattr(global_parameters, "test_mode", False):
+            self.parameter_space = [
+                {
+                    "n_estimators": [2],
+                }
+            ]
+        elif is_bayes_search:
             # For BayesSearchCV, define the search space using skopt.space objects.
             # We define separate spaces for each estimator type.
             self.parameter_space = [

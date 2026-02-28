@@ -4,6 +4,7 @@
 This module provides a scikit-learn compatible wrapper for the
 simbsig.neighbors.KNeighborsClassifier, with GPU support.
 """
+
 import logging
 from typing import Any, Dict, Optional, Union
 

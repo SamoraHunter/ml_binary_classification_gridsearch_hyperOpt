@@ -17,6 +17,8 @@ from keras.models import Sequential
 from keras.optimizers import Adam
 from scikeras.wrappers import KerasClassifier
 
+from ml_grid.util.global_params import global_parameters
+
 
 def create_model(
     layers: int = 1,
@@ -154,6 +156,16 @@ class KerasClassifierClass:
             #'learning_rate' : np.logspace(-4, -6, 2)
             # dropout_val = np.logspace(-1, -3, 2)
         }
+
+        if getattr(global_parameters, "test_mode", False):
+            self.parameter_space = {
+                "layers": [1],
+                "epochs": [1],
+                "batch_size": [32],
+                "l1_reg": [0.0],
+                "l2_reg": [0.0],
+                "width": [4],
+            }
 
     # The duplicate create_model method has been removed. The module-level
     # function will be used instead.

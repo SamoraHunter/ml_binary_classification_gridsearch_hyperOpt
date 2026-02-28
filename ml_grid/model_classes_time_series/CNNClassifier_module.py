@@ -1,6 +1,12 @@
 from typing import Any, Dict, List
 
-from aeon.classification.deep_learning import CNNClassifier
+# Monkeypatch sklearn.utils.validation for aeon compatibility
+import sklearn.utils.validation
+
+if not hasattr(sklearn.utils.validation, "validate_data"):
+    sklearn.utils.validation.validate_data = sklearn.utils.validation.check_X_y
+
+from aeon.classification.deep_learning import TimeCNNClassifier
 
 from ml_grid.pipeline.data import pipe
 from ml_grid.util.param_space import ParamSpace
@@ -19,7 +25,7 @@ class CNNClassifier_class:
             for the classifier.
     """
 
-    algorithm_implementation: CNNClassifier
+    algorithm_implementation: TimeCNNClassifier
     method_name: str
     parameter_space: Dict[str, List[Any]]
 
@@ -40,7 +46,7 @@ class CNNClassifier_class:
 
         log_epoch = param_space.param_dict.get("log_epoch")
 
-        self.algorithm_implementation = CNNClassifier()
+        self.algorithm_implementation = TimeCNNClassifier()
         self.method_name = "CNNClassifier"
 
         self.parameter_space = {

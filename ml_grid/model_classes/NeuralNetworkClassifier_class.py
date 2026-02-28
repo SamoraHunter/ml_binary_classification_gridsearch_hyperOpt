@@ -56,7 +56,18 @@ class NeuralNetworkClassifier_class:
 
         from ml_grid.util.global_params import global_parameters
 
-        if global_parameters.bayessearch:
+        if getattr(global_parameters, "test_mode", False):
+            self.parameter_space = [
+                {
+                    "hidden_layer_sizes": ["(8,)"],
+                    "dropout_rate": [0.0],
+                    "learning_rate": [0.01],
+                    "activation_func": ["relu"],
+                    "epochs": [1],
+                    "batch_size": [32],
+                }
+            ]
+        elif global_parameters.bayessearch:
             from skopt.space import Categorical, Integer, Real
 
             self.parameter_space = [
