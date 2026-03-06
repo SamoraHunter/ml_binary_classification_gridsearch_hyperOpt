@@ -359,17 +359,29 @@ class grid_search_crossvalidate:
         # Ensure list-based parameters are wrapped in Categorical for Bayesian search
         if self.global_params.bayessearch:
             self.logger.debug("Validating parameter space for Bayesian search...")
+
+            def _is_simple_categorical(val):
+                """
+                Determines if a value is a list of simple, hashable choices
+                suitable for wrapping in skopt.space.Categorical.
+                """
+                # A list is only considered a categorical choice if it has more than one item.
+                # Single-item lists are treated as fixed parameters by BayesSearchCV.
+                if not isinstance(val, (list, np.ndarray)) or len(val) <= 1:
+                    return False
+                try:
+                    for item in val:
+                        hash(item)
+                    return True
+                except TypeError:
+                    return False
+
             if isinstance(parameter_space, list):
                 for i, space in enumerate(parameter_space):
                     new_space = {}
                     for key, value in space.items():
-                        is_list_of_choices = (
-                            isinstance(value, (list, np.ndarray))
-                            and value
-                            and not isinstance(value[0], list)
-                        )
-                        if is_list_of_choices and not is_skopt_space(value):
-                            self.logger.warning(
+                        if _is_simple_categorical(value) and not is_skopt_space(value):
+                            self.logger.info(
                                 f"Auto-correcting param '{key}' for BayesSearch: wrapping list in Categorical."
                             )
                             new_space[key] = Categorical(value)
@@ -379,13 +391,8 @@ class grid_search_crossvalidate:
             elif isinstance(parameter_space, dict):
                 new_parameter_space = {}
                 for key, value in parameter_space.items():
-                    is_list_of_choices = (
-                        isinstance(value, (list, np.ndarray))
-                        and value
-                        and not isinstance(value[0], list)
-                    )
-                    if is_list_of_choices and not is_skopt_space(value):
-                        self.logger.warning(
+                    if _is_simple_categorical(value) and not is_skopt_space(value):
+                        self.logger.info(
                             f"Auto-correcting param '{key}' for BayesSearch: wrapping list in Categorical."
                         )
                         new_parameter_space[key] = Categorical(value)
@@ -481,6 +488,13 @@ class grid_search_crossvalidate:
             self._adjust_catboost_parameters(parameter_space)
             self.logger.debug(
                 "Adjusted CatBoost subsample parameter space to prevent errors on small CV folds."
+            )
+
+        # Adjust XGBoost parameters for small datasets
+        if "xgb" in method_name.lower():
+            self._adjust_xgboost_parameters(parameter_space)
+            self.logger.debug(
+                "Adjusted XGBoost max_bin parameter space to prevent errors on small CV folds."
             )
 
         # Force sequential search for H2O/GPU models
@@ -1110,6 +1124,42 @@ class grid_search_crossvalidate:
                     params["rsm"] = adjust_param(params["rsm"])
         elif isinstance(parameter_space, dict) and "rsm" in parameter_space:
             parameter_space["rsm"] = adjust_param(parameter_space["rsm"])
+
+    def _adjust_xgboost_parameters(self, parameter_space: Union[Dict, List[Dict]]):
+        """
+        Dynamically adjusts 'max_bin' for XGBoost to prevent errors on small datasets.
+        """
+        # Ensure max_bin is at least 2
+        min_max_bin = 2
+
+        def adjust_param(param_value):
+            if is_skopt_space(param_value):
+                # For skopt Integer space
+                if hasattr(param_value, "low"):
+                    new_low = max(param_value.low, min_max_bin)
+                    if new_low > param_value.high:
+                        # If low > high, we must adjust high as well
+                        param_value.high = max(param_value.high, min_max_bin)
+                        new_low = min(new_low, param_value.high)
+                    param_value.low = new_low
+            elif isinstance(param_value, (list, np.ndarray)):
+                # Filter out invalid values
+                new_param_value = [v for v in param_value if v >= min_max_bin]
+                if not new_param_value:
+                    return [min_max_bin]
+                return new_param_value
+            # If it's a single scalar (int), ensure it's >= 2
+            elif isinstance(param_value, (int, float)):
+                if param_value < min_max_bin:
+                    return min_max_bin
+            return param_value
+
+        if isinstance(parameter_space, list):
+            for params in parameter_space:
+                if "max_bin" in params:
+                    params["max_bin"] = adjust_param(params["max_bin"])
+        elif isinstance(parameter_space, dict) and "max_bin" in parameter_space:
+            parameter_space["max_bin"] = adjust_param(parameter_space["max_bin"])
 
     def _shutdown_h2o_if_needed(self, algorithm: Any):
         """Safely shuts down the H2O cluster if the algorithm is an H2O model."""
