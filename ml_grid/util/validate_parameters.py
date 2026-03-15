@@ -4,7 +4,6 @@ import logging
 from typing import Any, Dict, List, Union
 
 from sklearn.neighbors import KNeighborsClassifier
-from xgboost import XGBClassifier
 
 # from ml_grid.model_classes.knn_gpu_classifier_class import KNNGpuWrapperClass
 # from ml_grid.model_classes.knn_wrapper_class import KNNWrapper
@@ -49,7 +48,7 @@ def validate_knn_parameters(
     logger.debug(f"  Initial n_neighbors: {n_neighbors}")
 
     # Check if any n_neighbors values are too large
-    if n_neighbors is not None:
+    if n_neighbors is not None and isinstance(n_neighbors, list):
         for i in range(len(n_neighbors)):
             if n_neighbors[i] > max_neighbors:
                 logger.debug(
@@ -57,7 +56,7 @@ def validate_knn_parameters(
                 )
                 n_neighbors[i] = max_neighbors
 
-    parameters["n_neighbors"] = n_neighbors
+        parameters["n_neighbors"] = n_neighbors
     # Return the validated parameters
     return parameters
 
@@ -85,7 +84,7 @@ def validate_XGB_parameters(
 
     max_bin_array = parameters.get("max_bin")
 
-    if max_bin_array is None:
+    if max_bin_array is None or not isinstance(max_bin_array, list):
         return parameters
 
     # Iterate over each value in the max_bin array
@@ -106,7 +105,13 @@ def validate_parameters_helper(
     parameters: Union[Dict[str, Any], List[Dict[str, Any]]],
     ml_grid_object: Any,
 ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
-    """Dispatches to the correct parameter validation function based on algorithm type.
+    """Dispatches to model-specific validation or performs generic filtering.
+
+    This function first checks for model-specific validation routines (e.g., for
+    KNN, XGBoost). If no specific routine is found, it performs a generic
+    validation that removes any parameters from the search space that are not
+    valid for the given algorithm instance. This prevents `TypeError` exceptions
+    from scikit-learn's search classes.
 
     Args:
         algorithm_implementation (Any): The scikit-learn estimator instance.
@@ -116,29 +121,45 @@ def validate_parameters_helper(
     Returns:
         Union[Dict[str, Any], List[Dict[str, Any]]]: The validated parameters.
     """
+    logger = logging.getLogger("ml_grid")
 
+    # --- Model-specific validation ---
     if isinstance(algorithm_implementation, KNeighborsClassifier):
+        return validate_knn_parameters(parameters, ml_grid_object)
 
-        parameters = validate_knn_parameters(parameters, ml_grid_object)
+    try:
+        from xgboost import XGBClassifier
 
+        if isinstance(algorithm_implementation, XGBClassifier):
+            return validate_XGB_parameters(parameters, ml_grid_object)
+    except ImportError:
+        logger.debug("XGBoost not installed, skipping XGBoost-specific validation.")
+        pass
+
+    # --- Generic fallback: Filter invalid parameters ---
+    try:
+        valid_params = algorithm_implementation.get_params().keys()
+    except Exception:
+        logger.warning(
+            f"Could not get params for {algorithm_implementation.__class__.__name__}. Skipping generic validation."
+        )
         return parameters
 
-    # elif type(algorithm_implementation) == KNNWrapper:
+    def _filter_dict(param_dict: Dict) -> Dict:
+        """Filters a single parameter dictionary."""
+        if not isinstance(param_dict, dict):
+            return param_dict
+        validated_dict = {k: v for k, v in param_dict.items() if k in valid_params}
+        removed_keys = set(param_dict.keys()) - set(validated_dict.keys())
+        if removed_keys:
+            logger.debug(
+                f"Removed invalid keys for {algorithm_implementation.__class__.__name__}: {removed_keys}"
+            )
+        return validated_dict
 
-    #     parameters = validate_knn_parameters(parameters, ml_grid_object)
+    if isinstance(parameters, list):
+        return [_filter_dict(p) for p in parameters]
+    elif isinstance(parameters, dict):
+        return _filter_dict(parameters)
 
-    #     return parameters
-
-    # elif isinstance(algorithm_implementation, KNNGpuWrapperClass):
-
-    #     parameters = validate_knn_parameters(parameters, ml_grid_object)
-
-    #     return parameters
-
-    elif isinstance(algorithm_implementation, XGBClassifier):
-        parameters = validate_XGB_parameters(parameters, ml_grid_object)
-
-        return parameters
-
-    else:
-        return parameters
+    return parameters

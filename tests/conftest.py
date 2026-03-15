@@ -7,7 +7,6 @@ import numpy as np
 import h2o
 import pytest
 
-
 # --- Tame TensorFlow ---
 # Set log level to suppress info/warnings before importing
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
