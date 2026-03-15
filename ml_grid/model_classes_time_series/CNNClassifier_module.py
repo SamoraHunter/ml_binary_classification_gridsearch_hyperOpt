@@ -6,6 +6,7 @@ import sklearn.utils.validation
 if not hasattr(sklearn.utils.validation, "validate_data"):
     sklearn.utils.validation.validate_data = sklearn.utils.validation.check_X_y
 
+from skopt.space import Categorical, Integer, Real
 from aeon.classification.deep_learning import TimeCNNClassifier
 
 from ml_grid.pipeline.data import pipe
@@ -49,24 +50,61 @@ class CNNClassifier_class:
         self.algorithm_implementation = TimeCNNClassifier()
         self.method_name = "CNNClassifier"
 
-        self.parameter_space = {
-            #'n_layers': [2, 3, 4],
-            #'kernel_size': [3, 5, 7],
-            #'n_filters': [[6, 12], [8, 16], [10, 20]],
-            #'avg_pool_size': [2, 3, 4],
-            "activation": ["sigmoid", "relu"],
-            "padding": ["valid"],
-            #'strides': [1, 2],
-            "dilation_rate": [1, 2],
-            "use_bias": [True],
-            "random_state": [random_state_val],
-            "n_epochs": [log_epoch],
-            "batch_size": [16, 32, 64],
-            "verbose": [verbose_param],
-            "loss": ["binary_crossentropy"],
-            "metrics": ["accuracy"],
-            #'save_best_model': [True, False],
-            #'save_last_model': [True, False],
-            #'best_file_name': ['best_model', 'top_model'],
-            #'last_file_name': ['last_model', 'final_model'],
-        }
+        gp = ml_grid_object.global_params
+        test_mode = getattr(gp, "test_mode", False)
+        if not test_mode and hasattr(gp, "__dict__"):
+            test_mode = gp.__dict__.get("test_mode", False)
+
+        if test_mode:
+            self.parameter_space = {
+                "activation": ["relu"],
+                "padding": ["valid"],
+                "dilation_rate": [1],
+                "use_bias": [True],
+                "random_state": [random_state_val],
+                "n_epochs": [2],
+                "batch_size": [16],
+                "verbose": [0],
+                "loss": ["binary_crossentropy"],
+                "metrics": [("accuracy",)],
+                "save_best_model": [False],
+                "save_last_model": [False],
+            }
+        elif ml_grid_object.global_params.bayessearch:
+            n_epochs_param = log_epoch
+            if (
+                isinstance(n_epochs_param, list)
+                and len(n_epochs_param) >= 1
+                and isinstance(n_epochs_param[0], (Categorical, Integer, Real))
+            ):
+                n_epochs_param = n_epochs_param[0]
+
+            self.parameter_space = {
+                "activation": Categorical(["sigmoid", "relu"]),
+                "padding": Categorical(["valid"]),
+                "dilation_rate": Categorical([1, 2]),
+                "use_bias": [True],
+                "random_state": [random_state_val],
+                "n_epochs": n_epochs_param,
+                "batch_size": Categorical([16, 32, 64]),
+                "verbose": [verbose_param],
+                "loss": Categorical(["binary_crossentropy"]),
+                "metrics": Categorical(["accuracy"]),
+                "save_best_model": [True],
+                "save_last_model": [False],
+            }
+        else:
+            self.parameter_space = {
+                "activation": ["sigmoid", "relu"],
+                "padding": ["valid"],
+                "dilation_rate": [1, 2],
+                "use_bias": [True],
+                "random_state": [random_state_val],
+                "n_epochs": log_epoch,
+                "batch_size": [16, 32, 64],
+                "verbose": [verbose_param],
+                "loss": ["binary_crossentropy"],
+                "metrics": ["accuracy"],
+                "save_best_model": [True],
+                "save_last_model": [False],
+            }

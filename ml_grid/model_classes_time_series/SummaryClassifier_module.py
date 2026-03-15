@@ -2,6 +2,7 @@ from typing import Any, Dict, List
 
 from aeon.classification.feature_based import SummaryClassifier
 from sklearn.ensemble import RandomForestClassifier
+from skopt.space import Categorical
 
 from ml_grid.pipeline.data import pipe
 
@@ -35,24 +36,50 @@ class SummaryClassifier_class:
 
         self.algorithm_implementation = SummaryClassifier()
         self.method_name = "SummaryClassifier"
-        self.parameter_space = {
-            "summary_functions": [
-                "mean",
-                "std",
-                "min",
-                "max",
-                "median",
-                "sum",
-                "skew",
-                "kurt",
-                "var",
-                "mad",
-                "sem",
-                "nunique",
-                "count",
-            ],
-            "summary_quantiles": [None, [0.25, 0.5, 0.75]],
-            "estimator": [None, RandomForestClassifier(n_estimators=200)],
-            "n_jobs": [n_jobs_model_val],
-            "random_state": [random_state_val],
-        }
+
+        if getattr(ml_grid_object.global_params, "test_mode", False):
+            self.parameter_space = {
+                "summary_stats": [("mean", "std")],
+                "estimator": [RandomForestClassifier(n_estimators=10)],
+                "n_jobs": [1],
+            }
+            return
+
+        if ml_grid_object.global_params.bayessearch:
+            self.parameter_space = {
+                "summary_stats": Categorical(
+                    [
+                        ("mean", "std", "min", "max"),
+                        ("mean", "std", "skew", "kurt", "median"),
+                        (
+                            "mean",
+                            "std",
+                            "min",
+                            "max",
+                            "skew",
+                            "kurt",
+                            "median",
+                            "sum",
+                        ),
+                    ]
+                ),
+                "estimator": Categorical(
+                    [None, RandomForestClassifier(n_estimators=200)]
+                ),
+                "n_jobs": [n_jobs_model_val],
+                "random_state": [random_state_val],
+            }
+        else:
+            self.parameter_space = {
+                # The summary_stats parameter expects a list of strings. To make this
+                # searchable with skopt, we provide a list of tuples. Tuples are
+                # hashable and can be used as categories in a Categorical space.
+                "summary_stats": [
+                    ("mean", "std", "min", "max"),
+                    ("mean", "std", "skew", "kurt", "median"),
+                    ("mean", "std", "min", "max", "skew", "kurt", "median", "sum"),
+                ],
+                "estimator": [None, RandomForestClassifier(n_estimators=200)],
+                "n_jobs": [n_jobs_model_val],
+                "random_state": [random_state_val],
+            }

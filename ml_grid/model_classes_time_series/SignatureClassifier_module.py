@@ -33,6 +33,18 @@ class SignatureClassifier_class:
 
         self.algorithm_implementation = SignatureClassifier()
         self.method_name = "SignatureClassifier"
-        self.parameter_space = {
-            "random_state": [random_state_val],
-        }
+
+        if getattr(ml_grid_object.global_params, "test_mode", False):
+            self.parameter_space = {
+                "random_state": [random_state_val],
+            }
+            return
+
+        if ml_grid_object.global_params.bayessearch:
+            self.parameter_space = {
+                "random_state": [random_state_val],
+            }
+        else:
+            self.parameter_space = {
+                "random_state": [random_state_val],
+            }

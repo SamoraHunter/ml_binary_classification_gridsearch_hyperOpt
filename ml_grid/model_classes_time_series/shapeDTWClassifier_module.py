@@ -25,6 +25,7 @@ try:
 except ImportError:
     # ShapeDTW was removed in aeon v0.11.0. Use a dummy placeholder.
     ShapeDTW = _DummyClassifier
+from skopt.space import Categorical
 from ml_grid.pipeline.data import pipe
 
 
@@ -64,7 +65,23 @@ class ShapeDTW_class:
 
             self.algorithm_implementation = ShapeDTW()
             self.method_name = "ShapeDTW"
-            self.parameter_space = {
-                "shape_descriptor_function": ["raw", "derivative", "paa", "dwt"],
-                "n_jobs": [n_jobs_model_val],
-            }
+
+            if getattr(ml_grid_object.global_params, "test_mode", False):
+                self.parameter_space = {
+                    "shape_descriptor_function": ["raw"],
+                    "n_jobs": [1],
+                }
+                return
+
+            if ml_grid_object.global_params.bayessearch:
+                self.parameter_space = {
+                    "shape_descriptor_function": Categorical(
+                        ["raw", "derivative", "paa", "dwt"]
+                    ),
+                    "n_jobs": [n_jobs_model_val],
+                }
+            else:
+                self.parameter_space = {
+                    "shape_descriptor_function": ["raw", "derivative", "paa", "dwt"],
+                    "n_jobs": [n_jobs_model_val],
+                }

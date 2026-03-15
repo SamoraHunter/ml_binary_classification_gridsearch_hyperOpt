@@ -1,6 +1,7 @@
 from typing import Any, Dict, List
 
 from aeon.classification.distance_based import KNeighborsTimeSeriesClassifier
+from skopt.space import Categorical, Integer
 
 from ml_grid.pipeline.data import pipe
 
@@ -32,13 +33,34 @@ class KNeighborsTimeSeriesClassifier_class:
         """
         self.algorithm_implementation = KNeighborsTimeSeriesClassifier()
         self.method_name = "KNeighborsTimeSeriesClassifier"
-        self.parameter_space = {
-            "distance": [
-                "dtw",
-                "euclidean",
-            ],  # , 'cityblock' 'ctw', 'sqeuclidean','sax' 'softdtw'
-            "n_neighbors": [2, 3, 5],  # [log_med_long]
-            "n_jobs": [ml_grid_object.global_params.knn_n_jobs],
-        }
+
+        if getattr(ml_grid_object.global_params, "test_mode", False):
+            self.parameter_space = {
+                "n_neighbors": [1],
+                "distance": ["euclidean"],
+                "n_jobs": [1],
+            }
+            return
+
+        if ml_grid_object.global_params.bayessearch:
+            self.parameter_space = {
+                "distance": Categorical(
+                    [
+                        "dtw",
+                        "euclidean",
+                    ]
+                ),
+                "n_neighbors": Integer(2, 5),
+                "n_jobs": [ml_grid_object.global_params.knn_n_jobs],
+            }
+        else:
+            self.parameter_space = {
+                "distance": [
+                    "dtw",
+                    "euclidean",
+                ],  # , 'cityblock' 'ctw', 'sqeuclidean','sax' 'softdtw'
+                "n_neighbors": [2, 3, 5],  # [log_med_long]
+                "n_jobs": [ml_grid_object.global_params.knn_n_jobs],
+            }
 
         # nb consider probability scoring on binary class eval: CalibratedClassifierCV

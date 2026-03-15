@@ -1,6 +1,7 @@
 from typing import Any, Dict, List
 
 from aeon.classification.distance_based import ElasticEnsemble
+from skopt.space import Categorical, Real
 
 from ml_grid.pipeline.data import pipe
 
@@ -34,10 +35,29 @@ class ElasticEnsemble_class:
 
         self.algorithm_implementation = ElasticEnsemble()
         self.method_name = "ElasticEnsemble"
-        self.parameter_space = {
-            "proportion_of_param_options": [1.0, 0.8, 0.6],
-            "proportion_train_in_param_finding": [1.0, 0.8, 0.6],
-            "proportion_train_for_test": [1.0, 0.8, 0.6],
-            "n_jobs": [n_jobs_model_val],
-            "majority_vote": [False, True],
-        }
+
+        if getattr(ml_grid_object.global_params, "test_mode", False):
+            self.parameter_space = {
+                "proportion_of_param_options": [0.1],
+                "proportion_train_in_param_finding": [0.1],
+                "proportion_train_for_test": [0.1],
+                "n_jobs": [1],
+            }
+            return
+
+        if ml_grid_object.global_params.bayessearch:
+            self.parameter_space = {
+                "proportion_of_param_options": Real(0.6, 0.8),
+                "proportion_train_in_param_finding": Real(0.6, 0.8),
+                "proportion_train_for_test": Real(0.6, 0.8),
+                "n_jobs": [n_jobs_model_val],
+                "majority_vote": Categorical([False, True]),
+            }
+        else:
+            self.parameter_space = {
+                "proportion_of_param_options": [0.8, 0.7, 0.6],
+                "proportion_train_in_param_finding": [0.8, 0.7, 0.6],
+                "proportion_train_for_test": [0.8, 0.7, 0.6],
+                "n_jobs": [n_jobs_model_val],
+                "majority_vote": [False, True],
+            }

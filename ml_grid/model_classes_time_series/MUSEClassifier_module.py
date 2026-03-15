@@ -1,6 +1,7 @@
 from typing import Any, Dict, List
 
 from aeon.classification.dictionary_based._muse import MUSE
+from skopt.space import Categorical, Integer, Real
 
 from ml_grid.pipeline.data import pipe
 
@@ -35,45 +36,69 @@ class MUSE_class:
 
         self.algorithm_implementation = MUSE()
         self.method_name = "MUSE"
-        self.parameter_space = {
-            "anova": [
-                True,
-                False,
-            ],  # If True, Fourier coefficient selection is done via a one-way ANOVA test
-            "variance": [
-                True,
-                False,
-            ],  # If True, Fourier coefficient selection is done via the largest variance
-            "bigrams": [True, False],  # Whether to create bigrams of SFA words
-            "window_inc": [
-                2,
-                4,
-            ],  # Increment used to determine the next window size for BoP model
-            "alphabet_size": [
-                4,
-                6,
-                8,
-            ],  # Number of possible letters (values) for each word
-            "use_first_order_differences": [
-                True,
-                False,
-            ],  # If True, adds the first order differences of each dimension to the data
-            "feature_selection": [
-                "chi2",
-                "none",
-                "random",
-            ],  # Sets the feature selection strategy to be used
-            "p_threshold": [
-                0.01,
-                0.05,
-                0.1,
-            ],  # P-value threshold for chi-squared test on bag-of-words
-            "support_probabilities": [
-                True,
-                False,
-            ],  # If True, trains a LogisticRegression to support predict_proba()
-            "n_jobs": [
-                n_jobs_model_val
-            ],  # Number of jobs to run in parallel for fit and predict
-            "random_state": [random_state_val],  # Seed for random number generation
-        }
+
+        if getattr(ml_grid_object.global_params, "test_mode", False):
+            self.parameter_space = {
+                "anova": [False],
+                "variance": [False],
+                "n_jobs": [1],
+            }
+            return
+
+        if ml_grid_object.global_params.bayessearch:
+            self.parameter_space = {
+                "anova": Categorical([True, False]),
+                "variance": Categorical([True, False]),
+                "bigrams": Categorical([True, False]),
+                "window_inc": Integer(2, 4),
+                "alphabet_size": Categorical([4, 6, 8]),
+                "use_first_order_differences": Categorical([True, False]),
+                "feature_selection": Categorical(["chi2", "none", "random"]),
+                "p_threshold": Real(0.01, 0.1),
+                "support_probabilities": Categorical([True, False]),
+                "n_jobs": [n_jobs_model_val],
+                "random_state": [random_state_val],
+            }
+        else:
+            self.parameter_space = {
+                "anova": [
+                    True,
+                    False,
+                ],  # If True, Fourier coefficient selection is done via a one-way ANOVA test
+                "variance": [
+                    True,
+                    False,
+                ],  # If True, Fourier coefficient selection is done via the largest variance
+                "bigrams": [True, False],  # Whether to create bigrams of SFA words
+                "window_inc": [
+                    2,
+                    4,
+                ],  # Increment used to determine the next window size for BoP model
+                "alphabet_size": [
+                    4,
+                    6,
+                    8,
+                ],  # Number of possible letters (values) for each word
+                "use_first_order_differences": [
+                    True,
+                    False,
+                ],  # If True, adds the first order differences of each dimension to the data
+                "feature_selection": [
+                    "chi2",
+                    "none",
+                    "random",
+                ],  # Sets the feature selection strategy to be used
+                "p_threshold": [
+                    0.01,
+                    0.05,
+                    0.1,
+                ],  # P-value threshold for chi-squared test on bag-of-words
+                "support_probabilities": [
+                    True,
+                    False,
+                ],  # If True, trains a LogisticRegression to support predict_proba()
+                "n_jobs": [
+                    n_jobs_model_val
+                ],  # Number of jobs to run in parallel for fit and predict
+                "random_state": [random_state_val],  # Seed for random number generation
+            }

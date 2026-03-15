@@ -1,6 +1,7 @@
 from typing import Any, Dict, List
 
 from aeon.classification.convolution_based import RocketClassifier
+from skopt.space import Categorical
 
 from ml_grid.pipeline.data import pipe
 
@@ -35,32 +36,30 @@ class RocketClassifier_class:
 
         self.algorithm_implementation = RocketClassifier()
         self.method_name = "RocketClassifier"
-        self.parameter_space = {
-            "num_kernels": [
-                5000,
-                10000,
-                15000,
-            ],  # The number of kernels for the Rocket transform.
-            "rocket_transform": [
-                "rocket",
-                "minirocket",
-                "multirocket",
-            ],  # The type of Rocket transformer to use. Valid inputs = ["rocket", "minirocket", "multirocket"].
-            "max_dilations_per_kernel": [
-                16,
-                32,
-                64,
-            ],  # MiniRocket and MultiRocket only. The maximum number of dilations per kernel.
-            "n_features_per_kernel": [
-                3,
-                4,
-                5,
-            ],  # MultiRocket only. The number of features per kernel.
-            "random_state": [random_state_val],  # Seed for random number generation.
-            "estimator": [
-                None
-            ],  # If none, a RidgeClassifierCV(alphas=np.logspace(-3, 3, 10)) is used.
-            "n_jobs": [
-                n_jobs_model_val
-            ],  # Number of threads to use for the convolutional transform. -1 means using all processors.
-        }
+
+        gp = ml_grid_object.global_params
+        test_mode = getattr(gp, "test_mode", False)
+        if not test_mode and hasattr(gp, "__dict__"):
+            test_mode = gp.__dict__.get("test_mode", False)
+
+        if test_mode:
+            self.parameter_space = {
+                "n_kernels": [100],
+                "random_state": [random_state_val],
+                "estimator": [None],
+                "n_jobs": [1],
+            }
+        elif ml_grid_object.global_params.bayessearch:
+            self.parameter_space = {
+                "n_kernels": Categorical([5000, 10000, 15000]),
+                "random_state": [random_state_val],
+                "estimator": [None],
+                "n_jobs": [n_jobs_model_val],
+            }
+        else:
+            self.parameter_space = {
+                "n_kernels": [5000, 10000, 15000],
+                "random_state": [random_state_val],
+                "estimator": [None],
+                "n_jobs": [n_jobs_model_val],
+            }

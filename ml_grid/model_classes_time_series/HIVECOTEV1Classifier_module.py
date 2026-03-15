@@ -37,12 +37,30 @@ class HIVECOTEV1_class:
         self.algorithm_implementation = HIVECOTEV1()
         self.method_name = "HIVECOTEV1"
 
-        self.parameter_space = {
-            "stc_params": [None],
-            "tsf_params": [None],
-            "rise_params": [None],
-            "cboss_params": [None],
-            "verbose": [verbose_param],
-            "n_jobs": [n_jobs_model_val],
-            "random_state": [random_state_val],
-        }
+        if getattr(ml_grid_object.global_params, "test_mode", False):
+            self.parameter_space = {
+                "verbose": [0],
+                "n_jobs": [1],
+            }
+            return
+
+        if ml_grid_object.global_params.bayessearch:
+            self.parameter_space = {
+                "stc_params": [None],
+                "tsf_params": [None],
+                "rise_params": [None],
+                "cboss_params": [None],
+                "verbose": [verbose_param],
+                "n_jobs": [n_jobs_model_val],
+                "random_state": [random_state_val],
+            }
+        else:
+            self.parameter_space = {
+                "stc_params": [None],
+                "tsf_params": [None],
+                "rise_params": [None],
+                "cboss_params": [None],
+                "verbose": [verbose_param],
+                "n_jobs": [n_jobs_model_val],
+                "random_state": [random_state_val],
+            }
