@@ -9,7 +9,6 @@ import numpy as np
 from sklearn.model_selection import ParameterGrid
 from skopt.space import Categorical, Integer, Real
 
-from ml_grid.pipeline import grid_search_cross_validate
 from ml_grid.pipeline.data import pipe
 from ml_grid.util.bayes_utils import calculate_combinations
 from ml_grid.util.global_params import global_parameters
@@ -317,10 +316,21 @@ class run:
             if timeout is None:
                 timeout = args[3].global_params.model_eval_time_limit
 
-            with time_limit(timeout):
-                gscv_instance = grid_search_cross_validate.grid_search_crossvalidate(
-                    *args
+            # Conditionally select the grid search class based on time-series mode
+            ml_grid_object = args[3]
+            if ml_grid_object.time_series_mode:
+                from ml_grid.pipeline.grid_search_cross_validate_ts import (
+                    grid_search_crossvalidate_ts,
                 )
+
+                gscv_class = grid_search_crossvalidate_ts
+            else:
+                from ml_grid.pipeline import grid_search_cross_validate
+
+                gscv_class = grid_search_cross_validate.grid_search_crossvalidate
+
+            with time_limit(timeout):
+                gscv_instance = gscv_class(*args)
                 score = gscv_instance.grid_search_cross_validate_score_result
 
             self.logger.info(f"Score for {args[2]}: {score:.4f}")
@@ -362,6 +372,19 @@ class run:
         self.model_error_list = []
         self.highest_score = 0
 
+        # Determine which grid search class to use based on the pipeline mode
+        is_ts = self.ml_grid_object.time_series_mode
+        if is_ts:
+            from ml_grid.pipeline.grid_search_cross_validate_ts import (
+                grid_search_crossvalidate_ts,
+            )
+
+            gscv_class = grid_search_crossvalidate_ts
+        else:
+            from ml_grid.pipeline import grid_search_cross_validate
+
+            gscv_class = grid_search_cross_validate.grid_search_crossvalidate
+
         if self.multiprocess:
 
             def multi_run_wrapper(args: Tuple) -> Any:
@@ -388,12 +411,7 @@ class run:
                         timeout = self.global_params.model_eval_time_limit
 
                     with time_limit(timeout):
-                        gscv_instance = (
-                            grid_search_cross_validate.grid_search_crossvalidate(
-                                *self.arg_list[k]  # Unpack all arguments
-                            )
-                        )
-
+                        gscv_instance = gscv_class(*self.arg_list[k])
                         self.highest_score = max(
                             self.highest_score,
                             gscv_instance.grid_search_cross_validate_score_result,

@@ -1,6 +1,8 @@
 import logging
 import warnings
 from typing import Any, Dict, List, Union
+import numpy as np
+import joblib
 
 import pandas as pd
 import tensorflow as tf
@@ -8,6 +10,7 @@ from sklearn.base import BaseEstimator, is_classifier
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from skopt import BayesSearchCV
+from skopt.utils import point_asdict
 from ml_grid.model_classes.AutoKerasClassifierWrapper import AutoKerasClassifierWrapper
 from ml_grid.model_classes.FLAMLClassifierWrapper import FLAMLClassifierWrapper
 from ml_grid.model_classes.H2OAutoMLClassifier import H2OAutoMLClassifier
@@ -28,6 +31,86 @@ from ml_grid.model_classes.keras_classifier_class import KerasClassifierClass
 from ml_grid.model_classes.NeuralNetworkKerasClassifier import NeuralNetworkClassifier
 from ml_grid.util.global_params import global_parameters
 from ml_grid.util.validate_parameters import validate_parameters_helper
+
+
+class PatchedBayesSearchCV(BayesSearchCV):
+    def _step(
+        self,
+        search_space,
+        optimizer,
+        score_name=None,
+        evaluate_candidates=None,
+        n_points=1,
+    ):
+        """
+        A patched version of _step to handle non-scalar Categorical parameters.
+
+        This is a copy of the original _step method from an older skopt version,
+        with the problematic line that causes `ValueError: can only convert an
+        array of size 1 to a Python scalar` removed.
+        """
+        # get parameter values to evaluate
+        params = optimizer.ask(n_points=n_points)
+
+        # The problematic line `params = [[np.array(v).item() for v in p] for p in params]`
+        # is removed here to support non-scalar parameter values like tuples.
+
+        # make lists into dictionaries
+        params_dict = [point_asdict(search_space, p) for p in params]
+
+        # Convert numpy types to native Python types to avoid H2OTypeError
+        for i in range(len(params_dict)):
+            for k, v in params_dict[i].items():
+                if hasattr(v, "item"):
+                    params_dict[i][k] = v.item()
+
+        # evaluate all candidates
+        all_results = evaluate_candidates(params_dict)
+
+        # Feed the point and score to the optimizer
+        # We should feed the score of the refit metric to the optimizer.
+        # The `multimetric_` attribute may not be present in all versions.
+        # A reliable way to check for multimetric scoring is to see if `scoring`
+        # was provided as a dictionary.
+        if isinstance(self.scoring, dict):
+            # Always use self.refit to get the base metric name (e.g., 'auc').
+            # The `score_name` argument can be polluted in older skopt versions
+            # on subsequent iterations of the search loop.
+            metric_name = self.refit
+            mean_test_score = all_results[f"mean_test_{metric_name}"]
+        else:
+            mean_test_score = all_results["mean_test_score"]
+
+        # Coerce scores to a 1D numpy array of floats to prevent type/shape errors.
+        # This handles scalars, lists, and nested lists.
+        scores_arr = np.asarray(mean_test_score, dtype=float).flatten()
+
+        # skopt optimizer minimizes the function so we negate the score
+        y_tell = (-scores_arr).tolist()
+
+        # WORKAROUND: The batch `tell` method in older skopt versions can be buggy
+        # and corrupt the optimizer's internal state (Xi, yi), leading to an
+        # IndexError. To avoid this, we feed the points to the optimizer one
+        # by one. The `fit` parameter is set to False for all but the last
+        # point to ensure the model is fitted only after all points in the
+        # batch are told.
+        if params:
+            # Tell all but the last point without fitting the model
+            for i in range(len(params) - 1):
+                optimizer.tell(params[i], y_tell[i], fit=False)
+            # Tell the last point and trigger the model fit
+            optimizer.tell(params[-1], y_tell[-1], fit=True)
+
+        # Pack results into a dictionary
+        results = {
+            "params": params,
+            "mean_test_score": mean_test_score,
+            "all_results": all_results,
+        }
+        # The calling `_run_search` loop expects a score_name back. We return
+        # the base metric name to avoid polluting the `score_name` variable
+        # in the parent loop.
+        return results, self.refit if self.refit else "score"
 
 
 class HyperparameterSearch:
@@ -203,6 +286,32 @@ class HyperparameterSearch:
             ),  # KNNWrapper,
         )
 
+        # Detect aeon deep learning models (MLPClassifier, TimeCNNClassifier, etc.)
+        # These use TensorFlow/Keras and hang with joblib multiprocessing
+        if (
+            not is_single_threaded_search
+            and hasattr(self.algorithm, "__module__")
+            and "aeon" in self.algorithm.__module__
+            and "deep_learning" in self.algorithm.__module__
+        ):
+            is_single_threaded_search = True
+            # Force verbose=0 to prevent progress bar hangs in captured stdout environments
+            if hasattr(self.algorithm, "verbose"):
+                self.algorithm.verbose = 0
+
+            # Force verbose=0 in parameter space to prevent search from re-enabling it
+            if isinstance(self.parameter_space, dict):
+                if "verbose" in self.parameter_space:
+                    self.parameter_space["verbose"] = [0]
+                if "model__verbose" in self.parameter_space:
+                    self.parameter_space["model__verbose"] = [0]
+            elif isinstance(self.parameter_space, list):
+                for params in self.parameter_space:
+                    if "verbose" in params:
+                        params["verbose"] = [0]
+                    if "model__verbose" in params:
+                        params["model__verbose"] = [0]
+
         if is_h2o_model or is_single_threaded_search or bayessearch:
             if verbose > 0:
                 self.ml_grid_object.logger.info(
@@ -297,7 +406,7 @@ class HyperparameterSearch:
 
         if bayessearch:
             # Bayesian Optimization
-            grid = BayesSearchCV(
+            grid = PatchedBayesSearchCV(
                 estimator=self.algorithm,
                 search_spaces=parameters,
                 n_iter=self.max_iter,
@@ -342,8 +451,13 @@ class HyperparameterSearch:
                 f"Starting hyperparameter search with {len(X_train_reset)} samples"
             )
 
-        # Fit the grid search with pandas DataFrames/Series (retains feature names)
-        grid.fit(X_train_reset, y_train_reset)
+        # Fit the grid search
+        # Use threading backend for Keras/aeon models to avoid pickling errors (AttributeError: _metrics)
+        if is_single_threaded_search:
+            with joblib.parallel_backend("threading"):
+                grid.fit(X_train_reset, y_train_reset)
+        else:
+            grid.fit(X_train_reset, y_train_reset)
 
         best_model = grid.best_estimator_
 
