@@ -54,7 +54,7 @@ jobs:
         run: |
           sudo apt-get update
           # Install lsb-release, Node.js, and ca-certificates all at once
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y lsb-release nodejs ca-certificates
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y lsb-release nodejs ca-certificates default-jre build-essential
 
           # Trust your mounted certificate (from the act command)
           sudo update-ca-certificates
@@ -69,6 +69,8 @@ jobs:
         run: |
           # Ensure setuptools and wheel are present before installing the project
           pip install --upgrade pip setuptools wheel
+          # psutil/ipython required for imports during autodoc (H2OBaseClassifier, pipeline.data)
+          pip install psutil ipython
           pip install .[docs]
 
       - name: Verify PyTorch installation
@@ -118,7 +120,7 @@ jobs:
       - name: Install Runner Dependencies & Configure CA
         run: |
           sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y lsb-release nodejs ca-certificates
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y lsb-release nodejs ca-certificates default-jre build-essential
           sudo update-ca-certificates
 
       - name: Set up Python
@@ -130,6 +132,8 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip setuptools wheel
+          # psutil/ipython required for imports during autodoc (H2OBaseClassifier, pipeline.data)
+          pip install psutil ipython
           pip install .[docs]
 
       - name: Verify PyTorch installation
