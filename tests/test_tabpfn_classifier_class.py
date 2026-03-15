@@ -3,6 +3,7 @@ import sys
 import os
 import pandas as pd
 from unittest.mock import MagicMock, patch
+import importlib.util
 from ml_grid.model_classes.tabpfn_classifier_class import (
     TabPFNClassifierClass,
 )
@@ -27,9 +28,7 @@ sys.modules["ml_grid.util.global_params"] = MagicMock()
 
 # Conditionally mock tabpfn. If it's installed, we might want to use it for integration tests.
 # If not installed, we mock it to allow importing the wrapper class.
-try:
-    import tabpfn
-except ImportError:
+if importlib.util.find_spec("tabpfn") is None:
     mock_tabpfn_module = MagicMock()
     sys.modules["tabpfn"] = mock_tabpfn_module
     sys.modules["tabpfn.constants"] = MagicMock()

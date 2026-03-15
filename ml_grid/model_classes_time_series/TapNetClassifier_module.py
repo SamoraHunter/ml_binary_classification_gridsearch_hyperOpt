@@ -2,7 +2,14 @@ from typing import Any, Dict, List
 
 import numpy as np
 import keras
-from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from skopt.space import Categorical
+
+from ml_grid.pipeline.data import pipe
+from ml_grid.util.param_space import ParamSpace
 
 
 class _DummyClassifier(BaseEstimator, ClassifierMixin):
@@ -43,16 +50,6 @@ except ImportError:
         from aeon.classification.deep_learning._tapnet import TapNetClassifier
     except ImportError:
         TapNetClassifier = _DummyClassifier
-
-from skopt.space import Categorical
-from sklearn.pipeline import Pipeline
-from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import StandardScaler
-from sklearn.base import BaseEstimator, TransformerMixin
-
-
-from ml_grid.pipeline.data import pipe
-from ml_grid.util.param_space import ParamSpace
 
 
 class TimeSeriesStandardScaler(BaseEstimator, TransformerMixin):

@@ -70,6 +70,8 @@ jobs:
           # Ensure setuptools and wheel are present before installing the project
           pip install --upgrade pip setuptools wheel
           # psutil/ipython required for imports during autodoc (H2OBaseClassifier, pipeline.data)
+          # torch is needed for some model classes that are imported during autodoc
+          pip install torch
           pip install psutil ipython
           pip install .[docs]
 
@@ -133,6 +135,8 @@ jobs:
         run: |
           pip install --upgrade pip setuptools wheel
           # psutil/ipython required for imports during autodoc (H2OBaseClassifier, pipeline.data)
+          # torch is needed for some model classes that are imported during autodoc
+          pip install torch
           pip install psutil ipython
           pip install .[docs]
 

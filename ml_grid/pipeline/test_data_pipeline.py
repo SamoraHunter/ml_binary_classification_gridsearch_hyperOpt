@@ -16,7 +16,7 @@ import pandas as pd
 
 # Ensure the project root is in the Python path to allow for module imports
 try:
-    from ml_grid.pipeline.data import NoFeaturesError, pipe
+    from ml_grid.pipeline.data import pipe
     from ml_grid.util.global_params import global_parameters
 except ImportError:
     # This allows the test to be run from the project root directory

@@ -1,6 +1,9 @@
 from typing import Any, Dict, List
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
+from skopt.space import Categorical
+
+from ml_grid.pipeline.data import pipe
 
 
 class _DummyClassifier(BaseEstimator, ClassifierMixin):
@@ -25,8 +28,6 @@ try:
 except ImportError:
     # ShapeDTW was removed in aeon v0.11.0. Use a dummy placeholder.
     ShapeDTW = _DummyClassifier
-from skopt.space import Categorical
-from ml_grid.pipeline.data import pipe
 
 
 class ShapeDTW_class:

@@ -4,7 +4,14 @@ import numpy as np
 import pandas as pd
 from ml_grid.util.global_params import global_parameters
 from sklearn import metrics
-from sklearn.metrics import *
+from sklearn.metrics import (
+    accuracy_score,
+    f1_score,
+    matthews_corrcoef,
+    precision_recall_fscore_support,
+    precision_score,
+    recall_score,
+)
 import pickle
 import logging
 import warnings

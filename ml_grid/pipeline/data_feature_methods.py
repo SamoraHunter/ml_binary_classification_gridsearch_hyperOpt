@@ -215,7 +215,7 @@ class feature_methods:
                         os.close(devnull_fd)
                     os.close(old_stdout_fd)
                     os.close(old_stderr_fd)
-                except:
+                except Exception:
                     pass  # Silently fail if restoration doesn't work
 
         # Get the feature indices from the Markov blanket (MB)

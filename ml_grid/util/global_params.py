@@ -10,6 +10,15 @@ import sys
 from typing import Any, Callable, Dict, List, Union
 import logging
 
+import numpy as np
+from sklearn.metrics import (
+    accuracy_score,
+    f1_score,
+    make_scorer,
+    recall_score,
+    roc_auc_score,
+)
+
 # Disable aeon telemetry to prevent SSL errors in restricted environments
 os.environ["AEON_TRACKING"] = "False"
 
@@ -60,15 +69,6 @@ def _configure_tensorflow_gpu_env():
 
 _configure_tensorflow_gpu_env()
 # --- END FIX ---
-
-import numpy as np
-from sklearn.metrics import (
-    accuracy_score,
-    f1_score,
-    make_scorer,
-    recall_score,
-    roc_auc_score,
-)
 
 
 def custom_roc_auc_score(y_true: np.ndarray, y_pred: np.ndarray) -> float:
