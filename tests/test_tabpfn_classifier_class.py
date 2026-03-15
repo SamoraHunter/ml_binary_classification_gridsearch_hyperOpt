@@ -158,7 +158,6 @@ class TestTabPFNClassifierClass(unittest.TestCase):
     @patch("ml_grid.model_classes.tabpfn_classifier_class.TabPFNClassifier")
     def test_predict_and_predict_proba_delegation(self, mock_tabpfn_cls):
         """Test that predict and predict_proba delegate to the internal estimator."""
-        mock_estimator_instance = mock_tabpfn_cls.return_value
 
         model_wrapper = TabPFNClassifierClass()
 
