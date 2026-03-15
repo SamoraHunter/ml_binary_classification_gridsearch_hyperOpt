@@ -71,6 +71,36 @@ models:
   AutoKerasClassifierClass: false # disabled by default
 
 
+# Time-series models to be used during the hyperopt search.
+# These are only loaded if time_series_mode is enabled in the pipeline.
+ts_models:
+  # Enabled by default
+  RocketClassifier: true
+  TimeSeriesForestClassifier: true
+  KNeighborsTimeSeriesClassifier: true
+  Catch22Classifier: true
+  HIVECOTEV2: false # Disabled due to internal numba typing error in aeon library
+  TSFreshClassifier: true
+  Arsenal: true
+  CNNClassifier: true
+  ElasticEnsemble: true
+  EncoderClassifier: true
+  FCNClassifier: true
+  FreshPRINCEClassifier: true
+  InceptionTimeClassifier: false # Disabled due to Keras input shape mismatch error
+  IndividualInceptionClassifier: false # Disabled due to Keras input shape mismatch error
+  IndividualTDE: true
+  MLPClassifier: true
+  MUSE: true
+  OrdinalTDE: true
+  ResNetClassifier: true
+  SignatureClassifier: true
+  SummaryClassifier: true
+  TemporalDictionaryEnsemble: true
+  # Univariate models, disabled by default
+  ContractableBOSS: false
+  HIVECOTEV1: false
+
 # This section defines the parameter search space for Hyperopt.
 # The structure uses lists of options, which will be parsed into hp.choice.
 hyperopt_search_space:

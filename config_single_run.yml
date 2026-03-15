@@ -52,6 +52,13 @@ models:
   FLAMLClassifierClass: false
   AutoKerasClassifierClass: false
 
+# Time-series models for a single run.
+# These are only loaded if time_series_mode is enabled in the pipeline.
+ts_models:
+  RocketClassifier: true
+  TimeSeriesForestClassifier: false
+  KNeighborsTimeSeriesClassifier: false
+
 # This section defines a single set of parameters for a standalone run.
 run_params:
   outcome_var_n: 1
