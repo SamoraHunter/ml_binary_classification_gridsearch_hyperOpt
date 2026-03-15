@@ -2,7 +2,7 @@
 
 # Default values for standard installation
 ENV_NAME="ml_grid_env"
-EXTRAS="[test]"
+EXTRAS="[test,standard]"
 INSTALL_TYPE="standard"
 PROXY_MODE=false
 
@@ -86,16 +86,39 @@ python -m pip install --upgrade pip 'setuptools<70.0.0' wheel "${pip_base_args[@
 # Increase the resolver backtrack depth to handle the large, complex dependency
 # graph (TensorFlow + PyTorch + AutoGluon + FastAI + aeon[all_extras] etc.).
 # PIP_RESOLVER_MAX_BACKTRACK is honoured by pip >= 23.3.
-export PIP_RESOLVER_MAX_BACKTRACK=10000
+export PIP_RESOLVER_MAX_BACKTRACK=1000000
 
 # Pre-install heavy dependencies to simplify graph resolution
 echo "Pre-installing heavy dependencies..."
-python -m pip install "tensorflow==2.20.0" "torch==2.10.0" "nvidia-cuda-nvcc-cu12" "h2o>=3.46.0.5" "scikit-learn>=1.5.2,<1.6" "${pip_base_args[@]}" || print_error_and_exit "Failed to pre-install frameworks."
+python -m pip install "tensorflow==2.20.0" "torch==2.10.0" "nvidia-cuda-nvcc-cu12" "h2o>=3.46.0.5" "scikit-learn>=1.6.0,<1.7" "${pip_base_args[@]}" || print_error_and_exit "Failed to pre-install frameworks."
+
+if [ "$INSTALL_TYPE" = "time-series" ]; then
+    echo "Pre-installing time-series dependencies to simplify graph resolution..."
+    CONSTRAINTS_FILE="ts-constraints.txt"
+
+    # Pre-install the top-level heavy time-series libraries.
+    # This allows pip to resolve their complex dependencies in a dedicated step
+    # before the final project installation. These are the main libraries
+    # from the '[project.optional-dependencies].ts' section in pyproject.toml.
+    python -m pip install \
+        "aeon>=1.2.0" \
+        "tsfresh" \
+        "prophet==1.1.3" \
+        "pmdarima==2.0.3" \
+        "gluonts>=0.14.0" \
+        "${pip_base_args[@]}" || print_error_and_exit "Failed to install heavy time-series libraries."
+
+    echo "Generating constraints file to pin pre-installed packages..."
+    pip freeze > "$CONSTRAINTS_FILE"
+fi
 
 # Install the project in editable mode along with testing dependencies.
 # This reads all dependencies from pyproject.toml.
 echo "Installing project dependencies ($EXTRAS)..."
 pip_install_args=("--no-build-isolation" "-e" ".$EXTRAS")
+if [ "$INSTALL_TYPE" = "time-series" ]; then
+    pip_install_args+=("-c" "$CONSTRAINTS_FILE")
+fi
 if [ "$PROXY_MODE" = true ]; then
     pip_install_args+=("--trusted-host" "dh-cap02" "-i" "http://dh-cap02:8008/mirrors/ml_binary_classification_gridsearch_hyperOpt" "--retries" "5" "--timeout" "60")
 fi
