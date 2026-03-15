@@ -39,7 +39,6 @@ class GradientBoostingClassifierClass:
             ValueError: If `parameter_space_size` is not a valid key (though current
                 implementation does not explicitly raise this).
         """
-        global_params = global_parameters
         self.X: Optional[pd.DataFrame] = X
         self.y: Optional[pd.Series] = y
 

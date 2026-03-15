@@ -46,7 +46,6 @@ class H2OAutoMLClass:
             ValueError: If `parameter_space_size` is not a valid key (though current
                 implementation does not explicitly raise this).
         """
-        global_params = global_parameters
         logger.debug("Initializing H2OAutoMLClass")
 
         self.algorithm_implementation = H2OAutoMLClassifier()
