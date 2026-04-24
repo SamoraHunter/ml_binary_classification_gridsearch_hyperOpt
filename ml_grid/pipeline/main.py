@@ -450,6 +450,22 @@ class run:
                             f"Caught exception for {self.arg_list[k][2]} and continuing as 'error_raise' is False."
                         )
 
+        # NEW: Log the high-level trial summary to all databases
+        if hasattr(self, "project_score_save_class_instance"):
+            summary_data = {
+                "date_time_stamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "method_name": "HYPEROPT_TRIAL_BEST_SCORE",
+                "outcome_variable": self.ml_grid_object.outcome_variable,
+                "auc": self.highest_score,
+                "parameter_sample": self.local_param_dict,
+                "failed": "False",
+                "timeout": "False",
+            }
+            # Add data pipeline flags and settings to the summary for master DB filtering
+            summary_data.update(self.local_param_dict)
+
+            self.project_score_save_class_instance.log_to_db(summary_data)
+
         self.logger.info(
             f"Model error list: nb. errors returned from func: {self.model_error_list}"
         )

@@ -9,6 +9,7 @@ import ast
 import logging
 import re
 import warnings
+import sqlite3
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -207,6 +208,46 @@ class ResultsAggregator:
         self.aggregated_data = pd.concat(all_dataframes, ignore_index=True)
         self.logger.info(f"Total aggregated records: {len(self.aggregated_data)}")
         return self.aggregated_data
+
+    def load_from_db(
+        self, db_path: str, include_summaries: bool = True, include_models: bool = True
+    ) -> pd.DataFrame:
+        """Loads all aggregated results from the SQLite database backend.
+
+        Args:
+            db_path (str): Path to the SQLite .db file.
+            include_summaries (bool): Whether to include 'HYPEROPT_TRIAL_BEST_SCORE' records.
+            include_models (bool): Whether to include individual model evaluation records.
+
+        Returns:
+            pd.DataFrame: Aggregated results.
+        """
+        if not Path(db_path).exists():
+            raise FileNotFoundError(f"Database file not found: {db_path}")
+
+        try:
+            query = "SELECT * FROM ml_results"
+            conditions = []
+            if not include_summaries:
+                conditions.append("method_name != 'HYPEROPT_TRIAL_BEST_SCORE'")
+            if not include_models:
+                conditions.append("method_name == 'HYPEROPT_TRIAL_BEST_SCORE'")
+
+            if conditions:
+                query += " WHERE " + " AND ".join(conditions)
+
+            with sqlite3.connect(db_path) as conn:
+                df = pd.read_sql_query(query, conn)
+
+            # Parse feature lists if they exist and feature names are available
+            if "f_list" in df.columns and self.feature_names is not None:
+                df["decoded_features"] = df["f_list"].apply(self._decode_features)
+
+            self.aggregated_data = df
+            self.logger.info(f"Loaded {len(df)} records from database: {db_path}")
+            return df
+        except Exception as e:
+            raise RuntimeError(f"Failed to load data from database: {e}")
 
     def _decode_features(self, feature_string: str) -> List[str]:
         """Decodes a feature list string into a list of active feature names.

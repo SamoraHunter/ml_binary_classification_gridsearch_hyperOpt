@@ -114,9 +114,17 @@ class GlobalImportancePlotter:
                 "No predictor columns found for global importance analysis."
             )
 
+        # Filter out trial summaries if analyzing metrics other than AUC,
+        # as summaries currently only store the top-level AUC.
+        df_to_analyze = self.clean_data
+        if metric != "auc":
+            df_to_analyze = df_to_analyze[
+                df_to_analyze["method_name"] != "HYPEROPT_TRIAL_BEST_SCORE"
+            ]
+
         # Drop rows with missing target metric
         analysis_df = (
-            self.clean_data[available_predictors + [metric]]
+            df_to_analyze[available_predictors + [metric]]
             .dropna(subset=[metric])
             .copy()
         )

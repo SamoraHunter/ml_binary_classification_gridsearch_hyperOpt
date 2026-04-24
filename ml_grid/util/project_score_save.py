@@ -16,6 +16,7 @@ import pickle
 import logging
 import warnings
 from typing import Any, Dict, List
+from ml_grid.util.db_backend import DatabaseBackend
 import h2o
 
 # from sklearn.utils.testing import ignore_warnings
@@ -137,6 +138,33 @@ class project_score_save_class:
 
         if not self.log_path.exists():
             df.to_csv(self.log_path, mode="w", header=True, index=False)
+
+        # 1. Local Run DB (Inside the timestamped folder)
+        self.local_db = DatabaseBackend(
+            db_path=str(self.experiment_dir / "ml_results.db")
+        )
+
+        # 2. Project Folder Master DB (In the experiments base dir)
+        self.project_db = DatabaseBackend(
+            db_path=str(self.experiment_dir.parent / "project_ml_results.db")
+        )
+
+        # 3. Global Master DB (In the project root)
+        self.global_db = DatabaseBackend(db_path="global_master_ml_results.db")
+
+    def log_to_db(self, result_data: Dict[str, Any]):
+        """Logs results to local, project, and global databases.
+
+        Args:
+            result_data (Dict[str, Any]): The full result dictionary.
+        """
+        # Ensure run_path is present for the master database context
+        if "run_path" not in result_data:
+            result_data["run_path"] = str(self.experiment_dir)
+
+        # Distribute to all three database tiers
+        for db_instance in [self.local_db, self.project_db, self.global_db]:
+            db_instance.insert_result(result_data)
 
     def update_score_log(
         self,
@@ -320,6 +348,7 @@ class project_score_save_class:
             row_data["parameter_sample"] = safe_params
             row_data["method_name"] = method_name
             row_data["nb_size"] = sum(np.array(current_f_vector))
+            row_data["date_time_stamp"] = time.strftime("%Y-%m-%d %H:%M:%S")
             row_data["n_features"] = len(current_f_vector)
             row_data["f_list"] = f_list
 
@@ -403,6 +432,9 @@ class project_score_save_class:
             # line['g'] = [g]
 
             line[column_list].to_csv(self.log_path, mode="a", header=False, index=False)
+
+            # Log high-resolution model data to both databases
+            self.log_to_db(row_data)
 
             if store_models and not failed and not timeout:
                 # Check if the model is an H2O model by inspecting its base classes
