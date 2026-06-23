@@ -68,8 +68,8 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
-    "pytest>=7.0.0",
-    "nbmake==1.4.6",
+    "pytest<8.1",
+    "nbmake<1.5",
 ]
 standard = [
     # Standard (non-time-series) AutoML and advanced libraries
