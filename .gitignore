@@ -119,3 +119,4 @@ notebooks/best_model.keras
 notebooks/percent_missing_synthetic_ts_data_generated.pkl
 notebooks/percent_missing_synthetic_ts_data.pkl
 notebooks/synthetic_ts_data_generated.csv
+.skills/
