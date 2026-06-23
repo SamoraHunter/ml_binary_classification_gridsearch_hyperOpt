@@ -122,3 +122,4 @@ notebooks/synthetic_ts_data_generated.csv
 .skills/
 .kilo/*
 run_ci.sh
+.INSTRUCTIONS.md
