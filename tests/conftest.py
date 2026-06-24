@@ -2,6 +2,8 @@
 
 import logging
 import os
+import sys
+from unittest.mock import MagicMock
 
 import numpy as np
 import h2o
@@ -21,6 +23,69 @@ except ImportError:
     print("\n--- [Fixture Config] TensorFlow not found, skipping GPU disable. ---")
     pass
 # --- End Tame TensorFlow ---
+
+
+# Before any test collection begins, ensure ml_grid.util modules are available
+# This prevents test files from replacing them with mocks at import time
+_real_ml_util_modules = {}
+try:
+    import ml_grid.util.param_space as _real_param_space
+    import ml_grid.util.global_params as _real_global_params
+
+    # Import the parent module
+    import ml_grid.util
+
+    _real_ml_util_modules["ml_grid.util"] = ml_grid.util
+    _real_ml_util_modules["ml_grid.util.param_space"] = _real_param_space
+    _real_ml_util_modules["ml_grid.util.global_params"] = _real_global_params
+except ImportError:
+    pass
+
+
+def pytest_sessionstart(session):
+    """
+    Called before any test collection.
+
+    Save real module references to prevent leakage from test files that mock
+    modules at import time (e.g., test_tabpfn_classifier_class.py).
+    """
+    session._ml_grid_saved_modules = _real_ml_util_modules.copy()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def restore_ml_modules_at_session_start(request):
+    """
+    Session-scoped autouse fixture that restores ml_grid.util modules.
+
+    This prevents module state leakage from test files that replace sys.modules
+    with mocks at import time. The fixture ensures all tests in the session see
+    the real module implementations.
+
+    Execution order:
+    1. pytest_sessionstart() saves modules to session._ml_grid_saved_modules
+    2. This fixture's setup code (before yield) restores them if replaced by mocks
+
+    NOTE: We access _real_ml_util_modules from the conftest module object at
+    runtime, which is preserved since it was set at module import time (before
+    any tests ran). This handles cases where sys.modules gets replaced but the
+    original module reference in conftest remains intact.
+    """
+    saved = getattr(request.session, "_ml_grid_saved_modules", {})
+    if not saved:
+        # Fallback: load from conftest module directly
+        try:
+            import tests.conftest as c
+
+            saved = getattr(c, "_real_ml_util_modules", {}).copy()
+        except Exception:
+            pass
+
+    for mod_name, real_module in saved.items():
+        current = sys.modules.get(mod_name)
+        if isinstance(current, MagicMock):
+            sys.modules[mod_name] = real_module
+
+    yield
 
 
 @pytest.fixture(scope="session")
@@ -125,6 +190,32 @@ def mock_ml_grid_object(request):
             self.logger = MockLogger()
 
     return MockPipe(request.param)
+
+
+@pytest.fixture(autouse=True)
+def reset_global_parameters_autouse():
+    """Autouse fixture to reset GlobalParameters singleton between tests."""
+    from ml_grid.util import global_params as global_params_module
+
+    # Get initial state before test
+    original_state = {}
+    for attr in dir(global_params_module.global_parameters):
+        if not attr.startswith("_"):
+            try:
+                original_state[attr] = getattr(
+                    global_params_module.global_parameters, attr
+                )
+            except Exception:
+                pass
+
+    yield
+
+    # Restore singleton attributes
+    for attr, value in original_state.items():
+        try:
+            setattr(global_params_module.global_parameters, attr, value)
+        except Exception:
+            pass
 
 
 @pytest.fixture(params=[False, True], ids=["GridSearch", "BayesSearch"])
