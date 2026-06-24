@@ -3,7 +3,6 @@ import sys
 import os
 import pandas as pd
 from unittest.mock import MagicMock, patch
-import importlib.util
 from ml_grid.model_classes.tabpfn_classifier_class import (
     TabPFNClassifierClass,
 )
@@ -15,26 +14,15 @@ project_root = os.path.dirname(current_dir)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-# -------------------------------------------------------------------------
-# MOCK SETUP
-# We mock dependencies before importing the class to ensure the test
-# runs even if tabpfn or ml_grid are not fully installed in the test env.
-# -------------------------------------------------------------------------
-
-# Mock ml_grid dependencies
-sys.modules["ml_grid.util"] = MagicMock()
-sys.modules["ml_grid.util.param_space"] = MagicMock()
-sys.modules["ml_grid.util.global_params"] = MagicMock()
-
-# Conditionally mock tabpfn. If it's installed, we might want to use it for integration tests.
-# If not installed, we mock it to allow importing the wrapper class.
-if importlib.util.find_spec("tabpfn") is None:
-    mock_tabpfn_module = MagicMock()
-    sys.modules["tabpfn"] = mock_tabpfn_module
-    sys.modules["tabpfn.constants"] = MagicMock()
-
 
 class TestTabPFNClassifierClass(unittest.TestCase):
+    @classmethod
+    def tearDownClass(cls):
+        """Restore original module references after all tests complete."""
+        # The session-scoped fixture in conftest.py handles restoration of modules.
+        # This method is kept for backward compatibility but no longer needs to do anything.
+        pass
+
     def setUp(self):
         # Patch global parameters to control bayessearch flag
         self.global_params_patch = patch("ml_grid.util.global_params.global_parameters")

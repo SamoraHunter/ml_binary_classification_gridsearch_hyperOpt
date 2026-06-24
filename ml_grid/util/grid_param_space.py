@@ -76,40 +76,44 @@ class Grid:
             ],
         }
 
-        def c_prod(d: Union[Dict, List]) -> Generator[Dict, None, None]:
-            """Recursively generates the Cartesian product of a nested dictionary.
+    def _c_prod(self, d: Union[Dict, List]) -> Generator[Dict, None, None]:
+        """Recursively generates the Cartesian product of a nested dictionary.
 
-            Args:
-                d (Union[Dict, List]): The dictionary or list of settings.
+        Args:
+            d (Union[Dict, List]): The dictionary or list of settings.
 
-            Yields:
-                Generator[Dict, None, None]: A generator of dictionaries, each
-                representing a unique combination of settings.
-            """
-            if isinstance(d, list):
-                for i in d:
-                    yield from ([i] if not isinstance(i, (dict, list)) else c_prod(i))
-            else:
-                for i in it.product(*map(c_prod, d.values())):
-                    yield dict(zip(d.keys(), i))
+        Yields:
+            Generator[Dict, None, None]: A generator of dictionaries, each
+            representing a unique combination of settings.
+        """
+        if isinstance(d, list):
+            for i in d:
+                yield from ([i] if not isinstance(i, (dict, list)) else self._c_prod(i))
+        else:
+            for i in it.product(*map(self._c_prod, d.values())):
+                yield dict(zip(d.keys(), i))
 
-        self.settings_list = list(c_prod(self.grid))
-        full_settings_size = len(self.settings_list)
-        self.logger.info(f"Full settings_list size: {full_settings_size}")
+    def _generate_full_grid(self) -> List[Dict]:
+        """Generates the full Cartesian product of grid settings."""
+        return list(self._c_prod(self.grid))
 
-        random.shuffle(self.settings_list)
+    @property
+    def settings_list(self) -> List[Dict]:
+        """Lazily generate and cache the settings list."""
+        if not hasattr(self, "_settings_list"):
+            full_grid = self._generate_full_grid()
+            random.shuffle(full_grid)
 
-        # Ensure sample_n is not greater than the number of available settings
-        sample_size = min(self.sample_n, full_settings_size)
-        if self.sample_n > full_settings_size:
-            self.logger.warning(
-                f"sample_n ({self.sample_n}) is larger than the number of settings ({full_settings_size}). Using all settings."
-            )
+            sample_size = min(self.sample_n, len(full_grid))
+            if self.sample_n > len(full_grid):
+                self.logger.warning(
+                    f"sample_n ({self.sample_n}) is larger than the number of settings ({len(full_grid)}). Using all settings."
+                )
 
-        self.settings_list = random.sample(self.settings_list, sample_size)
+            self._settings_list = random.sample(full_grid, sample_size)
+        return self._settings_list
 
-        self.settings_list_iterator = iter(self.settings_list)
-
-        # This is likely not properly functioning. Does not return iteration, instead reinitiates.
-        # Don't need to subsample, can just generate n number of random choices from grid space.
-        # function can just return random choice from grid space, terminate at the other end once limit reached.
+    @property
+    def settings_list_iterator(self) -> Generator[Dict, None, None]:
+        """Returns an iterator over settings list."""
+        return iter(self.settings_list)

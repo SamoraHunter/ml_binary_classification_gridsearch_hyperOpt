@@ -26,7 +26,6 @@ class TestAllClassifierParamSpaces(unittest.TestCase):
         # We add the deprecated wrappers here to prevent them from being imported.
         files_to_skip = {
             "knn_wrapper_class.py",
-            "knn_gpu_classifier_class.py",
             "__init__.py",
             "H2OBaseClassifier.py",  # Skip base class - it's abstract and requires estimator_class
         }
