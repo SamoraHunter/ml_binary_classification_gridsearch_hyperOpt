@@ -123,3 +123,8 @@ notebooks/synthetic_ts_data_generated.csv
 .kilo/*
 run_ci.sh
 .INSTRUCTIONS.md
+.actrc
+.devcontainer/devcontainer.json
+.gitignore
+.devcontainer/devcontainer-lock.json
+coverage.json
