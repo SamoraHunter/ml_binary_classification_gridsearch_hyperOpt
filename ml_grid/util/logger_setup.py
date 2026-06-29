@@ -31,8 +31,8 @@ def setup_logger(
         logging.Logger: The configured logger instance.
     """
     # Avoid reconfiguring the root logger if it's already set up.
-    if logging.getLogger().handlers:
-        logging.getLogger().handlers.clear()
+    # NOTE: Do NOT clear handlers on root logger as this breaks pytest caplog functionality.
+    # Only clear handlers from our specific ml_grid logger below.
 
     # Get a specific logger instead of configuring the root
     logger = logging.getLogger("ml_grid")

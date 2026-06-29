@@ -1,7 +1,10 @@
 import logging
-from typing import List
+from typing import Any, Dict, List
 
 import pandas as pd
+
+# Import global parameters for parameter space configuration
+from ml_grid.util.global_params import global_parameters
 
 # Import H2O estimators
 try:
@@ -14,9 +17,39 @@ except ImportError:
 
     class H2OStackedEnsembleEstimator: ...
 
-
-# Import the base class
 from .H2OBaseClassifier import H2OBaseClassifier
+
+
+# Define default parameter space for the metalearner
+PARAM_SPACE_GRID = {
+    "xsmall": {
+        "metalearner_algorithm": ["AUTO"],
+        "seed": [1],
+    },
+    "small": {
+        "metalearner_algorithm": ["AUTO", "glm"],
+        "seed": [1, 42],
+    },
+    "medium": {
+        "metalearner_algorithm": ["AUTO", "glm", "drf"],
+        "seed": [1, 42, 123],
+    },
+}
+
+PARAM_SPACE_BAYES: Dict[str, Dict[str, Any]] = {
+    "xsmall": {
+        "metalearner_algorithm": "AUTO",
+        "seed": 42,
+    },
+    "small": {
+        "metalearner_algorithm": ["AUTO", "glm"],
+        "seed": [1, 42],
+    },
+    "medium": {
+        "metalearner_algorithm": ["AUTO", "glm", "drf"],
+        "seed": [1, 42, 123],
+    },
+}
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -50,6 +83,12 @@ class H2OStackedEnsembleClassifier(H2OBaseClassifier):
             **kwargs: Keyword arguments passed to the H2OStackedEnsembleEstimator.
                 Common arguments include `metalearner_algorithm`, `seed`, etc.
         """
+        # Set parameter_space based on search type (grid or bayesian)
+        if global_parameters.bayessearch:
+            self.parameter_space = PARAM_SPACE_BAYES["small"]
+        else:
+            self.parameter_space = [PARAM_SPACE_GRID["small"]]
+
         # Pass base_models along with other kwargs to the parent constructor.
         # This ensures it's treated as a standard sklearn parameter.
         kwargs["base_models"] = base_models if base_models is not None else []
@@ -163,6 +202,13 @@ class H2OStackedEnsembleClassifier(H2OBaseClassifier):
             # 3. Fit the metalearner (the ensemble itself)
             # The parent _prepare_fit handles data conversion and parameter extraction
             train_h2o, x_vars, outcome_var, model_params = self._prepare_fit(X, y)
+
+            # CRITICAL FIX: Remove base_models from model_params to avoid conflict
+            # base_models is already set as an instance attribute, but H2OStackedEnsembleEstimator
+            # expects a list of model_ids (strings), not the base model wrapper objects.
+            # We extract model_ids into base_models_list and must NOT pass base_models in model_params.
+            if "base_models" in model_params:
+                del model_params["base_models"]
 
             self.model_ = H2OStackedEnsembleEstimator(
                 base_models=base_models_list, **model_params
