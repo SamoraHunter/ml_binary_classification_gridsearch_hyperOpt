@@ -44,18 +44,32 @@ class SVCClass:
         # Enforce scaling for SVM method
         if not self.is_data_scaled():
             try:
-                # Data validation checks before scaling
+                # If X is None, there's nothing to scale - skip scaling
                 if self.X is None:
-                    raise ValueError("Input data X is None - data not loaded properly")
+                    pass  # No data to scale, skip this step
 
                 # If the dataframe is empty, there's nothing to scale.
                 # The pipeline will likely fail later, but we avoid a scaling error here.
-                if isinstance(self.X, pd.DataFrame) and self.X.empty:
+                elif isinstance(self.X, pd.DataFrame) and self.X.empty:
                     raise ValueError(
                         "SVC_class received an empty DataFrame. Halting execution."
                     )
+                elif hasattr(self.X, "__len__"):
+                    # Check for empty arrays (numpy arrays, lists, etc.)
+                    if len(self.X) == 0:
+                        raise ValueError(
+                            "SVC_class received an empty array. Halting execution."
+                        )
 
-                elif not self.X.empty:
+                # Check non-empty for numpy arrays and other array-like objects
+                if isinstance(self.X, pd.DataFrame):
+                    is_non_empty = not self.X.empty
+                elif hasattr(self.X, "__len__"):
+                    is_non_empty = len(self.X) > 0
+                else:
+                    is_non_empty = False
+
+                if is_non_empty:
                     if not hasattr(self, "scaler") or self.scaler is None:
                         self.scaler = (
                             StandardScaler()
@@ -65,8 +79,8 @@ class SVCClass:
                     if sparse.issparse(self.X):
                         self.X = self.X.toarray()
 
-                    # Ensure numeric data
-                    if isinstance(self.X, pd.DataFrame):  # type: ignore
+                    # Ensure numeric data for pandas DataFrames
+                    if isinstance(self.X, pd.DataFrame):
                         non_numeric = self.X.select_dtypes(exclude=["number"]).columns
                         if len(non_numeric) > 0:
                             raise ValueError(
@@ -77,12 +91,17 @@ class SVCClass:
                     # print(f"Scaling data with shape: {self.X.shape}")
                     # print(f"Sample values before scaling:\n{self.X.iloc[:3,:3] if isinstance(self.X, pd.DataFrame) else self.X[:3,:3]}")
 
-                    # Perform scaling
-                    self.X = pd.DataFrame(
-                        self.scaler.fit_transform(self.X),
-                        columns=self.X.columns if hasattr(self.X, "columns") else None,
-                        index=self.X.index if hasattr(self.X, "index") else None,
-                    )
+                    # Perform scaling - always convert to DataFrame for consistency
+                    X_transformed = self.scaler.fit_transform(self.X)
+                    if isinstance(self.X, pd.DataFrame):
+                        self.X = pd.DataFrame(
+                            X_transformed,
+                            columns=self.X.columns,
+                            index=self.X.index,
+                        )
+                    else:
+                        # For numpy arrays, keep as DataFrame with default column names
+                        self.X = pd.DataFrame(X_transformed)
 
                     logging.getLogger("ml_grid").info(
                         "Data scaling completed successfully for SVC"
@@ -105,6 +124,9 @@ class SVCClass:
                             f"Data types:\n{self.X.dtypes}"
                         )
 
+                # Re-raise ValueError as-is since it's an expected validation error
+                if isinstance(e, ValueError):
+                    raise
                 raise RuntimeError(error_msg) from e
 
         self.algorithm_implementation: SVC = SVC()
@@ -210,17 +232,26 @@ class SVCClass:
         Returns:
             bool: True if data appears to be scaled, False otherwise.
         """
-        if self.X is None or self.X.empty:
+        if self.X is None:
             return False
 
-        # Select only numeric columns for min/max checks
-        numeric_X = self.X.select_dtypes(include="number")
-        if numeric_X.empty:
-            return False
-
-        # Calculate the range of values for each feature
-        min_val = numeric_X.min().min()
-        max_val = numeric_X.max().max()
+        # Handle numpy arrays
+        if isinstance(self.X, pd.DataFrame):
+            if self.X.empty:
+                return False
+            numeric_X = self.X.select_dtypes(include="number")
+            if numeric_X.empty:
+                return False
+            min_val = numeric_X.min().min()
+            max_val = numeric_X.max().max()
+        else:
+            # Handle numpy arrays and other array-like objects
+            arr = pd.DataFrame(self.X)
+            numeric_arr = arr.select_dtypes(include="number")
+            if numeric_arr.empty:
+                return False
+            min_val = numeric_arr.min().min()
+            max_val = numeric_arr.max().max()
 
         # Check if data is scaled to [0, 1] or [-1, 1] range
         if (min_val >= 0 and max_val <= 1) or (min_val >= -1 and max_val <= 1):
@@ -233,5 +264,9 @@ class SVCClass:
         # Initialize MinMaxScaler
         self.scaler = MinMaxScaler(feature_range=(0, 1))
 
-        # Fit and transform the data
-        self.X = pd.DataFrame(self.scaler.fit_transform(self.X), columns=self.X.columns)
+        # Fit and transform the data - always return DataFrame for consistency
+        X_transformed = self.scaler.fit_transform(self.X)
+        if isinstance(self.X, pd.DataFrame):
+            self.X = pd.DataFrame(X_transformed, columns=self.X.columns)
+        else:
+            self.X = pd.DataFrame(X_transformed)

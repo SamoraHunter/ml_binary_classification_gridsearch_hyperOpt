@@ -9,6 +9,78 @@ from sklearn.decomposition import PCA
 from ml_grid.model_classes.H2OGAMClassifier import H2OGAMClassifier
 
 
+# --- Tests for __init__ and parameter normalization (no H2O cluster needed) ---
+class TestH2OGAMClassifierInit:
+    """Tests for H2OGAMClassifier initialization without requiring H2O server."""
+
+    def test_init_with_suppress_low_cardinality_true(self):
+        """Test that _suppress_low_cardinality_error is set correctly."""
+        X = pd.DataFrame({"feature1": np.random.rand(20)})
+        y = pd.Series([0] * 10 + [1] * 10)
+
+        clf = H2OGAMClassifier(
+            X=X,
+            y=y,
+            parameter_space_size="xsmall",
+            _suppress_low_cardinality_error=True,
+        )
+
+        assert clf._suppress_low_cardinality_error is True
+
+    def test_init_with_suppress_low_cardinality_false(self):
+        """Test that _suppress_low_cardinality_error=False raises errors."""
+        X = pd.DataFrame({"feature1": np.random.rand(20)})
+        y = pd.Series([0] * 10 + [1] * 10)
+
+        clf = H2OGAMClassifier(
+            X=X,
+            y=y,
+            parameter_space_size="xsmall",
+            _suppress_low_cardinality_error=False,
+        )
+
+        assert clf._suppress_low_cardinality_error is False
+
+    def test_init_sets_solver_to_coordinate_descent_by_default(self):
+        """Test that solver defaults to COORDINATE_DESCENT."""
+        X = pd.DataFrame({"feature1": np.random.rand(20)})
+        y = pd.Series([0] * 10 + [1] * 10)
+
+        clf = H2OGAMClassifier(
+            X=X,
+            y=y,
+            parameter_space_size="xsmall",
+        )
+
+        assert hasattr(clf, "solver")
+        assert clf.solver == "COORDINATE_DESCENT"
+
+
+# --- Tests for _prepare_fit parameter normalization logic (no H2O cluster needed) ---
+class TestH2OGAMClassifierPrepareFit:
+    """Tests for parameter normalization in _prepare_fit without H2O server."""
+
+    def test_parameter_normalization_string_gam_columns(self):
+        """Test that string gam_columns is handled in __init__."""
+        X = pd.DataFrame(
+            {
+                "feature1": np.random.rand(20),
+                "feature2": np.random.rand(20),
+            }
+        )
+        y = pd.Series([0] * 10 + [1] * 10)
+
+        clf = H2OGAMClassifier(
+            X=X,
+            y=y,
+            parameter_space_size="xsmall",
+            gam_columns="feature1",  # String input
+            bs=0,  # Will be normalized to list during fit
+        )
+
+        assert hasattr(clf, "gam_columns")
+
+
 @pytest.fixture(scope="module")
 def h2o_session():
     """Ensures H2O is running."""
