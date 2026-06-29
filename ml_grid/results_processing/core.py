@@ -265,8 +265,7 @@ class ResultsAggregator:
                 like "[[0, 1, 0, 0, 1]]".
 
         Returns:
-            List[str]: A list of feature names that were selected (where the
-            value is 1).
+            List[str]: A list of decoded feature names.
         """
         if self.feature_names is None:
             warnings.warn(

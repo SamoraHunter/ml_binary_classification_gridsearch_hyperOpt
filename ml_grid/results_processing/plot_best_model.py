@@ -78,7 +78,7 @@ class BestModelAnalyzerPlotter:
         """Finds the single best model for each outcome variable.
 
         Args:
-            metric (str): The performance metric to use for determining the best model.
+            metric (str): The performance metric to use for determining the best model (e.g., 'auc', 'accuracy').
 
         Returns:
             pd.DataFrame: A DataFrame containing the single best run for each
@@ -107,6 +107,16 @@ class BestModelAnalyzerPlotter:
         hyperparameters, and pipeline settings.
 
         Args:
+            metric (str, optional): The metric to determine the "best" model.
+                Defaults to 'auc'.
+            outcomes_to_plot (Optional[List[str]], optional): A specific list of
+                outcomes to analyze. If None, analyzes all outcomes up to a limit.
+                Defaults to None.
+            figsize (Tuple[int, int], optional): The figure size for each summary
+                plot. Defaults to (14, 9).
+
+        Returns:
+            None: This method generates plots but does not return a value.
             metric (str, optional): The metric to determine the "best" model.
                 Defaults to 'auc'.
             outcomes_to_plot (Optional[List[str]], optional): A specific list of
@@ -151,7 +161,7 @@ class BestModelAnalyzerPlotter:
             model_series (pd.Series): A row from the DataFrame representing the
                 best model for a single outcome.
             metric (str): The primary performance metric being used.
-            figsize (Tuple[int, int]): The figure size for the plot.
+            figsize (Tuple[int, int]): The figure size for the plot as (width, height) in inches.
         """
         fig, axes = plt.subplots(2, 2, figsize=figsize)
         fig.suptitle(
@@ -181,7 +191,7 @@ class BestModelAnalyzerPlotter:
         Args:
             ax (plt.Axes): The matplotlib axis to plot on.
             model_series (pd.Series): The data for the best model.
-            metric (str): The name of the primary metric.
+            metric (str): The name of the primary performance metric being used.
         """
         ax.set_title("Model & Performance Summary", fontsize=12, fontweight="bold")
         ax.axis("off")

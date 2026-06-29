@@ -28,11 +28,19 @@ class TestSyntheticDataGenerator(unittest.TestCase):
         """
         Test the shape of the generated DataFrame.
         It should have features + outcomes + metadata columns.
+
+        Note: The exact column count may vary because 'client_idcode' might be
+        randomly selected as one of the feature names from special_features.
         """
         expected_rows = self.n_rows
-        # n_features + n_outcome_vars + 'Unnamed: 0' + 'client_idcode'
-        expected_cols = self.n_features + self.n_outcome_vars + 2
-        self.assertEqual(self.df.shape, (expected_rows, expected_cols))
+        # Expected minimum: n_features + n_outcome_vars + 1 (if client_idcode is a feature)
+        # Expected maximum: n_features + n_outcome_vars + 2 (if client_idcode is added separately)
+        min_expected_cols = self.n_features + self.n_outcome_vars + 1
+        max_expected_cols = self.n_features + self.n_outcome_vars + 2
+
+        self.assertEqual(self.df.shape[0], expected_rows)
+        self.assertGreaterEqual(self.df.shape[1], min_expected_cols)
+        self.assertLessEqual(self.df.shape[1], max_expected_cols)
 
     def test_number_of_outcome_vars(self):
         """Test that the correct number of outcome variables are generated."""
