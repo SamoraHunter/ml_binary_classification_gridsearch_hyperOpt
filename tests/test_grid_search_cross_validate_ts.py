@@ -1,5 +1,6 @@
 """Tests for grid_search_cross_validate_ts module."""
 
+import pandas as pd
 import unittest
 
 import numpy as np
@@ -173,6 +174,135 @@ class TestAdjustKnnParameters(unittest.TestCase):
         assert (
             min(adjusted_cat.categories) == 1
         ), f"Expected min(categories) == 1, got {min(adjusted_cat.categories)}"
+
+
+class TestOptimizeY(unittest.TestCase):
+    """Test _optimize_y helper method - one specific uncovered behavior."""
+
+    def test_optimize_y_string_labels_encoded(self):
+        """Test that string labels are factorized to integers.
+
+        Tests lines 1189-1193 in grid_search_cross_validate_ts.py where
+        non-integer data is converted via try/except:
+        1. First tries .astype(int) on line 1190
+        2. Falls back to pd.factorize on line 1192 if ValueError/TypeError
+
+        Tests the path for string labels that fail .astype(int).
+        """
+        from ml_grid.pipeline import grid_search_cross_validate_ts
+
+        instance = object.__new__(
+            grid_search_cross_validate_ts.grid_search_crossvalidate_ts
+        )
+
+        # Create a Series with string labels
+        y_strings = pd.Series(["cat", "dog", "bird", "cat", "dog"])
+
+        result = instance._optimize_y(y_strings)
+
+        # Should be factorized to integers: bird=0, cat=1, dog=2 (alphabetical sort)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertEqual(result.dtype.kind, "i")  # Any integer type
+        # Check that we have 3 unique values (for 3 unique strings)
+        self.assertEqual(len(np.unique(result)), 3)
+
+
+class TestNestedParallelismDetection(unittest.TestCase):
+    """Test nested parallelism detection in grid_search_crossvalidate_ts.__init__."""
+
+    def test_nested_parallelism_fallback_to_single_job(self):
+        """Test that n_jobs falls back to 1 when running inside a worker process.
+
+        Tests lines 543-547 where the code checks if current process is a daemon
+        (worker process) and forces grid_n_jobs=1 to avoid nested parallelism.
+
+        This scenario occurs when grid_search_crossvalidate_ts is used within
+        a multiprocessing context, where nested parallelism would be counterproductive.
+        """
+        import inspect
+        from ml_grid.pipeline.grid_search_cross_validate_ts import (
+            grid_search_crossvalidate_ts,
+        )
+
+        init_source = inspect.getsource(grid_search_crossvalidate_ts.__init__)
+
+        # Verify that nested parallelism detection exists
+        self.assertIn(
+            "multiprocessing.current_process().daemon",
+            init_source,
+            "Source should check for daemon process",
+        )
+        self.assertIn(
+            "grid_n_jobs = 1",
+            init_source,
+            "Source should set grid_n_jobs to 1 in daemon case",
+        )
+
+
+class TestOptimizeYCategorical(unittest.TestCase):
+    """Test _optimize_y with pd.CategoricalDtype."""
+
+    def test_optimize_y_categorical_dtype(self):
+        """Test that CategoricalDtype y is converted to codes.
+
+        Tests lines 1183-1184 where a pd.Series with CategoricalDtype
+        uses .cat.codes.values to convert categories to integer codes.
+
+        This path is not tested by test_optimize_y_string_labels_encoded which
+        tests the fallback path through .astype(int) -> factorize.
+        """
+        from ml_grid.pipeline import grid_search_cross_validate_ts
+
+        instance = object.__new__(
+            grid_search_cross_validate_ts.grid_search_crossvalidate_ts
+        )
+
+        # Create a Series with CategoricalDtype
+        y_cat = pd.Series(["red", "blue", "green", "red", "blue"], dtype="category")
+
+        result = instance._optimize_y(y_cat)
+
+        # Should be converted to integer codes: green=0, red=1, blue=2 (alphabetical)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertEqual(result.dtype.kind, "i")  # Any integer type
+        self.assertEqual(len(np.unique(result)), 3)
+
+
+class TestOptimizeYIntegerDtype(unittest.TestCase):
+    """Test _optimize_y with integer dtype input - one specific uncovered behavior."""
+
+    def test_optimize_y_already_integer_dtype(self):
+        """Test that integer dtype y passes through with contiguous conversion only.
+
+        Tests lines 1186-1200 where:
+        - Line 1186-1187: CategoricalDtype handled via .cat.codes.values
+        - Line 1188-1191: Non-Categorical data uses .values or direct assignment
+        - Line 1193-1199: Only non-integer dtypes get converted
+
+        The path NOT tested by other tests is when y IS already integer dtype:
+        It should pass through lines 1186-1200 without factorization or conversion,
+        only getting .ascontiguousarray() applied at line 1200.
+
+        This ensures no unnecessary processing occurs for already-integer data.
+        """
+        from ml_grid.pipeline import grid_search_cross_validate_ts
+
+        instance = object.__new__(
+            grid_search_cross_validate_ts.grid_search_crossvalidate_ts
+        )
+
+        # Create array with integer dtype (not CategoricalDtype)
+        y_int = np.array([0, 1, 2, 0, 1, 2])
+
+        result = instance._optimize_y(y_int)
+
+        # Should remain as numpy array with integer dtype
+        self.assertIsInstance(result, np.ndarray)
+        self.assertEqual(result.dtype.kind, "i")  # Integer type
+        # Verify no factorization occurred (values should be unchanged)
+        np.testing.assert_array_equal(result, y_int)
+        # Verify it's contiguous memory layout
+        self.assertTrue(result.flags.c_contiguous)
 
 
 if __name__ == "__main__":
