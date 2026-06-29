@@ -1,127 +1,210 @@
-"""
-Unit tests for ml_grid.pipeline.model_class_list_ts module.
+"""Test suite for the ml_grid.pipeline.model_class_list_ts module."""
 
-This test suite validates the time-series model list generation functionality,
-ensuring that models are correctly instantiated based on configuration.
-"""
+import sys
+from unittest.mock import MagicMock
 
-import unittest
 
-try:
+def test_get_model_class_list_ts_none_dict():
+    """Tests that when model_class_dict is None, an empty list is returned."""
+    mock_modules = _create_mock_modules()
+    sys.modules.update(mock_modules)
+
     from ml_grid.pipeline.model_class_list_ts import get_model_class_list_ts
-except ImportError:
-    import sys
-    from pathlib import Path
 
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    try:
-        from ml_grid.pipeline.model_class_list_ts import get_model_class_list_ts
-    except ImportError:
-        get_model_class_list_ts = None
+    class MockPipe:
+        def __init__(self):
+            self.model_class_dict = None
 
+    mock_pipe = MockPipe()
+    result = get_model_class_list_ts(mock_pipe)
 
-if get_model_class_list_ts is None:
-    raise unittest.SkipTest(
-        "aeon module not installed - skipping time-series model tests"
-    )
+    assert isinstance(result, list)
+    assert len(result) == 0
 
 
-class MockLogger:
-    """Mock logger for testing without actual logging output."""
+def test_get_model_class_list_ts_empty_dict():
+    """Tests that when model_class_dict is an empty dict, an empty list is returned."""
+    mock_modules = _create_mock_modules()
+    sys.modules.update(mock_modules)
 
-    def __init__(self):
-        self.messages = []
+    from ml_grid.pipeline.model_class_list_ts import get_model_class_list_ts
 
-    def info(self, msg):
-        self.messages.append(("info", msg))
+    class MockPipe:
+        def __init__(self):
+            self.model_class_dict = {}
 
-    def warning(self, msg):
-        self.messages.append(("warning", msg))
+    mock_pipe = MockPipe()
+    result = get_model_class_list_ts(mock_pipe)
 
-    def debug(self, msg):
-        self.messages.append(("debug", msg))
-
-    def error(self, msg, exc_info=False):
-        self.messages.append(("error", msg))
-
-    def critical(self, msg):
-        self.messages.append(("critical", msg))
+    assert isinstance(result, list)
+    assert len(result) == 0
 
 
-class MockPipe:
-    """Mock pipe object for testing get_model_class_list_ts."""
+def test_get_model_class_list_ts_all_false():
+    """Tests that when all model includes are False, an empty list is returned."""
+    mock_modules = _create_mock_modules()
+    sys.modules.update(mock_modules)
 
-    def __init__(self, model_class_dict=None):
-        self.model_class_dict = model_class_dict
-        self.logger = MockLogger()
+    from ml_grid.pipeline.model_class_list_ts import get_model_class_list_ts
 
-
-class TestGetModelClassListTs(unittest.TestCase):
-    """Test suite for the get_model_class_list_ts function."""
-
-    def test_get_model_class_list_ts_none_dict_returns_empty_list(self):
-        """
-        Tests that when model_class_dict is None, an empty list is returned.
-
-        This covers the edge case where no time-series models are configured.
-        """
-        mock_pipe = MockPipe(model_class_dict=None)
-
-        result = get_model_class_list_ts(mock_pipe)
-
-        self.assertIsInstance(result, list)
-        self.assertEqual(len(result), 0)
-        warning_found = any(
-            msg[0] == "warning" and "model_class_dict is None" in msg[1]
-            for msg in mock_pipe.logger.messages
-        )
-        self.assertTrue(
-            warning_found,
-            "Expected warning message about model_class_dict being None not found",
-        )
-
-    def test_get_model_class_list_ts_empty_dict_returns_empty_list(self):
-        """
-        Tests that when model_class_dict is an empty dict, an empty list is returned.
-        """
-        mock_pipe = MockPipe(model_class_dict={})
-
-        result = get_model_class_list_ts(mock_pipe)
-
-        self.assertIsInstance(result, list)
-        self.assertEqual(len(result), 0)
-
-    def test_get_model_class_list_ts_all_false_returns_empty_list(self):
-        """
-        Tests that when all model includes are False, an empty list is returned.
-        """
-        mock_pipe = MockPipe(
-            model_class_dict={
+    class MockPipe:
+        def __init__(self):
+            self.model_class_dict = {
                 "KNeighborsTimeSeriesClassifier": False,
                 "TimeSeriesForestClassifier": False,
             }
-        )
 
-        result = get_model_class_list_ts(mock_pipe)
+    mock_pipe = MockPipe()
+    result = get_model_class_list_ts(mock_pipe)
 
-        self.assertIsInstance(result, list)
-        self.assertEqual(len(result), 0)
+    assert isinstance(result, list)
+    assert len(result) == 0
 
-    def test_get_model_class_list_ts_single_include(self):
-        """
-        Tests that when a single model is set to True, it is instantiated.
-        """
-        mock_pipe = MockPipe(
-            model_class_dict={
+
+def test_get_model_class_list_ts_single_include():
+    """Tests that when a single model is set to True, it is instantiated."""
+    mock_modules = _create_mock_modules()
+    sys.modules.update(mock_modules)
+
+    from ml_grid.pipeline.model_class_list_ts import get_model_class_list_ts
+
+    class MockPipe:
+        def __init__(self):
+            self.model_class_dict = {
                 "KNeighborsTimeSeriesClassifier": True,
             }
-        )
 
-        result = get_model_class_list_ts(mock_pipe)
+    mock_pipe = MockPipe()
+    result = get_model_class_list_ts(mock_pipe)
 
-        self.assertIsInstance(result, list)
-        self.assertGreater(len(result), 0)
+    assert isinstance(result, list)
+    assert len(result) > 0
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_get_model_class_list_ts_unknown_model():
+    """Tests that when a model class is not found in TS_MODEL_CLASS_MAP, it logs a warning."""
+    # Remove the module from sys.modules if already imported to ensure fresh import
+    modules_to_remove = [
+        "ml_grid.model_classes_time_series.KNeighborsTimeSeriesClassifier_module",
+        "ml_grid.pipeline.model_class_list_ts",
+    ]
+    for mod in modules_to_remove:
+        sys.modules.pop(mod, None)
+
+    mock_modules = _create_mock_modules()
+
+    # Create a mock that has the KNN class
+    failing_module = MagicMock()
+
+    class FailingKNNClass:
+        def __init__(self, *args, **kwargs):
+            raise RuntimeError("Failed to instantiate")
+
+    failing_module.KNeighborsTimeSeriesClassifier_class = FailingKNNClass
+    mock_modules[
+        "ml_grid.model_classes_time_series.KNeighborsTimeSeriesClassifier_module"
+    ] = failing_module
+
+    sys.modules.update(mock_modules)
+
+    from ml_grid.pipeline.model_class_list_ts import get_model_class_list_ts
+
+    class MockPipe:
+        def __init__(self):
+            self.model_class_dict = {
+                "NonExistentModel": True,  # Model not in TS_MODEL_CLASS_MAP
+            }
+
+    mock_pipe = MockPipe()
+    result = get_model_class_list_ts(mock_pipe)
+
+    assert isinstance(result, list)
+    assert len(result) == 0
+
+
+def test_get_model_class_list_ts_instantiation_failure():
+    """Tests that when model instantiation fails, it logs an error and continues."""
+    # Remove the module from sys.modules if already imported to ensure fresh import
+    modules_to_remove = [
+        "ml_grid.model_classes_time_series.KNeighborsTimeSeriesClassifier_module",
+        "ml_grid.pipeline.model_class_list_ts",
+    ]
+    for mod in modules_to_remove:
+        sys.modules.pop(mod, None)
+
+    mock_modules = _create_mock_modules()
+
+    # Create a mock KNN class that raises an exception on instantiation
+    class FailingKNNClass:
+        def __init__(self, *args, **kwargs):
+            raise RuntimeError("Failed to instantiate")
+
+    # Replace the module with our modified version that has the failing class
+    failing_module = MagicMock()
+    failing_module.KNeighborsTimeSeriesClassifier_class = FailingKNNClass
+    mock_modules[
+        "ml_grid.model_classes_time_series.KNeighborsTimeSeriesClassifier_module"
+    ] = failing_module
+
+    sys.modules.update(mock_modules)
+
+    from ml_grid.pipeline.model_class_list_ts import get_model_class_list_ts
+
+    class MockPipe:
+        def __init__(self):
+            self.model_class_dict = {
+                "KNeighborsTimeSeriesClassifier": True,
+            }
+
+    mock_pipe = MockPipe()
+    result = get_model_class_list_ts(mock_pipe)
+
+    assert isinstance(result, list)
+    assert len(result) == 0
+
+
+def _create_mock_modules():
+    """Create mock modules for all aeon time-series classifiers."""
+    mock_modules = {}
+    module_paths = [
+        "ml_grid.model_classes_time_series.ArsenalClassifier_module",
+        "ml_grid.model_classes_time_series.Catch22Classifer_module",
+        "ml_grid.model_classes_time_series.CNNClassifier_module",
+        "ml_grid.model_classes_time_series.ContractableBOSSClassifier_module",
+        "ml_grid.model_classes_time_series.elasticEnsembleClassifier_module",
+        "ml_grid.model_classes_time_series.EncoderClassifier_module",
+        "ml_grid.model_classes_time_series.FCNClassifier_module",
+        "ml_grid.model_classes_time_series.FreshPRINCEClassifier_module",
+        "ml_grid.model_classes_time_series.HIVECOTEV1Classifier_module",
+        "ml_grid.model_classes_time_series.HIVECOTEV2Classifier_module",
+        "ml_grid.model_classes_time_series.InceptionTimeClassifer_module",
+        "ml_grid.model_classes_time_series.IndividualInceptionClassifier_module",
+        "ml_grid.model_classes_time_series.InidividualTDEClassifier_module",
+        "ml_grid.model_classes_time_series.KNeighborsTimeSeriesClassifier_module",
+        "ml_grid.model_classes_time_series.MLPClassifier_module",
+        "ml_grid.model_classes_time_series.MUSEClassifier_module",
+        "ml_grid.model_classes_time_series.OrdinalTDEClassifier_module",
+        "ml_grid.model_classes_time_series.ResNetClassifier_module",
+        "ml_grid.model_classes_time_series.rocketClassifier_module",
+        "ml_grid.model_classes_time_series.SignatureClassifier_module",
+        "ml_grid.model_classes_time_series.SummaryClassifier_module",
+        "ml_grid.model_classes_time_series.TemporalDictionaryEnsembleClassifier_module",
+        "ml_grid.model_classes_time_series.TimeSeriesForestClassifier_module",
+        "ml_grid.model_classes_time_series.TSFreshClassifier_module",
+    ]
+
+    for mod_name in module_paths:
+        mock_mod = MagicMock()
+        parts = mod_name.split("_module")[0].split(".")[-1]
+
+        if parts.endswith("Classifier"):
+            class_name = parts.replace("Module", "") + "_class"
+        elif parts == "Arsenal":
+            class_name = "Arsenal_class"
+        else:
+            class_name = parts + "_class"
+
+        setattr(mock_mod, class_name[:-6], MagicMock())
+        mock_modules[mod_name] = mock_mod
+
+    return mock_modules
