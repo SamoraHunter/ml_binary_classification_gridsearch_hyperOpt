@@ -173,16 +173,15 @@ The main entry point for running experiments is a script or notebook that loads 
 
 ```python
 from pathlib import Path
-from ml_grid.pipeline.data import pipe
-from ml_grid.util.param_space import parameter_space
-from ml_grid.util.create_experiment_directory import create_experiment_directory
-from ml_grid.util.config_parser import load_config
+import yaml
 
-# Load configuration from config.yml
-config = load_config()
+# Load configuration from config.yml using standard YAML loader
+config_path = Path("config.yml")
+with open(config_path, "r") as f:
+    config = yaml.safe_load(f)
 
-# Set project root
-project_root = Path().resolve().parent
+# Set project root (current working directory)
+project_root = Path.cwd()
 
 # Create a unique directory for this experiment run
 experiments_base_dir = project_root / config['experiment']['experiments_base_dir']
@@ -191,18 +190,25 @@ experiment_dir = create_experiment_directory(
     additional_naming=config['experiment']['additional_naming']
 )
 
-# Generate the parameter space from the config file
+# Generate the parameter space from the param_space_size configuration
+from ml_grid.util.param_space import parameter_space
 param_space_df = parameter_space(config['param_space']).get_parameter_space()
 
 # Iterate through each parameter combination and run the pipeline
 for i, row in param_space_df.iterrows():
     local_param_dict = row.to_dict()
     print(f"Running experiment {i+1}/{len(param_space_df)} with params: {local_param_dict}")
-    pipe(
-        config=config,
+    
+    # Instantiate the pipe class with correct parameters
+    from ml_grid.pipeline.data import pipe
+    from ml_grid.util.create_experiment_directory import create_experiment_directory
+    
+    pipe_instance = pipe(
+        file_name=config['data']['file_path'],
+        drop_term_list=config['data']['drop_term_list'],
+        experiment_dir=str(experiment_dir),
+        base_project_dir=str(project_root),
         local_param_dict=local_param_dict,
-        base_project_dir=project_root,
-        experiment_dir=experiment_dir,
         param_space_index=i
     )
 ```

@@ -128,3 +128,5 @@ run_ci.sh
 .gitignore
 .devcontainer/devcontainer-lock.json
 coverage.json
+doc_status.json
+.coveragerc
