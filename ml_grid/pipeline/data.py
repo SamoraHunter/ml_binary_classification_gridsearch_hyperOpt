@@ -122,7 +122,20 @@ class pipe:
     def _log_feature_transformation(
         self, step_name: str, before_count: int, after_count: int, description: str
     ):
-        """Helper function to log feature transformation steps."""
+        """Logs a feature transformation step for tracking pipeline changes.
+
+        Records the number of features before and after a transformation step,
+        along with a descriptive message. Only logs if verbose level is >= 1.
+
+        Args:
+            step_name: Name of the transformation step being logged.
+            before_count: Number of features before the transformation.
+            after_count: Number of features after the transformation.
+            description: Description of what occurred during this step.
+
+        Returns:
+            None.
+        """
         if self.verbose >= 1:
             self._feature_log_list.append(
                 {
@@ -135,7 +148,24 @@ class pipe:
             )
 
     def _assert_index_alignment(self, df1: Any, df2: Any, step_name: str):
-        """Helper function to assert that DataFrame and Series indices are equal."""
+        """Asserts that two objects have matching indices or lengths.
+
+        Validates that the index of df1 matches the index of df2. For non-Pandas
+        objects (e.g., numpy arrays in time-series mode), validates that they
+        have the same length instead. Raises an exception if alignment fails.
+
+        Args:
+            df1: First object to compare. Can be a DataFrame, Series, or array-like.
+            df2: Second object to compare. Can be a DataFrame, Series, or array-like.
+            step_name: Name of the pipeline step for error logging.
+
+        Returns:
+            None if alignment passes; raises exception on failure.
+
+        Raises:
+            AssertionError: If indices do not match (for pandas objects) or
+                lengths differ (for non-pandas objects).
+        """
         # Handle objects without .index (e.g. numpy arrays in time series mode)
         if not hasattr(df1, "index") or not hasattr(df2, "index"):
             if len(df1) != len(df2):
@@ -156,7 +186,18 @@ class pipe:
             raise
 
     def _setup_pipeline(self, experiment_dir: str, redirect_stdout: bool):
-        """Initializes logger and sets up basic attributes."""
+        """Initializes the pipeline logger and essential tracking attributes.
+
+        Creates a unique logger instance for this pipeline run and initializes
+        internal data structures for logging feature transformations.
+
+        Args:
+            experiment_dir: Path to the directory where logs will be stored.
+            redirect_stdout: If True, redirects stdout to the log file.
+
+        Returns:
+            None.
+        """
         self.logger = setup_logger(
             experiment_dir=experiment_dir,
             param_space_index=self.param_space_index,
@@ -171,7 +212,21 @@ class pipe:
         self.logger.info(f"Parameters: {self.local_param_dict}")
 
     def _load_data(self, file_name: str, test_sample_n: int, column_sample_n: int):
-        """Loads data from the source file."""
+        """Loads input data from a CSV file or sampled subset.
+
+        Reads data using either full file read or sampling configuration based
+        on the provided parameters. Stores raw DataFrame and extracts column
+        metadata for subsequent processing steps.
+
+        Args:
+            file_name: Path to the input CSV file.
+            test_sample_n: Number of rows to sample (0 for no sampling).
+            column_sample_n: Number of columns to sample (0 for no sampling).
+
+        Returns:
+            None. Populates self.df, self.all_df_columns, and
+            self.orignal_feature_names attributes.
+        """
         if test_sample_n > 0 or column_sample_n > 0:
             self.df = read_in.read_sample(
                 file_name, test_sample_n, column_sample_n
@@ -220,7 +275,6 @@ class pipe:
                 logs and models will be saved.
             experiment_dir (str): The path to the parent directory for this group
                 of experimental runs.
-                permutation.
             additional_naming (Optional[str], optional): Additional string to
                 append to log folder names. Defaults to None.
             test_sample_n (int, optional): The number of rows to sample from the
@@ -303,7 +357,24 @@ class pipe:
     def _initial_feature_selection(
         self, local_param_dict, drop_term_list, outcome_var_override
     ):
-        """Performs initial feature selection based on toggles and determines outcome variable."""
+        """Selects features based on configuration parameters and identifies the outcome variable.
+
+        Filters columns using feature toggles from the parameter dictionary,
+        removes specified terms from column names, and determines which column
+        serves as the target outcome variable for modeling.
+
+        Args:
+            local_param_dict: Dictionary containing feature selection toggles
+                and configuration parameters.
+            drop_term_list: List of substrings used to identify columns that
+                should be excluded from features.
+            outcome_var_override: Optional specific outcome variable name that
+                overrides the default naming convention.
+
+        Returns:
+            None. Populates self.pertubation_columns, self.drop_list, and
+            self.outcome_variable attributes.
+        """
         self.pertubation_columns, self.drop_list = get_pertubation_columns(
             all_df_columns=self.all_df_columns,
             local_param_dict=local_param_dict,
@@ -362,7 +433,23 @@ class pipe:
         self.final_column_list = current_features
 
     def _apply_safety_net(self):
-        """Retains a minimal set of features if all have been pruned."""
+        """Ensures at least one feature remains when pruning would leave zero features.
+
+        Activates a fallback mechanism that attempts to retain a minimum number
+        of features when all columns have been eliminated during feature selection.
+        Prioritizes core protected columns, then falls back to original perturbed
+        columns, and finally random selection if necessary.
+
+        Args:
+            None
+
+        Returns:
+            None.
+
+        Raises:
+            NoFeaturesError: If even the safety net fails to retain at least
+                one feature column.
+        """
         if not self.final_column_list:
             self.logger.warning(
                 "All features were pruned. Activating safety retention mechanism."
@@ -415,7 +502,7 @@ class pipe:
             )
 
     def _create_xy(self):
-        """Creates the feature matrix X and target vector y."""
+        """Creates feature matrix X and target y, then resets indices for proper alignment. Drops columns specified in drop_list."""
         if self.time_series_mode:
             self.final_column_list.insert(0, "client_idcode")
 

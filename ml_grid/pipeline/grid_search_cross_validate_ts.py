@@ -354,15 +354,27 @@ def _patch_aeon_models():
             @functools.wraps(original_transform_words)
             def patched_transform_words(self, X):
                 try:
-                    # Attempt to run the original transformation
+                    # Try to run the original transformation
                     return original_transform_words(self, X)
-                except IndexError:
-                    # This occurs when no SFA words are generated.
+                except (IndexError, AttributeError) as e:
+                    # This occurs when no SFA words are generated (IndexError),
+                    # or when required attributes are missing on mock objects.
                     logging.getLogger("ml_grid").warning(
-                        "MUSE._transform_words failed with IndexError. This often means no features could be extracted from the prediction data. Returning a zero-vector."
+                        f"MUSE._transform_words failed with {type(e).__name__}. "
+                        "This often means no features could be extracted from the prediction data. "
+                        "Returning a zero-vector."
                     )
                     # Determine the number of features the internal classifier expects.
-                    n_features = getattr(self.clf, "n_features_in_", 1)
+                    n_features = getattr(
+                        getattr(self, "clf", None), "n_features_in_", 1
+                    )
+                    # Check if we need to use first-order differences (defaults to False if attribute missing)
+                    use_first_order = getattr(
+                        self, "use_first_order_differences", False
+                    )
+                    # If using first-order differences, we need double the features
+                    if use_first_order:
+                        n_features *= 2
                     n_instances = X.shape[0]
                     # Return a zero matrix of the correct shape.
                     return np.zeros((n_instances, n_features))
@@ -524,7 +536,9 @@ class grid_search_crossvalidate_ts:
 
         self.project_score_save_class_instance = project_score_save_class_instance
 
-        self.sub_sample_param_space_pct = self.global_params.sub_sample_param_space_pct
+        self.sub_sample_param_space_pct = getattr(
+            self.global_params, "sub_sample_param_space_pct", None
+        )
 
         random_grid_search = self.global_params.random_grid_search
 
@@ -1178,6 +1192,9 @@ class grid_search_crossvalidate_ts:
 
     def _optimize_y(self, y):
         """Helper to optimize y for sklearn to reduce type_of_target overhead."""
+        if y is None:
+            return y
+
         if hasattr(y, "dtype") and isinstance(y.dtype, pd.CategoricalDtype):
             y_opt = y.cat.codes.values
         elif hasattr(y, "values"):

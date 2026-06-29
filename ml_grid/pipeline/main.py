@@ -17,6 +17,21 @@ from ml_grid.util.project_score_save import project_score_save_class  # Import t
 
 @contextmanager
 def time_limit(seconds):
+    """Context manager that enforces a time limit on the execution of code within its block.
+
+    Uses SIGALRM to raise a TimeoutError if the block execution exceeds the specified
+    duration. Supports nesting by preserving and adjusting outer timeouts.
+
+    Args:
+        seconds: The maximum number of seconds allowed for execution. If None, 0,
+            negative, or not supported on platform, no timeout is enforced.
+
+    Yields:
+        None
+
+    Raises:
+        TimeoutError: If execution exceeds the specified time limit.
+    """
     if seconds is None:
         yield
         return
@@ -72,7 +87,25 @@ def time_limit(seconds):
 
 
 class run:
-    """Orchestrates the hyperparameter search for a list of models."""
+    """Orchestrates the hyperparameter search for a list of models.
+
+    Class Attributes:
+        global_params: A reference to the global parameters singleton instance.
+        verbose: The verbosity level for logging, inherited from global parameters.
+        error_raise: A flag to control error handling. If True, exceptions will be raised.
+        ml_grid_object: The main data pipeline object containing data and model configurations.
+        sub_sample_param_space_pct: The percentage of the parameter space to sample in a randomized search.
+        parameter_space_size: The size of the parameter space for base learners (e.g., 'medium', 'xsmall').
+        model_class_list: A list of instantiated model class objects to be evaluated in this run.
+        pg_list: A list containing the calculated size of the parameter grid for each model.
+        mean_parameter_space_val: The mean size of the parameter spaces across all models in the run.
+        sub_sample_parameter_val: The calculated number of iterations for randomized search.
+        arg_list: A list of argument tuples, one for each model, to be passed to the grid search function.
+        multiprocess: A flag to enable or disable multiprocessing for running grid searches in parallel.
+        local_param_dict: A dictionary of parameters for the current experimental run.
+        model_error_list: A list to store details of any errors encountered during model training.
+        highest_score: The highest score achieved across all successful model runs in the execute step.
+    """
 
     global_params: global_parameters
     """A reference to the global parameters singleton instance."""
@@ -293,7 +326,19 @@ class run:
             self.logger.info(f"Passed main init, len(arg_list): {len(self.arg_list)}")
 
     def _prepare_run(self, model_class):
-        """Prepares a single model run by creating the necessary arguments."""
+        """Prepares arguments for executing grid search on a single model.
+
+        Constructs the argument tuple required by the grid search functions
+        from the provided model class object.
+
+        Args:
+            model_class: A model class reference from the arg_list tuple.
+
+        Returns:
+            Tuple containing: (algorithm_implementation, parameter_space,
+            method_name, ml_grid_object, sub_sample_parameter_val,
+            project_score_save_class_instance).
+        """
         return (
             model_class.algorithm_implementation,
             model_class.parameter_space,
@@ -364,9 +409,9 @@ class run:
 
         Returns:
             Tuple[List[List[Any]], float]: A tuple containing:
-                - A list of model errors, where each error is a list containing
-                  the algorithm instance, the exception, and the traceback.
-                - The highest score achieved across all successful model runs.
+                - model_error_list (List[List[Any]]): A list of model errors, where each error is
+                  a list containing the algorithm instance, the exception, and the traceback.
+                - highest_score (float): The highest score achieved across all successful model runs.
         """
 
         self.model_error_list = []

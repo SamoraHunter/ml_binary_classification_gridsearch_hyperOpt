@@ -1031,6 +1031,14 @@ class grid_search_crossvalidate:
         )
 
         def adjust_param(param_value):
+            """Adjusts parameter values for KNN models.
+
+            Args:
+                param_value: The parameter value to adjust (skopt space, list, or scalar).
+
+            Returns:
+                Adjusted parameter value suitable for the training fold size.
+            """
             if is_skopt_space(param_value):
                 # For skopt.space objects, adjust the upper bound
                 new_high = min(param_value.high, max_n_neighbors)
@@ -1082,6 +1090,14 @@ class grid_search_crossvalidate:
             min_subsample = 1.0 / n_samples_in_fold
 
         def adjust_param(param_value):
+            """Adjusts parameter values for CatBoost models.
+
+            Args:
+                param_value: The parameter value to adjust (skopt space, list, or scalar).
+
+            Returns:
+                Adjusted parameter value suitable for the training fold size.
+            """
             if is_skopt_space(param_value):
                 # For skopt.space objects (Real), adjust the lower bound
                 new_low = max(param_value.low, min_subsample)
@@ -1133,6 +1149,14 @@ class grid_search_crossvalidate:
         min_max_bin = 2
 
         def adjust_param(param_value):
+            """Adjusts parameter values for XGBoost models.
+
+            Args:
+                param_value: The parameter value to adjust (skopt space, list, or scalar).
+
+            Returns:
+                Adjusted parameter value suitable for minimum requirements.
+            """
             if is_skopt_space(param_value):
                 # For skopt Integer space
                 if hasattr(param_value, "low"):
