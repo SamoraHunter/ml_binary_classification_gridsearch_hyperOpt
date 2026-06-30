@@ -62,6 +62,9 @@ class TabTransformerWrapper(TabTransformerClassifier):
                 index = params.pop(key)
                 if isinstance(index, int) and 0 <= index < len(mapping):
                     params[key] = mapping[index]
+                else:
+                    # Pass through invalid values unchanged
+                    params[key] = index
 
         return super().set_params(**params)
 

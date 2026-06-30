@@ -17,8 +17,8 @@ except ImportError:
 
     class H2OStackedEnsembleEstimator: ...
 
-from .H2OBaseClassifier import H2OBaseClassifier
 
+from .H2OBaseClassifier import H2OBaseClassifier
 
 # Define default parameter space for the metalearner
 PARAM_SPACE_GRID = {
