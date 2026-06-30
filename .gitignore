@@ -130,3 +130,4 @@ run_ci.sh
 coverage.json
 doc_status.json
 .coveragerc
+.secrets

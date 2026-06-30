@@ -117,5 +117,5 @@ jobs:
           python -m pip install 'setuptools<70.0.0'
           pytest --nbmake --nbmake-timeout=4500 --nbmake-kernel=ml_grid_env notebooks/unit_test_synthetic.ipynb
 
-          echo "Running Python unit tests..."
-          pytest tests/
+          echo "Running Python unit tests (excluding time-series tests that require aeon)..."
+          pytest tests/ -m 'not ts'
