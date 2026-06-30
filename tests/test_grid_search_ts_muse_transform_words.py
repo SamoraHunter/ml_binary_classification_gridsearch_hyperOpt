@@ -5,9 +5,11 @@ grid_search_cross_validate_ts.py (lines 345-373) which handles cases where
 no SFA words can be extracted from input data, resulting in an IndexError.
 """
 
+import pytest
 import numpy as np
 
 
+@pytest.mark.ts
 def test_muse_transform_words_patch_exists():
     """Test that the MUSE._transform_words patch is applied.
 

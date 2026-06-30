@@ -1,8 +1,10 @@
 """Test ResNet parameter adjustment - truncate case (len(val_list) > n_conv)."""
 
+import pytest
 import unittest
 
 
+@pytest.mark.ts
 class TestResNetParamTruncation(unittest.TestCase):
     """Test ResNet parameter truncation when val_list length exceeds n_conv."""
 

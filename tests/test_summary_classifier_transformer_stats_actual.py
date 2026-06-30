@@ -1,8 +1,18 @@
 """Test for SummaryClassifier patch: transformer_.summary_stats validation."""
 
+import pytest
 import unittest
 
 
+def _skip_if_aeon_not_installed():
+    """Skip test if aeon is not installed."""
+    try:
+        import aeon  # noqa: F401
+    except ImportError:
+        raise unittest.SkipTest("aeon is not installed - time-series dependencies skipped")
+
+
+@pytest.mark.ts
 class TestSummaryClassifierTransformerStatsPatch(unittest.TestCase):
     """Test that SummaryClassifier.patched _fit validates and fixes transformer_.summary_stats."""
 
@@ -21,9 +31,11 @@ class TestSummaryClassifierTransformerStatsPatch(unittest.TestCase):
         This specifically tests the branch that handles transformer_.summary_stats,
         which was not previously tested with mock scenarios.
         """
+        # Skip via unittest.skipIf decorator logic - aeon must be installed for this test
+        _skip_if_aeon_not_installed()
+
         from ml_grid.pipeline import grid_search_cross_validate_ts
 
-        # Apply patches first to ensure SummaryClassifier is patched
         grid_search_cross_validate_ts._patch_aeon_models()
 
         from aeon.classification.feature_based import SummaryClassifier
@@ -69,10 +81,6 @@ class TestSummaryClassifierTransformerStatsPatch(unittest.TestCase):
             "invalid_option_that_will_be_fixed",
             "Fix should have replaced the invalid value",
         )
-
-
-if __name__ == "__main__":
-    unittest.main()
 
 
 if __name__ == "__main__":

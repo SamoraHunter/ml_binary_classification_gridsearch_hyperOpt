@@ -1,8 +1,10 @@
 """Test _prepare_deep_learning_data error handling - lines 86-90 coverage."""
 
+import pytest
 import unittest
 
 
+@pytest.mark.ts
 class TestPrepareDeepLearningDataErrorHandling(unittest.TestCase):
     """Test exception handling in _prepare_deep_learning_data function."""
 

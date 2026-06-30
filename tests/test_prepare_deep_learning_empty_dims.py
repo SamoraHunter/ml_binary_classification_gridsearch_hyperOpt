@@ -1,9 +1,11 @@
 """Test for _prepare_deep_learning_data with empty dimensions (mode='constant')."""
 
+import pytest
 import unittest
 import numpy as np
 
 
+@pytest.mark.ts
 class TestPrepareDeepLearningDataEmptyDims(unittest.TestCase):
     """Test _prepare_deep_learning_data handles empty dimensions correctly.
 

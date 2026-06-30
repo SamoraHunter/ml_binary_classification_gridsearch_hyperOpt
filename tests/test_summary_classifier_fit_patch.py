@@ -1,9 +1,11 @@
 """Test for SummaryClassifier patch execution via _fit method."""
 
+import pytest
 import numpy as np
 import unittest
 
 
+@pytest.mark.ts
 class TestSummaryClassifierFitPatch(unittest.TestCase):
     """Test that SummaryClassifier._fit patch actually executes on real fit calls."""
 

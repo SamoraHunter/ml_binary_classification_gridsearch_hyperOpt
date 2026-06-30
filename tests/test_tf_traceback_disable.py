@@ -1,8 +1,10 @@
 """Test coverage for grid_search_cross_validate_ts module - TensorFlow traceback disable."""
 
+import pytest
 import sys
 
 
+@pytest.mark.ts
 def test_tf_traceback_disable_attribute_error_handling():
     """Test that AttributeError during tf.debugging.disable_traceback_filtering() is handled.
 

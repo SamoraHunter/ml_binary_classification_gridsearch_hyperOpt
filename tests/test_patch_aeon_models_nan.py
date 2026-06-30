@@ -1,9 +1,11 @@
 """Test for _patch_aeon_models NaN handling in BaseDeepClassifier._predict_proba."""
 
+import pytest
 import numpy as np
 import unittest
 
 
+@pytest.mark.ts
 class TestPatchAeonModelsNaNHandling(unittest.TestCase):
     """Test NaN handling patch for aeon deep learning models."""
 

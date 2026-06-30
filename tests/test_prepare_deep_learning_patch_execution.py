@@ -1,9 +1,11 @@
 """Test for _prepare_deep_learning_data patch execution path (line 197)."""
 
+import pytest
 import unittest
 import numpy as np
 
 
+@pytest.mark.ts
 class TestPrepareDeepLearningDataPatch(unittest.TestCase):
     """Test that _prepare_deep_learning_data is actually called during fit.
 

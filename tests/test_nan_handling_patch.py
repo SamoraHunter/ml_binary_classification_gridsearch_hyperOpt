@@ -1,9 +1,11 @@
 """Test NaN handling in BaseDeepClassifier._predict_proba patch."""
 
+import pytest
 import unittest
 import numpy as np
 
 
+@pytest.mark.ts
 class TestBaseDeepClassifierNanHandling(unittest.TestCase):
     """Test NaN detection and correction in patched _predict_proba method.
 

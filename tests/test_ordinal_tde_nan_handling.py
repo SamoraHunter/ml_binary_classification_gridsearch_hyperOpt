@@ -1,9 +1,11 @@
 """Test OrdinalTDE NaN probability patching."""
 
+import pytest
 import numpy as np
 import unittest
 
 
+@pytest.mark.ts
 class TestOrdinalTdeNanHandling(unittest.TestCase):
     """Test OrdinalTDE _predict_proba NaN handling patch."""
 

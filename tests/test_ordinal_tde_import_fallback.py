@@ -1,9 +1,11 @@
 """Test OrdinalTDE ImportError fallback using import system hook."""
 
+import pytest
 import subprocess
 import sys
 
 
+@pytest.mark.ts
 def test_ordinal_tde_main_import_failure():
     """Test that main import failure triggers internal path.
 

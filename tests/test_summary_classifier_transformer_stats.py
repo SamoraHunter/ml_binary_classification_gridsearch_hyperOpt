@@ -1,8 +1,10 @@
 """Test SummaryClassifier patch for transformer_.summary_stats validation."""
 
+import pytest
 import unittest
 
 
+@pytest.mark.ts
 class TestSummaryClassifierTransformerStatsPatch(unittest.TestCase):
     """Test SummaryClassifier patched fit method handles transformer_.summary_stats."""
 

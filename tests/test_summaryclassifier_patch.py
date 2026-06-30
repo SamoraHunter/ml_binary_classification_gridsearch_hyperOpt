@@ -1,8 +1,10 @@
 """Test for SummaryClassifier summary_stats parameter validation patch."""
 
+import pytest
 import unittest
 
 
+@pytest.mark.ts
 class TestSummaryClassifierPatch(unittest.TestCase):
     """Test SummaryClassifier _fit patch for invalid summary_stats handling."""
 

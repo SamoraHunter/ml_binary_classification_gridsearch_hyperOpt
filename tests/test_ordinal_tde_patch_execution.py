@@ -4,9 +4,11 @@ This test calls _patch_aeon_models() to actually execute the OrdinalTDE patch co
 from grid_search_cross_validate_ts.py, including lines 391-398 NaN handling.
 """
 
+import pytest
 import unittest
 
 
+@pytest.mark.ts
 class TestOrdinalTdePatchExecution(unittest.TestCase):
     """Test that OrdinalTDE _predict_proba NaN handling executes."""
 

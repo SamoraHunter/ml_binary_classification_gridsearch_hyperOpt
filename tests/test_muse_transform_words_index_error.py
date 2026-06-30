@@ -1,9 +1,11 @@
 """Test MUSE._transform_words IndexError handling."""
 
+import pytest
 import unittest
 import numpy as np
 
 
+@pytest.mark.ts
 class TestMuseTransformWordsPatch(unittest.TestCase):
     """Test MUSE._transform_words patch handles IndexError gracefully."""
 

@@ -1,8 +1,10 @@
 """Test for grid_search_cross_validate_ts _patch_aeon_models SummaryClassifier transformer fix."""
 
+import pytest
 import unittest
 
 
+@pytest.mark.ts
 class TestSummaryClassifierTransformerFix(unittest.TestCase):
     """Test that SummaryClassifier._fit correctly fixes transformer_.summary_stats."""
 

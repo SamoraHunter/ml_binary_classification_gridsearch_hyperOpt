@@ -1,8 +1,10 @@
 """Test _patch_aeon_models patch application - lines 54-202 coverage."""
 
+import pytest
 import unittest
 
 
+@pytest.mark.ts
 class TestAeonModelPatchApplication(unittest.TestCase):
     """Test that aeon model patches are properly applied."""
 
