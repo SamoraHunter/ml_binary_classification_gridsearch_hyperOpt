@@ -9,7 +9,9 @@ def _skip_if_aeon_not_installed():
     try:
         import aeon  # noqa: F401
     except ImportError:
-        raise unittest.SkipTest("aeon is not installed - time-series dependencies skipped")
+        raise unittest.SkipTest(
+            "aeon is not installed - time-series dependencies skipped"
+        )
 
 
 @pytest.mark.ts

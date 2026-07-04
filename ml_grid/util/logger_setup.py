@@ -92,9 +92,7 @@ class TeeWriter:
     def __setstate__(self, state):
         self.__dict__.update(state)
         self.original_stream = sys.__stdout__
-        self.log_file = open(
-            self.log_file_path, "a", buffering=1, encoding="utf-8"
-        )
+        self.log_file = open(self.log_file_path, "a", buffering=1, encoding="utf-8")
 
 
 def setup_logger(

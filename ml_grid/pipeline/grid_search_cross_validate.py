@@ -382,7 +382,9 @@ class grid_search_crossvalidate:
         # Check for GPU availability and set device for torch-based models
         if "simbsig" in str(type(algorithm_implementation)):
             if torch is None:
-                self.logger.warning("torch not installed, cannot configure GPU for simbsig")
+                self.logger.warning(
+                    "torch not installed, cannot configure GPU for simbsig"
+                )
             elif not torch.cuda.is_available():
                 self.logger.info(
                     "No CUDA GPU detected. Forcing simbsig model to use CPU."
@@ -866,7 +868,8 @@ class grid_search_crossvalidate:
                     # Since fit already did the CV, create a dummy scores dictionary.
                     # Use defensive pattern for y_test (may be ndarray from _optimize_y)
                     y_test_value = (
-                        self.y_test.values if hasattr(self.y_test, "values")
+                        self.y_test.values
+                        if hasattr(self.y_test, "values")
                         else self.y_test
                     )
                     scores = {
@@ -896,11 +899,7 @@ class grid_search_crossvalidate:
                         # global_parameters.use_optimized_cv = True once validated.
                         use_optimized_cv = getattr(
                             self.global_parameters, "use_optimized_cv", False
-                        ) and not (
-                            is_h2o_model
-                            or is_flaml_model
-                            or is_autokeras_model
-                        )
+                        ) and not (is_h2o_model or is_flaml_model or is_autokeras_model)
 
                         with joblib.parallel_backend(backend):
                             if use_optimized_cv:
@@ -1130,8 +1129,10 @@ class grid_search_crossvalidate:
         n_samples = self._n_samples_train
 
         # Detect class imbalance
-        y_values = self.y_train if isinstance(self.y_train, pd.Series) else pd.Series(
+        y_values = (
             self.y_train
+            if isinstance(self.y_train, pd.Series)
+            else pd.Series(self.y_train)
         )
         y_unique = y_values.unique()
         n_classes = len(y_unique)
@@ -1166,9 +1167,7 @@ class grid_search_crossvalidate:
             try:
                 from sklearn.model_selection import StratifiedKFold
 
-                min_class_samples = (
-                    min(value_counts) if value_counts is not None else 0
-                )
+                min_class_samples = min(value_counts) if value_counts is not None else 0
 
                 if min_class_samples >= n_splits:
                     self.logger.debug(
@@ -1273,7 +1272,9 @@ class grid_search_crossvalidate:
 
         n_samples = X.shape[0] if hasattr(X, "shape") else len(X)
         n_splits = (
-            cv.get_n_splits(X, y) if hasattr(cv, "get_n_splits") else getattr(cv, "n_splits", 3)
+            cv.get_n_splits(X, y)
+            if hasattr(cv, "get_n_splits")
+            else getattr(cv, "n_splits", 3)
         )
 
         # Used only for informational logging, not to truncate folds.
@@ -1338,9 +1339,7 @@ class grid_search_crossvalidate:
 
         # Assemble sklearn-cross_validate-shaped output.
         converted_scores = {}
-        converted_scores["fit_time"] = np.array(
-            [fr["fit_time"] for fr in fold_results]
-        )
+        converted_scores["fit_time"] = np.array([fr["fit_time"] for fr in fold_results])
         converted_scores["score_time"] = np.array(
             [fr["score_time"] for fr in fold_results]
         )
