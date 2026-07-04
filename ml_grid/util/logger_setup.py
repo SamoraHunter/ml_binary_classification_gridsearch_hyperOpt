@@ -5,6 +5,98 @@ import sys
 from ml_grid.util.global_params import global_parameters
 
 
+class TeeWriter:
+    """Writes to both original stream and a file, preserving all stream behaviors."""
+
+    def __init__(self, original_stream, log_file_path):
+        self.original_stream = original_stream
+        self.log_file_path = log_file_path  # Store path for pickling
+        self.log_file = open(log_file_path, "a", buffering=1, encoding="utf-8")
+        # Preserve attributes from original stream
+        self.encoding = getattr(original_stream, "encoding", "utf-8")
+        self.errors = getattr(original_stream, "errors", "strict")
+        self.mode = getattr(original_stream, "mode", "w")
+
+    def write(self, message: str) -> int:
+        """Write to both streams, return bytes written."""
+        written = 0
+        # Always write to original stream first (for Jupyter/console visibility)
+        if message:
+            try:
+                result = self.original_stream.write(message)
+                written = result if result is not None else len(message)
+            except Exception:
+                written = len(message)
+
+            # Then append to log file
+            # Filter out progress bar updates (containing carriage return) to reduce I/O overhead
+            if "\r" not in message:
+                try:
+                    self.log_file.write(message)
+                except Exception:
+                    pass
+
+        return written
+
+    def flush(self) -> None:
+        """Flush both streams."""
+        try:
+            self.original_stream.flush()
+        except Exception:
+            pass
+        try:
+            self.log_file.flush()
+        except Exception:
+            pass
+
+    def close(self) -> None:
+        """Close only the log file, not the original stream."""
+        try:
+            self.log_file.close()
+        except Exception:
+            pass
+
+    def isatty(self) -> bool:
+        """Check if original stream is a TTY."""
+        return getattr(self.original_stream, "isatty", lambda: False)()
+
+    def fileno(self):
+        """Return file descriptor of original stream if available."""
+        if hasattr(self.original_stream, "fileno"):
+            return self.original_stream.fileno()
+        raise OSError("fileno not available")
+
+    def __getattr__(self, name):
+        """Delegate any other attributes to the original stream."""
+        # This check prevents infinite recursion if original_stream is missing
+        if name == "original_stream":
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute 'original_stream'"
+            )
+
+        if not hasattr(self, "original_stream"):
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute 'original_stream'"
+            )
+
+        return getattr(self.original_stream, name)
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        if "original_stream" in state:
+            del state["original_stream"]
+        if "log_file" in state:
+            del state["log_file"]
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.original_stream = sys.__stdout__
+        self.log_file = open(
+            self.log_file_path, "a", buffering=1, encoding="utf-8"
+        )
+
+
 def setup_logger(
     experiment_dir: str,
     param_space_index: int,
@@ -82,97 +174,6 @@ def setup_logger(
         original_stderr = sys.stderr
         stdout_log = os.path.join(log_folder_path, "stdout.log")
         stderr_log = os.path.join(log_folder_path, "stderr.log")
-
-        class TeeWriter:
-            """Writes to both original stream and a file, preserving all stream behaviors."""
-
-            def __init__(self, original_stream, log_file_path):
-                self.original_stream = original_stream
-                self.log_file_path = log_file_path  # Store path for pickling
-                self.log_file = open(log_file_path, "a", buffering=1, encoding="utf-8")
-                # Preserve attributes from original stream
-                self.encoding = getattr(original_stream, "encoding", "utf-8")
-                self.errors = getattr(original_stream, "errors", "strict")
-                self.mode = getattr(original_stream, "mode", "w")
-
-            def write(self, message: str) -> int:
-                """Write to both streams, return bytes written."""
-                written = 0
-                # Always write to original stream first (for Jupyter/console visibility)
-                if message:
-                    try:
-                        result = self.original_stream.write(message)
-                        written = result if result is not None else len(message)
-                    except Exception:
-                        written = len(message)
-
-                    # Then append to log file
-                    # Filter out progress bar updates (containing carriage return) to reduce I/O overhead
-                    if "\r" not in message:
-                        try:
-                            self.log_file.write(message)
-                        except Exception:
-                            pass
-
-                return written
-
-            def flush(self) -> None:
-                """Flush both streams."""
-                try:
-                    self.original_stream.flush()
-                except Exception:
-                    pass
-                try:
-                    self.log_file.flush()
-                except Exception:
-                    pass
-
-            def close(self) -> None:
-                """Close only the log file, not the original stream."""
-                try:
-                    self.log_file.close()
-                except Exception:
-                    pass
-
-            def isatty(self) -> bool:
-                """Check if original stream is a TTY."""
-                return getattr(self.original_stream, "isatty", lambda: False)()
-
-            def fileno(self):
-                """Return file descriptor of original stream if available."""
-                if hasattr(self.original_stream, "fileno"):
-                    return self.original_stream.fileno()
-                raise OSError("fileno not available")
-
-            def __getattr__(self, name):
-                """Delegate any other attributes to the original stream."""
-                # This check prevents infinite recursion if original_stream is missing
-                if name == "original_stream":
-                    raise AttributeError(
-                        f"'{type(self).__name__}' object has no attribute 'original_stream'"
-                    )
-
-                if not hasattr(self, "original_stream"):
-                    raise AttributeError(
-                        f"'{type(self).__name__}' object has no attribute 'original_stream'"
-                    )
-
-                return getattr(self.original_stream, name)
-
-            def __getstate__(self):
-                state = self.__dict__.copy()
-                if "original_stream" in state:
-                    del state["original_stream"]
-                if "log_file" in state:
-                    del state["log_file"]
-                return state
-
-            def __setstate__(self, state):
-                self.__dict__.update(state)
-                self.original_stream = sys.__stdout__
-                self.log_file = open(
-                    self.log_file_path, "a", buffering=1, encoding="utf-8"
-                )
 
         sys.stdout = TeeWriter(original_stdout, stdout_log)
         sys.stderr = TeeWriter(original_stderr, stderr_log)
