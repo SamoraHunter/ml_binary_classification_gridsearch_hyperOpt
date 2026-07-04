@@ -131,3 +131,4 @@ coverage.json
 doc_status.json
 .coveragerc
 .secrets
+.pipeline_cache/*

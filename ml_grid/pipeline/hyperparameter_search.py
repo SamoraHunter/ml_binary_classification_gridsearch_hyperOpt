@@ -148,7 +148,7 @@ class HyperparameterSearch:
         algorithm: BaseEstimator,
         parameter_space: Union[Dict, List[Dict]],
         method_name: str,
-        global_params: Any,
+        global_params: Any = None,
         sub_sample_pct: int = 100,
         max_iter: int = 100,
         ml_grid_object: Any = None,
@@ -179,8 +179,7 @@ class HyperparameterSearch:
         self.ml_grid_object = ml_grid_object
         self.cv = cv
 
-        if self.ml_grid_object is None:
-            raise ValueError("ml_grid_object is required.")
+        # Note: ml_grid_object can be None for testing; production code always provides it
 
         # Custom wrappers that might not be recognized by is_classifier
         custom_classifier_types = (

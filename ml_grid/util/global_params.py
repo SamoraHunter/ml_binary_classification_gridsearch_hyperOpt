@@ -204,10 +204,16 @@ class GlobalParameters:
     """Verbosity level for the search object (GridSearchCV, etc.). Defaults to 0."""
     force_second_cv: bool
     """If True, forces a second cross-validation run even if cached results are available. Defaults to False."""
-    model_eval_time_limit: int
+    model_eval_time_limit: int = None
     """The time limit in seconds for a single model evaluation. Defaults to None (no limit)."""
-    test_mode: bool
+    test_mode: bool = False
     """If True, uses minimal parameter spaces and reduced cross-validation for fast testing. Defaults to False."""
+    use_hierarchical_search: bool = False
+    """If True, uses hierarchical search strategy with coarse-to-fine optimization. Defaults to False."""
+    hierarchical_max_evals: int = 100
+    """Maximum number of evaluations for hierarchical search. Defaults to 100."""
+    hierarchical_reduction_factor: float = 0.3
+    """Reduction factor for dynamic space reduction in hierarchical search. Defaults to 0.3."""
 
     def __new__(cls, *args: Any, **kwargs: Any) -> "GlobalParameters":
         """Creates a new instance if one does not already exist (Singleton pattern)."""
@@ -255,6 +261,9 @@ class GlobalParameters:
         self.force_second_cv = False
         self.model_eval_time_limit = None
         self.test_mode = False
+        self.use_hierarchical_search = False
+        self.hierarchical_max_evals = 100
+        self.hierarchical_reduction_factor = 0.3
 
         custom_auc_scorer = make_scorer(custom_roc_auc_score)
         custom_f1_scorer = make_scorer(custom_f1_score)
