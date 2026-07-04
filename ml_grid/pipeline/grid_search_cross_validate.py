@@ -10,7 +10,13 @@ from typing import Any, Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-import torch
+
+# Lazy import torch only when needed to handle ImportError gracefully
+try:
+    import torch
+except ImportError:
+    torch = None
+
 from IPython.display import clear_output
 from scikeras.wrappers import KerasClassifier
 import sklearn
@@ -76,6 +82,17 @@ except (AttributeError, ImportError):
     pass
 
 
+def is_sklearn_version_supported():
+    """Check if scikit-learn version supports required CV features."""
+    from packaging import version
+
+    try:
+        sklearn_version = sklearn.__version__
+        return version.parse(sklearn_version) >= version.parse("0.24")
+    except Exception:
+        return True  # Assume supported if version check fails
+
+
 class grid_search_crossvalidate:
 
     def __init__(
@@ -114,6 +131,8 @@ class grid_search_crossvalidate:
         self.global_params = global_parameters
 
         self.verbose = self.global_params.verbose
+
+        self.method_name = method_name  # Store for use in CV optimizations
 
         if self.verbose < 8:
             self.logger.debug("Clearing output.")
@@ -223,16 +242,15 @@ class grid_search_crossvalidate:
         self.y_train = self.ml_grid_object_iter.y_train
 
         self.X_test = self.ml_grid_object_iter.X_test
-
         self.y_test = self.ml_grid_object_iter.y_test
-
         self.X_test_orig = self.ml_grid_object_iter.X_test_orig
-
         self.y_test_orig = self.ml_grid_object_iter.y_test_orig
 
-        # Ensure X_train is a DataFrame
+        # Ensure X_train is a DataFrame and always normalize column names to strings
+        # This matches the behavior for test data below, ensuring consistent feature naming
         if not isinstance(self.X_train, pd.DataFrame):
-            self.X_train = pd.DataFrame(self.X_train).rename(columns=str)
+            self.X_train = pd.DataFrame(self.X_train)
+        self.X_train = self.X_train.rename(columns=str)
 
         # Ensure y_train is a Series with aligned index
         if not isinstance(self.y_train, (pd.Series, pd.DataFrame)):
@@ -240,6 +258,24 @@ class grid_search_crossvalidate:
 
         # Enforce consistent target variable name for H2O compatibility
         self.y_train.name = "outcome"
+
+        # Ensure test data types match training data (DataFrames/Series with aligned indices)
+        # This prevents crashes in SVC branch that assumes .columns attribute on X_test
+        if not isinstance(self.X_test, pd.DataFrame):
+            self.X_test = pd.DataFrame(self.X_test).rename(columns=str)
+        else:
+            self.X_test = self.X_test.rename(columns=str)
+
+        if not isinstance(self.y_test, (pd.Series, pd.DataFrame)):
+            self.y_test = pd.Series(self.y_test, index=self.X_test.index)
+
+        if not isinstance(self.X_test_orig, pd.DataFrame):
+            self.X_test_orig = pd.DataFrame(self.X_test_orig).rename(columns=str)
+        else:
+            self.X_test_orig = self.X_test_orig.rename(columns=str)
+
+        if not isinstance(self.y_test_orig, (pd.Series, pd.DataFrame)):
+            self.y_test_orig = pd.Series(self.y_test_orig, index=self.X_test_orig.index)
 
         # Drop ID column if present
         if "client_idcode" in self.X_train.columns:
@@ -292,18 +328,35 @@ class grid_search_crossvalidate:
         self.y_test = self._optimize_y(self.y_test)
         self.y_test_orig = self._optimize_y(self.y_test_orig)
 
+        # Track training set size for adaptive CV / parameter adjustments
+        self._n_samples_train = len(self.X_train)
+
         # Use faster CV strategy in test mode
         if getattr(self.global_parameters, "test_mode", False):
             self.logger.info("Test mode enabled. Using fast KFold(n_splits=2) for CV.")
             self.cv = KFold(n_splits=2, shuffle=True, random_state=1)
         else:
-            # Use the full, robust CV strategy for production runs
-            self.cv = RepeatedKFold(
-                # Using 2 splits for faster iteration and larger training folds.
-                n_splits=2,
-                n_repeats=2,
-                random_state=1,
-            )
+            # Allow explicit override to the simple RepeatedKFold strategy if desired.
+            if getattr(self.global_params, "cv_strategy", None) == "repeated":
+                self.logger.debug("Using RepeatedKFold (cv_strategy='repeated')")
+                self.cv = RepeatedKFold(n_splits=2, n_repeats=2, random_state=1)
+            else:
+                # Adaptive CV strategy based on data characteristics. NOTE: to keep
+                # cross-algorithm score comparisons fair, this strategy is a function
+                # of the dataset only (n_samples, class balance) and NOT of the
+                # algorithm being evaluated, so every algorithm run against a given
+                # dataset in this pipeline gets the same fold structure.
+                cv_strategy = self._get_adaptive_cv_strategy()
+                self.cv = cv_strategy
+                if hasattr(cv_strategy, "get_n_splits"):
+                    try:
+                        n_splits = cv_strategy.get_n_splits()
+                    except TypeError:
+                        n_splits = getattr(cv_strategy, "n_splits", "N/A")
+                    self.logger.info(
+                        f"Using adaptive CV: {type(cv_strategy).__name__}(n_splits={n_splits}) "
+                        "for production runs"
+                    )
 
         start = time.time()
 
@@ -328,7 +381,9 @@ class grid_search_crossvalidate:
 
         # Check for GPU availability and set device for torch-based models
         if "simbsig" in str(type(algorithm_implementation)):
-            if not torch.cuda.is_available():
+            if torch is None:
+                self.logger.warning("torch not installed, cannot configure GPU for simbsig")
+            elif not torch.cuda.is_available():
                 self.logger.info(
                     "No CUDA GPU detected. Forcing simbsig model to use CPU."
                 )
@@ -674,7 +729,8 @@ class grid_search_crossvalidate:
                 X_train_final = self.X_train  # Pass DataFrame directly
                 y_train_final = self._optimize_y(self.y_train)
             else:
-                X_train_final = self.X_train.values  # Use NumPy array for other models
+                # Use to_numpy with explicit dtype=float to ensure consistent numeric types
+                X_train_final = self.X_train.to_numpy(dtype=float, copy=True)
                 y_train_final = self._optimize_y(self.y_train)
 
             scores = None
@@ -735,25 +791,52 @@ class grid_search_crossvalidate:
 
                     # Extract metric scores
                     for metric in self.metric_list:
-                        # Test scores
+                        # Test scores - handle both sklearn cross_validate format and GridSearchCV format
                         test_key = f"test_{metric}"
-                        temp_scores[test_key] = np.array(
-                            [
-                                results[f"split{k}_test_{metric}"][index]
-                                for k in range(n_splits)
-                            ]
-                        )
-                        # Train scores (if available)
+                        split_test_key = f"split0_test_{metric}"
+                        if split_test_key in results:
+                            # GridSearchCV format: extract from split{k}_test_{metric}
+                            temp_scores[test_key] = np.array(
+                                [
+                                    results[f"split{k}_test_{metric}"][index]
+                                    for k in range(n_splits)
+                                ]
+                            )
+                        elif test_key in results:
+                            # cross_validate format: use result array directly
+                            temp_scores[test_key] = results[test_key]
+                        else:
+                            # Default fallback with mean score repeated
+                            fallback_value = results.get(
+                                test_key.replace("test_", "mean_test_"), 0.5
+                            )
+                            temp_scores[test_key] = np.full(n_splits, fallback_value)
+                            self.logger.warning(
+                                f"CV metric '{test_key}' not found in cached results. "
+                                f"Falling back to default score ({fallback_value}). "
+                                f"This may indicate misnamed metrics or missing scorers."
+                            )
+
+                        # Train scores (if available) - same dual format handling.
+                        # NOTE: this block must stay INSIDE the `for metric` loop so
+                        # every metric in metric_list gets its train score extracted,
+                        # not just whichever metric happened to be last in the list.
                         train_key = f"train_{metric}"
-                        train_col = (
-                            f"split0_train_{metric}"  # Check existence on first split
-                        )
-                        if train_col in results:
+                        split_train_key = f"split0_train_{metric}"
+                        if split_train_key in results:
                             temp_scores[train_key] = np.array(
                                 [
                                     results[f"split{k}_train_{metric}"][index]
                                     for k in range(n_splits)
                                 ]
+                            )
+                        elif train_key in results:
+                            temp_scores[train_key] = results[train_key]
+                        else:
+                            # Train scores missing - log for debugging
+                            self.logger.warning(
+                                f"CV train metric '{train_key}' not found in cached results. "
+                                "This may indicate misnamed metrics or incomplete cv_results_"
                             )
                     scores = temp_scores
                 except Exception as e:
@@ -781,9 +864,14 @@ class grid_search_crossvalidate:
                         X_train_values, y_train_values, cv=self.cv, verbose=0
                     )
                     # Since fit already did the CV, create a dummy scores dictionary.
+                    # Use defensive pattern for y_test (may be ndarray from _optimize_y)
+                    y_test_value = (
+                        self.y_test.values if hasattr(self.y_test, "values")
+                        else self.y_test
+                    )
                     scores = {
                         "test_roc_auc": [
-                            current_algorithm.score(self.X_test, self.y_test.values)
+                            current_algorithm.score(self.X_test, y_test_value)
                         ]
                     }
                 else:
@@ -801,17 +889,49 @@ class grid_search_crossvalidate:
                         # Always use threading backend
                         backend = "threading"
 
+                        # Opt-in path: a genuinely parallel CV loop with correctly
+                        # resolved scorers and no fold-count-breaking early stopping.
+                        # Off by default; existing sklearn.cross_validate remains the
+                        # default, proven path. Enable via
+                        # global_parameters.use_optimized_cv = True once validated.
+                        use_optimized_cv = getattr(
+                            self.global_parameters, "use_optimized_cv", False
+                        ) and not (
+                            is_h2o_model
+                            or is_flaml_model
+                            or is_autokeras_model
+                        )
+
                         with joblib.parallel_backend(backend):
-                            scores = cross_validate(
-                                current_algorithm,
-                                X_train_final,
-                                y_train_final,  # Use optimized y (numpy for sklearn, Series for H2O)
-                                scoring=self.metric_list,
-                                cv=self.cv,
-                                n_jobs=final_cv_n_jobs,  # Use adjusted n_jobs
-                                pre_dispatch="2*n_jobs",
-                                error_score=self.error_raise,  # Raise error if cross-validation fails
-                            )
+                            if use_optimized_cv:
+                                try:
+                                    scores = self._optimized_cross_validate(
+                                        current_algorithm,
+                                        X_train_final,
+                                        y_train_final,
+                                        scoring=self.metric_list,
+                                        cv=self.cv,
+                                        n_jobs=final_cv_n_jobs,
+                                        error_score=self.error_raise,
+                                    )
+                                except Exception as e:
+                                    self.logger.warning(
+                                        f"_optimized_cross_validate failed ({e}). "
+                                        "Falling back to standard sklearn cross_validate."
+                                    )
+                                    scores = None
+
+                            if scores is None:
+                                scores = cross_validate(
+                                    current_algorithm,
+                                    X_train_final,
+                                    y_train_final,  # Use optimized y (numpy for sklearn, Series for H2O)
+                                    scoring=self.metric_list,
+                                    cv=self.cv,
+                                    n_jobs=final_cv_n_jobs,  # Use adjusted n_jobs
+                                    pre_dispatch="2*n_jobs",
+                                    error_score=self.error_raise,  # Raise error if cross-validation fails
+                                )
 
                     # Pre-compile the predict function for Keras/TF models
                     if isinstance(
@@ -989,6 +1109,248 @@ class grid_search_crossvalidate:
         self.grid_search_cross_validate_score_result = auc
 
         self._shutdown_h2o_if_needed(current_algorithm)
+
+    def _get_adaptive_cv_strategy(self):
+        """
+        Dynamically selects the optimal cross-validation strategy based on data
+        characteristics. This depends only on dataset properties (size, class
+        balance) and NOT on the algorithm being evaluated, so that every
+        algorithm run against a given dataset uses an identical fold structure
+        and their resulting scores remain directly comparable.
+
+        Optimizations applied:
+        1. For imbalanced binary datasets, uses StratifiedKFold to maintain class distribution
+        2. For small datasets (n_samples < 100), reduces n_splits to prevent sparse folds
+        3. For larger datasets, maintains standard 5-fold CV
+        4. Falls back to plain KFold if stratification isn't applicable/possible
+
+        Returns:
+            CV strategy object (StratifiedKFold or KFold)
+        """
+        n_samples = self._n_samples_train
+
+        # Detect class imbalance
+        y_values = self.y_train if isinstance(self.y_train, pd.Series) else pd.Series(
+            self.y_train
+        )
+        y_unique = y_values.unique()
+        n_classes = len(y_unique)
+        is_binary = n_classes == 2
+
+        class_ratio = 1.0
+        value_counts = None
+        if is_binary:
+            value_counts = y_values.value_counts()
+            if len(value_counts) >= 2:
+                class_ratio = min(value_counts) / max(value_counts)
+
+        # Determine n_splits based on dataset size.
+        # Smaller datasets need fewer splits to avoid very small training folds.
+        if n_samples < 30:
+            n_splits = 2
+        elif n_samples < 100:
+            n_splits = 3
+        elif n_samples < 500:
+            n_splits = 5
+        else:
+            n_splits = 5
+
+        # Check global cv_strategy parameter to override auto-selection
+        if getattr(self.global_params, "cv_strategy", None) == "standard":
+            self.logger.debug("Using standard K-fold (cv_strategy='standard')")
+            return KFold(n_splits=n_splits, shuffle=True, random_state=1)
+
+        # For binary classification, prefer StratifiedKFold to preserve class
+        # distribution across folds, provided there are enough samples per class.
+        if is_binary and is_sklearn_version_supported():
+            try:
+                from sklearn.model_selection import StratifiedKFold
+
+                min_class_samples = (
+                    min(value_counts) if value_counts is not None else 0
+                )
+
+                if min_class_samples >= n_splits:
+                    self.logger.debug(
+                        f"Using StratifiedKFold for binary classification "
+                        f"(class ratio={class_ratio:.2f}, n_samples={n_samples})"
+                    )
+                    return StratifiedKFold(
+                        n_splits=n_splits, shuffle=True, random_state=1
+                    )
+                else:
+                    self.logger.debug(
+                        "Not enough samples per class for StratifiedKFold "
+                        f"(min_class_samples={min_class_samples} < n_splits={n_splits}). "
+                        "Falling back to KFold."
+                    )
+            except Exception as e:
+                self.logger.debug(f"StratifiedKFold unavailable, falling back: {e}")
+
+        # Fallback to standard KFold
+        return KFold(n_splits=n_splits, shuffle=True, random_state=1)
+
+    def _calculate_convergence_threshold(self, n_samples, n_splits):
+        """
+        Calculates a variance threshold used only for informational convergence
+        logging (NOT for early-stopping / truncating folds, which would break
+        cross-algorithm score comparability).
+
+        Args:
+            n_samples: Number of training samples
+            n_splits: Number of CV splits
+
+        Returns:
+            float: Variance threshold for convergence logging
+        """
+        base_threshold = 0.01
+
+        if n_samples < 50:
+            threshold_multiplier = 2.0
+        elif n_samples < 200:
+            threshold_multiplier = 1.5
+        elif n_samples < 1000:
+            threshold_multiplier = 1.0
+        else:
+            threshold_multiplier = 0.8
+
+        if n_splits >= 5:
+            split_factor = 0.9
+        elif n_splits >= 3:
+            split_factor = 1.0
+        else:
+            split_factor = 1.2
+
+        return base_threshold * threshold_multiplier * split_factor
+
+    def _optimized_cross_validate(
+        self,
+        estimator,
+        X,
+        y,
+        scoring,
+        cv,
+        n_jobs=1,
+        error_score=np.nan,
+    ):
+        """
+        Parallel cross-validation with correctly resolved scorers.
+
+        This is an OPT-IN alternative to sklearn's cross_validate, enabled via
+        global_parameters.use_optimized_cv = True. It exists mainly as a hook
+        for future optimizations (e.g. estimator-specific fast paths); today it
+        intentionally mirrors sklearn's own semantics rather than introducing
+        early-stopping/fold-truncation, because truncating folds differently
+        per-algorithm breaks cross-algorithm score comparability, which is the
+        core requirement of this grid search framework.
+
+        Args:
+            estimator: The estimator to cross-validate (unfitted or fitted; will
+                be cloned per fold).
+            X: Training features.
+            y: Training labels.
+            scoring: List of sklearn scorer name strings (e.g. ["accuracy", "f1"]).
+            cv: A cross-validation splitter.
+            n_jobs: Number of parallel jobs for fold dispatch.
+            error_score: Value to assign if a fold's fit fails.
+
+        Returns:
+            Dictionary matching sklearn.model_selection.cross_validate's output
+            shape: {"fit_time": ..., "score_time": ..., "test_<metric>": ..., ...}
+        """
+        # Resolve scorer name strings to actual scorer callables up front.
+        # `scoring` is a list of strings (e.g. self.global_params.metric_list),
+        # NOT a dict, so we must not call .items()/.keys() on it directly.
+        if isinstance(scoring, dict):
+            scorer_dict = scoring
+        else:
+            scorer_dict = {name: metrics.get_scorer(name) for name in scoring}
+
+        X = sklearn.utils.validation.check_array(
+            X, accept_sparse=True, dtype=None, force_all_finite=False
+        )
+        y = sklearn.utils.validation.check_array(y, ensure_2d=False, dtype=None)
+
+        n_samples = X.shape[0] if hasattr(X, "shape") else len(X)
+        n_splits = (
+            cv.get_n_splits(X, y) if hasattr(cv, "get_n_splits") else getattr(cv, "n_splits", 3)
+        )
+
+        # Used only for informational logging, not to truncate folds.
+        convergence_threshold = self._calculate_convergence_threshold(
+            n_samples, n_splits
+        )
+
+        def _fit_and_score_fold(train_idx, val_idx):
+            X_train_fold, X_val_fold = X[train_idx], X[val_idx]
+            y_train_fold, y_val_fold = y[train_idx], y[val_idx]
+
+            fold_estimator = sklearn.base.clone(estimator)
+
+            fold_fit_start = time.time()
+            try:
+                fold_estimator.fit(X_train_fold, y_train_fold)
+            except Exception as e:
+                self.logger.warning(f"CV fold failed during fit: {e}")
+                fold_result = {"fit_time": 0.0, "score_time": 0.0}
+                for metric_name in scorer_dict:
+                    fold_result[f"test_{metric_name}"] = error_score
+                return fold_result
+            fit_time = time.time() - fold_fit_start
+
+            fold_score_start = time.time()
+            fold_result = {"fit_time": fit_time}
+            for metric_name, scorer in scorer_dict.items():
+                try:
+                    fold_result[f"test_{metric_name}"] = scorer(
+                        fold_estimator, X_val_fold, y_val_fold
+                    )
+                except Exception as e:
+                    self.logger.warning(
+                        f"Score calculation failed for '{metric_name}': {e}"
+                    )
+                    fold_result[f"test_{metric_name}"] = error_score
+            fold_result["score_time"] = time.time() - fold_score_start
+            return fold_result
+
+        splits = list(cv.split(X, y))
+
+        fold_results = joblib.Parallel(n_jobs=n_jobs, backend="threading")(
+            joblib.delayed(_fit_and_score_fold)(train_idx, val_idx)
+            for train_idx, val_idx in splits
+        )
+
+        # Informational convergence logging only (does not affect fold count).
+        for metric_name in scorer_dict:
+            metric_values = [
+                fr[f"test_{metric_name}"]
+                for fr in fold_results
+                if isinstance(fr.get(f"test_{metric_name}"), (int, float))
+            ]
+            if len(metric_values) >= 2:
+                score_variance = np.var(metric_values)
+                if score_variance < convergence_threshold:
+                    self.logger.debug(
+                        f"CV scores for '{metric_name}' show low variance "
+                        f"({score_variance:.6f} < {convergence_threshold:.6f}); "
+                        "folds appear converged (all folds still run for comparability)."
+                    )
+
+        # Assemble sklearn-cross_validate-shaped output.
+        converted_scores = {}
+        converted_scores["fit_time"] = np.array(
+            [fr["fit_time"] for fr in fold_results]
+        )
+        converted_scores["score_time"] = np.array(
+            [fr["score_time"] for fr in fold_results]
+        )
+        for metric_name in scorer_dict:
+            key = f"test_{metric_name}"
+            converted_scores[key] = np.array(
+                [fr.get(key, error_score) for fr in fold_results]
+            )
+
+        return converted_scores
 
     def _optimize_y(self, y):
         """Helper to optimize y for sklearn/H2O to reduce type_of_target overhead."""

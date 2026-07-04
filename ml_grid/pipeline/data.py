@@ -309,6 +309,9 @@ class pipe:
         self.time_series_mode = time_series_mode
 
         self.model_class_dict = model_class_dict
+        
+        # Initialize critical attributes early in case of exception during initialization
+        self.outcome_variable: Optional[str] = None
 
         redirect_stdout = not self.global_params.bayessearch
         self._setup_pipeline(experiment_dir, redirect_stdout)
