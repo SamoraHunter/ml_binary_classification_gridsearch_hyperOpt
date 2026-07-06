@@ -10,6 +10,7 @@ This is the documentation for the ``ml-grid`` project, a framework for binary cl
    :caption: Contents:
 
    getting_started
+   api_reference
    autoapi/index
 
 
