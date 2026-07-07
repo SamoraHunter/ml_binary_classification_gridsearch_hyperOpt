@@ -37,7 +37,7 @@ Inserts a single result record into the database with automatic type conversion 
 ##### `_sanitize_value(self, value: Any) -> Any`
 Converts numpy types and search space objects to native Python types for SQLite storage.
 
-**Parameters**: 
+**Parameters**:
 - `value` (Any): Value to sanitize.
 
 **Returns**: Sanitized value suitable for SQLite storage.
@@ -86,7 +86,7 @@ A utility class for conditional debug printing during pipeline execution.
 ##### `__init__(self, verbose: int = 0)`
 Initializes with specified verbosity level. Lower values produce less output.
 
-##### `print(self, *args, **kwargs)`  
+##### `print(self, *args, **kwargs)`
 Prints arguments if verbose level is enabled.
 
 ---
@@ -119,7 +119,7 @@ Configures and returns a logger instance.
 
 Implements multi-stage hyperparameter optimization with progressive refinement. Supports three stages:
 1. **Coarse Search**: Broad exploration with minimal evaluations per parameter
-2. **Fine Search**: Focused exploitation on promising regions  
+2. **Fine Search**: Focused exploitation on promising regions
 3. **Refinement**: Detailed optimization of top candidates
 
 #### Methods
@@ -143,7 +143,7 @@ Executes hierarchical hyperparameter search across all stages.
 - `max_trials_per_stage` (Optional[Dict[str, int]], optional): Override trial counts per stage.
 - `verbose` (bool): Whether to log progress details.
 
-**Returns**: 
+**Returns**:
 Tuple of (best_result, all_results_by_stage) where best_result is SearchResult and all_results_by_stage maps stage names to result lists.
 
 ---
@@ -253,7 +253,7 @@ Prepares arguments for executing grid search on a single model.
 **Parameters**:
 - `model_class`: A model class reference from the arg_list tuple.
 
-**Returns**: 
+**Returns**:
 Tuple containing: (algorithm_implementation, parameter_space, method_name, ml_grid_object, sub_sample_parameter_val, project_score_save_class_instance)
 
 ##### `execute_single_model(self, args: Tuple) -> float`
@@ -263,10 +263,10 @@ Executes grid search for a single model and returns its score. Designed to be ca
 **Parameters**:
 - `args` (Tuple): Argument tuple from arg_list containing model configuration.
 
-**Returns**: 
+**Returns**:
 float - The evaluation score of the model.
 
-**Raises**: 
+**Raises**:
 - TimeoutError: If model execution exceeds time limit.
 - Exception: Other exceptions are caught and logged, returning 0.0 unless error_raise is True.
 
@@ -274,7 +274,7 @@ float - The evaluation score of the model.
 
 Executes grid search for each model in the model list. Iterates through configured models and parameter spaces, running cross-validated grid search for each one.
 
-**Returns**: 
+**Returns**:
 Tuple containing:
 - `model_error_list` (List[List[Any]]): List of model errors with algorithm instance, exception, and traceback.
 - `highest_score` (float): Highest score achieved across all successful model runs.
@@ -313,7 +313,7 @@ Initializes and runs cross-validated hyperparameter search.
 ##### `grid_search_cross_validate_score_result` (property)
 Returns the final evaluation score from cross-validation.
 
-**Returns**: 
+**Returns**:
 float - The best score achieved during hyperparameter search.
 
 ## Module: `ml_grid.pipeline.grid_search_cross_validate_ts`
@@ -346,7 +346,7 @@ Initializes time-series cross-validation search.
 ##### `grid_search_cross_validate_score_result` (property)
 Returns the final evaluation score from cross-validation.
 
-**Returns**: 
+**Returns**:
 float - The best score achieved during hyperparameter search.
 
 ## Module: `ml_grid.pipeline.hyperparameter_search`
@@ -381,7 +381,7 @@ Executes the hyperparameter search using GridSearchCV, RandomizedSearchCV, or Ba
 - `X_train` (pd.DataFrame): Training features with reset index.
 - `y_train` (pd.Series): Training labels with reset index.
 
-**Returns**: 
+**Returns**:
 BaseEstimator - The best estimator found during the search, with `cv_results_` and `best_index_` attributes attached.
 
 ---
@@ -460,7 +460,7 @@ Selects features based on configuration parameters.
 
 Ensures at least one feature remains when pruning would leave zero features. Activates fallback mechanism that prioritizes core protected columns, then original perturbed columns, and finally random selection.
 
-**Raises**: 
+**Raises**:
 NoFeaturesError: If safety net fails to retain at least one feature.
 
 ##### `_create_xy(self)`
@@ -471,7 +471,7 @@ Creates feature matrix X and target y with proper index alignment.
 
 Converts data to 3D format required by aeon time-series classifiers when in time-series mode.
 
-**Raises**: 
+**Raises**:
 ImportError/ModuleNotFoundError: If time-series libraries not installed.
 
 ##### `_split_data(self)`
@@ -499,7 +499,7 @@ Selects top features based on importance scores if configured via `feature_n` pa
 
 Applies dimensionality reduction using PCA, SVD, or other embedding methods.
 
-**Parameters**: 
+**Parameters**:
 Determines method from `local_param_dict.get("embedding_method", "pca")`.
 
 ##### `_finalize_pipeline(self)`
@@ -521,7 +521,7 @@ Generates a list of instantiated model classes based on configuration.
 **Parameters**:
 - `ml_grid_object` (pipe): Main data pipeline object containing training data and configuration.
 
-**Returns**: 
+**Returns**:
 List[Any] - List of instantiated model class objects.
 
 **Features**:
@@ -554,7 +554,7 @@ Generates a list of instantiated time-series model classes based on configuratio
 **Parameters**:
 - `ml_grid_object` (pipe): Main data pipeline object containing training data and global parameters.
 
-**Returns**: 
+**Returns**:
 List[Any] - List of instantiated time-series model class objects.
 
 #### TS_MODEL_CLASS_MAP
@@ -602,10 +602,10 @@ Initializes the GlobalParameters instance with default values.
 
 Updates global parameters at runtime.
 
-**Parameters**: 
+**Parameters**:
 **kwargs (Any): Key-value pairs of parameters to update.
 
-**Raises**: 
+**Raises**:
 AttributeError: If key is not a valid parameter.
 
 ### Singleton Instance
@@ -640,7 +640,7 @@ Initializes the score logger and creates log file with headers.
 
 Logs results to all three database tiers.
 
-**Parameters**: 
+**Parameters**:
 - `result_data` (Dict[str, Any]): The full result dictionary including metrics and configuration.
 
 ##### `update_score_log(self, ml_grid_object: Any, scores: Dict[str, np.ndarray], best_pred_orig: np.ndarray, current_algorithm: Any, method_name: str, pg: int, start: float, n_iter_v: int, failed: bool, timeout: bool = False)`
@@ -675,17 +675,17 @@ Approximates the number of parameter combinations for hyperparameter search.
 - `parameter_space` (Union[Dict[str, Any], List[Dict[str, Any]]]): Single dictionary or list of dictionaries representing parameter space.
 - `steps` (int, optional): Granularity for discretizing continuous parameters. Defaults to 10.
 
-**Returns**: 
+**Returns**:
 int - Approximate total number of parameter combinations.
 
 #### `is_skopt_space(param_value: Any) -> bool`
 
 Checks if a parameter value is a scikit-optimize space object.
 
-**Parameters**: 
+**Parameters**:
 - `param_value` (Any): Parameter value to check.
 
-**Returns**: 
+**Returns**:
 bool - True if value is Real, Integer, or Categorical from skopt.
 
 ---
@@ -730,7 +730,7 @@ Uses skopt.space objects instead of arrays:
 ##### `get(self, key: str) -> Any`
 Retrieves a specific parameter template by key.
 
-**Parameters**: 
+**Parameters**:
 - `key` (str): The parameter name to retrieve.
 
 **Returns**: Value from param_dict or None if key doesn't exist.
@@ -761,24 +761,24 @@ Initializes the ResultsAggregator.
 
 Gets list of available run folders by searching for log files recursively.
 
-**Returns**: 
+**Returns**:
 List[str] - Sorted list of valid run folder names.
 
 ##### `load_single_run(self, timestamp_folder: str) -> pd.DataFrame`
 
 Loads results from a specific timestamped run folder.
 
-**Parameters**: 
+**Parameters**:
 - `timestamp_folder` (str): Name of the run folder.
 
-**Returns**: 
+**Returns**:
 pd.DataFrame - DataFrame containing results for that run.
 
 ##### `aggregate_all_runs(self) -> pd.DataFrame`
 
 Aggregates results from all available runs in root folder.
 
-**Returns**: 
+**Returns**:
 pd.DataFrame - Single DataFrame with all aggregated results.
 
 ##### `load_from_db(self, db_path: str, include_summaries: bool = True, include_models: bool = True) -> pd.DataFrame`
@@ -790,17 +790,17 @@ Loads results from SQLite database backend.
 - `include_summaries` (bool): Whether to include HYPEROPT_TRIAL_BEST_SCORE records. Default: True.
 - `include_models` (bool): Whether to include individual model evaluation records. Default: True.
 
-**Returns**: 
+**Returns**:
 pd.DataFrame - Aggregated results from database.
 
 ##### `get_summary_stats(self, data: Optional[pd.DataFrame] = None) -> pd.DataFrame`
 
 Gets summary statistics for aggregated results.
 
-**Parameters**: 
+**Parameters**:
 - `data` (Optional[pd.DataFrame], optional): DataFrame to summarize. Uses internal data if None. Defaults to None.
 
-**Returns**: 
+**Returns**:
 pd.DataFrame - DataFrame containing descriptive statistics including count of runs, algorithms, and outcomes.
 
 ##### `get_outcome_variables(self, data: Optional[pd.DataFrame] = None) -> List[str]`
@@ -809,7 +809,7 @@ Gets list of unique outcome variables from data.
 
 **Parameters**: Same as `get_summary_stats`.
 
-**Returns**: 
+**Returns**:
 List[str] - Sorted list of unique outcome variable names.
 
 ##### `get_data_by_outcome(self, outcome_variable: str, data: Optional[pd.DataFrame] = None) -> pd.DataFrame`
@@ -820,7 +820,7 @@ Filters data for a specific outcome variable.
 - `outcome_variable` (str): Outcome variable to filter by.
 - `data` (Optional[pd.DataFrame], optional): DataFrame to filter. Defaults to None.
 
-**Returns**: 
+**Returns**:
 pd.DataFrame - DataFrame containing only data for specified outcome.
 
 ##### `get_outcome_summary(self, data: Optional[pd.DataFrame] = None) -> pd.DataFrame`
@@ -829,7 +829,7 @@ Gets summary statistics stratified by outcome variable.
 
 **Parameters**: Same as other methods.
 
-**Returns**: 
+**Returns**:
 pd.DataFrame - Multi-index DataFrame with summary statistics for each outcome variable.
 
 ### Class: `DataValidator`
@@ -842,10 +842,10 @@ A utility class for validating and checking the quality of results data.
 
 Validates structure and quality of results DataFrame.
 
-**Parameters**: 
+**Parameters**:
 - `df` (pd.DataFrame): The DataFrame to validate.
 
-**Returns**: 
+**Returns**:
 Dict[str, Any] - Validation report containing:
 - total_records
 - columns_present
@@ -869,7 +869,7 @@ Utility function to get clean data for analysis by removing failed runs.
 - `df` (pd.DataFrame): Input DataFrame.
 - `remove_failed` (bool, optional): If True, removes rows where 'failed' column is 1. Defaults to True.
 
-**Returns**: 
+**Returns**:
 pd.DataFrame - Cleaned DataFrame.
 
 #### `stratify_by_outcome(df: pd.DataFrame, func: callable, *args: Any, **kwargs: Any) -> Dict[str, Any]`
@@ -881,7 +881,7 @@ Applies a function to data stratified by outcome variable.
 - `func` (callable): Function to apply to each outcome's data subset.
 - `*args`, `**kwargs`: Arguments to pass to the function.
 
-**Returns**: 
+**Returns**:
 Dict[str, Any] - Dictionary with outcome variables as keys and function results as values.
 
 ---
@@ -898,7 +898,7 @@ Generates concise DataFrame summaries from aggregated results.
 
 Initializes the summarizer.
 
-**Parameters**: 
+**Parameters**:
 - `data` (pd.DataFrame): Aggregated results DataFrame.
 
 #### Methods
@@ -910,7 +910,7 @@ Finds best model for each outcome and expands feature list into boolean columns.
 **Parameters**:
 - `metric` (str, optional): Performance metric to determine best model. Defaults to 'auc'.
 
-**Returns**: 
+**Returns**:
 pd.DataFrame - DataFrame containing best model run for each outcome with additional boolean columns for features.
 
 ---
@@ -924,7 +924,7 @@ pd.DataFrame - DataFrame containing best model run for each outcome with additio
 #### `plot_master(self, experiment_dir) -> pd.DataFrame`
 Master plot function that generates comprehensive visualizations for the experiment.
 
-#### `plot_algorithms(scoring_data)`  
+#### `plot_algorithms(scoring_data)`
 Plots algorithm performance comparison charts using box plots or bar charts.
 
 **Parameters**:
@@ -1071,7 +1071,7 @@ All time-series models wrap the aeon library classifiers with:
 **Transform-based Methods**:
 - `MUSE_class` - Multivariate series transformation with sliding windows.
 - `RocketClassifier_class` - Random convolutional kernels (RoCKET).
-- `SignatureClassifier_class` - Signature-based features from path. 
+- `SignatureClassifier_class` - Signature-based features from path.
 
 **Specialized**:
 - `EncoderClassifier_class` - Encoder using deep learning.
@@ -1147,11 +1147,11 @@ All time-series models wrap the aeon library classifiers and provide:
 ##### KNeighborsTimeSeriesClassifier
 k-NN classification for time series using dynamic time warping distance.
 
-**Parameters**: 
+**Parameters**:
 - `n_neighbors` (int): Number of neighbors.
 - `distance_params` (dict): Dictionary of distance metric parameters.
 
-##### ResNetClassifier  
+##### ResNetClassifier
 Deep residual network for time series classification with automatic padding adjustment.
 
 **Key Features**:
@@ -1199,7 +1199,7 @@ Dictionary-based machine learning for time series classification with word occur
 ##### SummaryClassifier
 Feature-based ensemble using summary statistics from time series segments.
 
-##### CNNClassifier  
+##### CNNClassifier
 Convolutional neural network for time series classification.
 
 ##### FCNClassifier
@@ -1270,19 +1270,19 @@ AutoML built on Keras with Bayesian optimization.
 
 Context manager that enforces time limit on code execution using SIGALRM. Supports nesting by preserving outer timeout values.
 
-**Parameters**: 
+**Parameters**:
 - seconds (int): Maximum execution time in seconds. If None, 0, negative, or not supported, no timeout is enforced.
 
 **Returns**: Yields a context where code execution must complete within the specified time.
 
-**Raises**: 
+**Raises**:
 TimeoutError: If execution exceeds specified time.
 Exception: Other exceptions are re-raised after resetting signal handlers.
 
 ### `custom_roc_auc_score(y_true: np.ndarray, y_pred: np.ndarray) -> float`
 Custom ROC AUC with single-class handling. Returns np.nan if only one class present or y_pred is None.
 
-**Parameters**: 
+**Parameters**:
 - `y_true` (np.ndarray): True binary labels.
 - `y_pred` (np.ndarray): Target scores or predicted labels.
 

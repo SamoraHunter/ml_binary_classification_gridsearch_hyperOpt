@@ -198,11 +198,11 @@ param_space_df = parameter_space(config['param_space']).get_parameter_space()
 for i, row in param_space_df.iterrows():
     local_param_dict = row.to_dict()
     print(f"Running experiment {i+1}/{len(param_space_df)} with params: {local_param_dict}")
-    
+
     # Instantiate the pipe class with correct parameters
     from ml_grid.pipeline.data import pipe
     from ml_grid.util.create_experiment_directory import create_experiment_directory
-    
+
     pipe_instance = pipe(
         file_name=config['data']['file_path'],
         drop_term_list=config['data']['drop_term_list'],

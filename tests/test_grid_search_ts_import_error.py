@@ -60,7 +60,7 @@ def test_tf_traceback_error_handling():
 from unittest.mock import patch
 
 # Mock disable_traceback_filtering to raise AttributeError
-with patch('tensorflow.debugging.disable_traceback_filtering', 
+with patch('tensorflow.debugging.disable_traceback_filtering',
            side_effect=AttributeError("Mock error")):
     from ml_grid.pipeline import grid_search_cross_validate_ts as g
 
@@ -84,9 +84,11 @@ if __name__ == "__main__":
 
     # Write coverage config
     with open(".coveragerc", "w") as f:
-        f.write("""[report]
+        f.write(
+            """[report]
 omit = */site-packages/*
-""")
+"""
+        )
 
     try:
         test_torch_import_error_handling()

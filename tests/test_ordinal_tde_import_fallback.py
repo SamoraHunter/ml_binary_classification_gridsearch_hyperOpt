@@ -21,12 +21,12 @@ import sys
 
 class ImportBlocker:
     """Blocks aeon.classification.ordinal_classification import."""
-    
+
     def find_module(self, name, path=None):
         if name == "aeon.classification.ordinal_classification":
             raise ImportError(f"Blocked: {name}")
         return None
-    
+
 # Add blocker at the front of sys.meta_path
 blocker = ImportBlocker()
 sys.meta_path.insert(0, blocker)

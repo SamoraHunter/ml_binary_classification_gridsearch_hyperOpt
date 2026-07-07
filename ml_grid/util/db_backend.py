@@ -21,7 +21,8 @@ class DatabaseBackend:
     def _init_db(self):
         """Initializes the results table if it doesn't exist."""
         with self._get_connection() as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 CREATE TABLE IF NOT EXISTS ml_results (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     run_timestamp TEXT,
@@ -78,7 +79,8 @@ class DatabaseBackend:
                     run_path TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
-            """)
+            """
+            )
             conn.commit()
 
     def _sanitize_value(self, value: Any) -> Any:
