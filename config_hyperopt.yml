@@ -94,7 +94,7 @@ ts_models:
   MUSE: true
   OrdinalTDE: true
   ResNetClassifier: true
-  SignatureClassifier: true
+  SignatureClassifier: false
   SummaryClassifier: true
   TemporalDictionaryEnsemble: true
   # Univariate models, disabled by default
