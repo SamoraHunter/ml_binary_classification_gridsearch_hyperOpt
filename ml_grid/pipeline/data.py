@@ -384,9 +384,17 @@ class pipe:
             drop_term_list=drop_term_list,
         )
         if outcome_var_override is None:
-            self.outcome_variable = (
-                f'outcome_var_{local_param_dict.get("outcome_var_n")}'
-            )
+            outcome_var_value = local_param_dict.get("outcome_var_n")
+            # Handle both string and list representations (hyperopt may return strings or lists)
+            if isinstance(outcome_var_value, str):
+                # Strip brackets if it's a string representation of a list like "['1']"
+                clean_value = outcome_var_value.strip('[]').strip("'\"").strip()
+                self.outcome_variable = f"outcome_var_{clean_value}"
+            elif isinstance(outcome_var_value, (list, tuple)):
+                # For lists/tuples, take the first element
+                self.outcome_variable = f"outcome_var_{outcome_var_value[0]}"
+            else:
+                self.outcome_variable = f"outcome_var_{outcome_var_value}"
         else:
             self.logger.info(f"outcome_var_override provided: {outcome_var_override}")
             self.logger.info(f"Setting outcome var to: {outcome_var_override}")
