@@ -135,6 +135,15 @@ def get_model_class_list_ts(ml_grid_object: pipe) -> List[Any]:
                 try:
                     model_instance = model_class(ml_grid_object)
                     model_class_list.append(model_instance)
+                except ModuleNotFoundError as e:
+                    if "esig" in str(e) or ("sig" in str(e) and "signatures" not in str(e)):
+                        logger.warning(
+                            f"Skipping {class_name} (missing optional dependency: {e})"
+                        )
+                    else:
+                        logger.error(
+                            f"Failed to instantiate {class_name}: {e}", exc_info=True
+                        )
                 except Exception as e:
                     logger.error(
                         f"Failed to instantiate {class_name}: {e}", exc_info=True

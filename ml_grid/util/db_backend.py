@@ -28,6 +28,7 @@ class DatabaseBackend:
                     run_timestamp TEXT,
                     date_time_stamp TEXT,
                     method_name TEXT,
+                    algorithm_implementation TEXT,
                     outcome_variable TEXT,
                     auc REAL,
                     f1 REAL,
@@ -85,6 +86,17 @@ class DatabaseBackend:
 
     def _sanitize_value(self, value: Any) -> Any:
         """Converts numpy types and search space objects to native Python types for SQLite."""
+        # Handle classifier instances by converting to their class name string
+        if hasattr(value, "__class__"):
+            cls_module = getattr(value, "__module__", "")
+            # Check if it's a known estimator type from common ML libraries
+            if any(m in cls_module.lower() for m in ["sklearn.", "xgboost", "lightgbm", "catboost", "h2o"]):
+                try:
+                    return str(getattr(value, "__class__").__name__)
+                except Exception:
+                    pass
+        
+        # Handle numpy and standard types
         if isinstance(value, (np.float32, np.float64)):
             return float(value)
         if isinstance(value, (np.int32, np.int64)):
@@ -116,6 +128,7 @@ class DatabaseBackend:
             "run_timestamp",
             "date_time_stamp",
             "method_name",
+            "algorithm_implementation",
             "outcome_variable",
             "auc",
             "f1",
@@ -171,6 +184,11 @@ class DatabaseBackend:
         values = []
         for col in columns:
             val = result_data.get(col)
+            
+            # Special handling for algorithm_implementation to ensure string type
+            if col == "algorithm_implementation" and val is not None:
+                # Ensure it's a string before processing
+                val = str(val) if not isinstance(val, str) else val
 
             # Key mapping for aliases used in project_score_save
             if val is None:
@@ -267,6 +285,10 @@ class DatabaseBackend:
 
             if col in ["parameters", "f_list"] and isinstance(val, (dict, list)):
                 val = json.dumps(val)
+
+            # Handle algorithm_implementation - convert to string if needed
+            if col == "algorithm_implementation" and not isinstance(val, str):
+                val = str(val) if val is not None else "None"
 
             values.append(val)
 

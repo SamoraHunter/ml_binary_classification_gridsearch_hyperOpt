@@ -15,12 +15,45 @@ from sklearn.metrics import (
 import pickle
 import logging
 import warnings
+import json
 from typing import Any, Dict, List
 from ml_grid.util.db_backend import DatabaseBackend
 import h2o
 
 # from sklearn.utils.testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
+
+
+def _make_json_serializable(obj: Any) -> Any:
+    """Converts an object to be JSON serializable by converting or skipping non-serializable types.
+    
+    Args:
+        obj: The object to make serializable
+        
+    Returns:
+        A JSON-serializable version of the object
+    """
+    if isinstance(obj, (str, int, float, bool, type(None))):
+        return obj
+    elif isinstance(obj, (list, tuple)):
+        return [_make_json_serializable(item) for item in obj]
+    elif isinstance(obj, dict):
+        return {k: _make_json_serializable(v) for k, v in obj.items() if not callable(v)}
+    elif hasattr(obj, '__dict__') and not callable(getattr(obj, '__dict__', None)):
+        # For objects with __dict__, convert it but skip callables
+        serializable_dict = {}
+        for key, value in obj.__dict__.items():
+            if not callable(value) and not key.startswith('_'):
+                try:
+                    json.dumps({key: value})  # Test if serializable
+                    serializable_dict[key] = value
+                except (TypeError, OverflowError):
+                    # If not serializable, convert to string representation
+                    serializable_dict[key] = str(value)
+        return serializable_dict
+    else:
+        # For anything else, use its string representation
+        return str(obj)
 
 
 def _get_score_log_columns(metric_list: List[str]) -> List[str]:
@@ -327,7 +360,11 @@ class project_score_save_class:
             # f_list.append(np.array(current_f_vector))
             f_list.append(current_f_vector)
 
-            row_data["algorithm_implementation"] = current_algorithm
+            row_data["algorithm_implementation"] = (
+                getattr(current_algorithm, "__class__", type(current_algorithm)).__name__
+                if current_algorithm is not None
+                else "None"
+            )
 
             # Filter out large data objects from parameters to prevent logging errors and bloat
             safe_params = {}
@@ -345,7 +382,13 @@ class project_score_save_class:
                         "training_frame",
                     ] and not isinstance(v, (pd.DataFrame, pd.Series, np.ndarray)):
                         safe_params[k] = v
-            row_data["parameter_sample"] = safe_params
+            # Make parameter_sample JSON serializable before storing
+            param_sample_copy = safe_params.copy()
+            for k, v in list(param_sample_copy.items()):
+                if callable(v) or hasattr(v, '__dict__') and not isinstance(v, (str, int, float, bool, type(None), dict, list)):
+                    # Skip callables and complex non-serializable objects
+                    param_sample_copy[k] = str(type(v).__name__)
+            row_data["parameter_sample"] = _make_json_serializable(param_sample_copy)
             row_data["method_name"] = method_name
             row_data["nb_size"] = sum(np.array(current_f_vector))
             row_data["date_time_stamp"] = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -434,7 +477,14 @@ class project_score_save_class:
             line[column_list].to_csv(self.log_path, mode="a", header=False, index=False)
 
             # Log high-resolution model data to both databases
-            self.log_to_db(row_data)
+            # Convert non-serializable algorithm object to class name string for DB storage
+            row_data_db = row_data.copy()
+            
+            # Remove algorithm_implementation before DB insert as it's not in schema
+            # It's still logged to CSV via line[column_list]
+            row_data_db.pop("algorithm_implementation", None)
+            
+            self.log_to_db(row_data_db)
 
             if store_models and not failed and not timeout:
                 # Check if the model is an H2O model by inspecting its base classes
