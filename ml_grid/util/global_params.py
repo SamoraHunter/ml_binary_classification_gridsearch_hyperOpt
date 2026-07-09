@@ -7,6 +7,26 @@ custom scoring function for ROC AUC that handles cases with a single class.
 
 import os
 import sys
+
+# Detect GPU availability before setting CUDA_VISIBLE_DEVICES
+_has_cuda = False
+try:
+    import tensorflow as tf
+    gpus = tf.config.list_physical_devices('GPU')
+    if gpus and len(gpus) > 0:
+        _has_cuda = True
+except Exception:
+    pass
+
+if not _has_cuda:
+    # Disable CUDA only if no GPU is available
+    os.environ["CUDA_VISIBLE_DEVICES"] = ""
+
+# Suppress TensorFlow CUDA warnings before importing (these are safe even if GPU exists)
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+os.environ["KMP_AFFINITY"] = "disabled"
+
+import sys as _sys
 from typing import Any, Callable, Dict, List, Union
 import logging
 
