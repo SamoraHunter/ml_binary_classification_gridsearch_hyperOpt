@@ -82,42 +82,61 @@ def _patch_aeon_models():
             which can cause 'negative output size' errors even if padding seems
             sufficient for the first layer.
             """
-            # Ensure X is a numpy array; aeon might pass lists or pandas objects
-            if not isinstance(X, np.ndarray):
+            # Early return if data looks like it's already processed or not suitable for DL models
+            if isinstance(X, (list, tuple)):
                 try:
                     X = np.array(X)
                 except Exception:
                     return X
+            
+            # Check if this is a deep learning model input (3D array with numeric dtype)
+            if isinstance(X, np.ndarray):
+                # Skip normalization for non-numeric or malformed data
+                if not np.issubdtype(X.dtype, np.number) or X.size == 0:
+                    return X
+                
+                # Convert 2D (N, T) to 3D (N, C=1, T) for consistent handling
+                if X.ndim == 2:
+                    X = np.expand_dims(X, axis=1)
 
-            # Convert 2D (N, T) to 3D (N, C=1, T) for consistent handling
-            if X.ndim == 2:
-                X = np.expand_dims(X, axis=1)
+                if X.ndim == 3:
+                    # Robustly pad both dimensions 1 and 2 if they are too small.
+                    # This handles ambiguity between (N, C, T) and (N, T, C) layouts
+                    # and prevents "Computed output size would be negative" crashes
+                    # caused by dimension size 0 or very small values.
+                    for axis in [1, 2]:
+                        if X.shape[axis] < min_length:
+                            pad_width = min_length - X.shape[axis]
+                            logging.getLogger("ml_grid").debug(
+                                f"Padding axis {axis} from {X.shape[axis]} to {min_length}"
+                            )
 
-            if X.ndim == 3:
-                # Robustly pad both dimensions 1 and 2 if they are too small.
-                # This handles ambiguity between (N, C, T) and (N, T, C) layouts
-                # and prevents "Computed output size would be negative" crashes
-                # caused by dimension size 0 or very small values.
-                for axis in [1, 2]:
-                    if X.shape[axis] < min_length:
-                        pad_width = min_length - X.shape[axis]
-                        logging.getLogger("ml_grid").debug(
-                            f"Padding axis {axis} from {X.shape[axis]} to {min_length}"
-                        )
+                            pad_config = [(0, 0), (0, 0), (0, 0)]
+                            pad_config[axis] = (0, pad_width)
 
-                        pad_config = [(0, 0), (0, 0), (0, 0)]
-                        pad_config[axis] = (0, pad_width)
+                            # Use 'constant' padding (zeros) if dimension is empty (size 0),
+                            # otherwise use 'edge' to repeat last value.
+                            # 'edge' raises ValueError on size 0 arrays.
+                            mode = "constant" if X.shape[axis] == 0 else "edge"
 
-                        # Use 'constant' padding (zeros) if dimension is empty (size 0),
-                        # otherwise use 'edge' to repeat last value.
-                        # 'edge' raises ValueError on size 0 arrays.
-                        mode = "constant" if X.shape[axis] == 0 else "edge"
+                            X = np.pad(X, tuple(pad_config), mode=mode)
 
-                        X = np.pad(X, tuple(pad_config), mode=mode)
+                    # Transpose from (N, C, T) to (N, T, C) for Keras channels_last default.
+                    # This ensures Keras interprets T as Steps and C as Channels.
+                    X = np.transpose(X, (0, 2, 1))
 
-                # Transpose from (N, C, T) to (N, T, C) for Keras channels_last default.
-                # This ensures Keras interprets T as Steps and C as Channels.
-                X = np.transpose(X, (0, 2, 1))
+                # Normalize input data to prevent numerical instability
+                # Deep learning models are sensitive to input scale - clip and normalize
+                # Only proceed if we have valid numeric data with positive std
+                try:
+                    mean_val = np.nanmean(X)
+                    std_val = np.nanstd(X)
+                    if std_val > 0:
+                        X = (X - mean_val) / std_val
+                    # Clip extreme values that could cause gradient explosion
+                    X = np.clip(X, -10, 10)
+                except Exception:
+                    pass  # Skip normalization if computation fails
 
             return X
 
@@ -284,9 +303,10 @@ def _patch_aeon_models():
 
     except (ImportError, AttributeError) as e:
         logging.getLogger("ml_grid").debug(
-            f"Could not apply aeon predict_proba patch: {e}"
+            f"Could not apply aeon deep learning predict_proba patch: {e}"
         )
         pass
+
 
     # --- NEW PATCH for MUSE: handles param conflicts and IndexErrors ---
     # Fixes two issues:
